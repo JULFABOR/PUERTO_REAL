@@ -1,0 +1,20 @@
+# Created by venv; see https://docs.python.org/3/library/venv.html
+
+# Ignorar entornos virtuales
+venv/
+ENV/
+env/
+.venv/
+
+# Ignorar archivos compilados de Python
+__pycache__/
+*.py[cod]
+
+# Ignorar archivos de bases de datos locales
+db.sqlite3
+
+# Ignorar logs
+*.log
+
+# Ignorar configuraciones de VS Code
+.vscode/
