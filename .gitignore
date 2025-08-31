@@ -18,3 +18,7 @@ db.sqlite3
 
 # Ignorar configuraciones de VS Code
 .vscode/
+
+Lib/
+Scripts/
+pyvenv.cfg
