@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Bienvenido • Puerto Real{% endblock %}
+{% block body %}
+    {% include 'partials/navbar_publico.html' %}
+
+
+    <main class="max-w-7xl mx-auto px-4 py-8 grid md:grid-cols-2 gap-8">
+        <section>
+            <h1 class="text-3xl font-bold">{{ hero.titulo }}</h1>
+            <p class="text-gray-600 mt-2">{{ hero.subtitulo }}</p>
+            <div class="mt-6 flex gap-3">
+                <a href="{% url 'home:login_staff' %}" class="px-4 py-2 rounded bg-gray-900 text-white">Entrar al sistema</a>
+                <a href="{% url 'home:login_cliente' %}" class="px-4 py-2 rounded border">Soy cliente</a>
+            </div>
+        </section>
+
+
+        <section class="bg-white border rounded-xl p-6">
+            {% if focus_login_staff %}
+                <h2 class="font-semibold mb-4">Login Staff</h2>
+                <form method="post" action="{% url 'home:login_staff' %}" class="space-y-3">{% csrf_token %}
+                    {{ form_staff.as_p }}
+                    <div class="flex gap-2">
+                        <button class="px-3 py-2 bg-gray-900 text-white rounded">Ingresar</button>
+                        <a href="{% url 'home:index_publico' %}" class="px-3 py-2 border rounded">Cancelar</a>
+                    </div>
+                </form>
+            {% elif focus_login_cliente %}
+                <h2 class="font-semibold mb-4">Login Cliente</h2>
+                <form method="post" action="{% url 'home:login_cliente' %}" class="space-y-3">{% csrf_token %}
+                {{ form_cliente.as_p }}
+                    <div class="flex gap-2">
+                        <button class="px-3 py-2 bg-gray-900 text-white rounded">Ingresar</button>
+                        <a href="{% url 'home:registro_cliente' %}" class="px-3 py-2 border rounded">Crear cuenta</a>
+                        <a href="{% url 'home:index_publico' %}" class="px-3 py-2 border rounded">Cancelar</a>
+                    </div>
+                </form>
+            {% elif focus_registro %}
+                <h2 class="font-semibold mb-4">Registro de Cliente</h2>
+                <form method="post" action="{% url 'home:registro_cliente' %}" class="space-y-3">{% csrf_token %}
+                {{ form_registro.as_p }}
+                    <div class="flex gap-2">
+                        <button class="px-3 py-2 bg-gray-900 text-white rounded">Crear cuenta</button>
+                        <a href="{% url 'home:login_cliente' %}" class="px-3 py-2 border rounded">Volver</a>
+                    </div>
+                </form>
+            {% else %}
+                <div class="text-sm text-gray-600">Usá los botones para ingresar como Staff o Cliente.</div>
+            {% endif %}
+        </section>
+    </main>
+{% endblock %}

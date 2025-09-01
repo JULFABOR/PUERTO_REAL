@@ -1,0 +1,83 @@
+{% extends "base_caja.html" %}
+{% block title %}Rendir Fondo de Pagos{% endblock %}
+{% block content %}
+<div class="mx-auto max-w-2xl">
+  <div class="bg-white shadow rounded-2xl p-6">
+    <h2 class="text-lg font-semibold mb-1">Rendir Fondo de Pagos</h2>
+    <p class="text-sm text-gray-600 mb-4">Saldo del fondo activo: <span class="font-semibold">${{ fondo.saldo|default:"0.00" }}</span></p>
+
+    <form method="post" id="form-rendir" class="space-y-4">
+      {% csrf_token %}
+
+      <div>
+        <label class="block text-sm font-medium mb-1">Monto a devolver</label>
+        {{ form.monto_a_devolver.as_widget(attrs={
+          'class':'block w-full rounded-xl border-gray-300 focus:border-sky-500 focus:ring-sky-500 p-2.5',
+          'step':'0.01',
+          'min':'0',
+          'placeholder':'0.00'
+        }) }}
+        {% if form.monto_a_devolver.errors %}
+          <p class="text-red-600 text-sm mt-1">{{ form.monto_a_devolver.errors.0 }}</p>
+        {% endif %}
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-2">
+        <a href="/" class="px-4 py-2 rounded-xl border hover:bg-gray-50">Cancelar</a>
+        <button type="button" id="btn-open-modal" class="px-4 py-2 rounded-xl bg-sky-600 text-white hover:bg-sky-700">Rendir</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Confirmación (Flowbite Modal) -->
+<div id="modal-confirm" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+  <div class="relative p-4 w-full max-w-md max-h-full">
+    <div class="relative bg-white rounded-lg shadow">
+      <div class="flex items-center justify-between p-4 border-b rounded-t">
+        <h3 class="text-lg font-semibold">Confirmar rendición</h3>
+        <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center" data-modal-hide="modal-confirm">
+          <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1 1l12 12M13 1 1 13"/>
+          </svg>
+          <span class="sr-only">Close</span>
+        </button>
+      </div>
+      <div class="p-4 space-y-2">
+        <p><span class="font-medium">Monto a devolver:</span> $<span id="conf-monto">0.00</span></p>
+      </div>
+      <div class="flex items-center justify-end gap-2 p-4 border-t">
+        <button data-modal-hide="modal-confirm" type="button" class="px-4 py-2 rounded-xl border hover:bg-gray-50">Volver</button>
+        <button id="btn-confirm" type="button" class="px-4 py-2 rounded-xl bg-sky-600 text-white hover:bg-sky-700">Confirmar</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+  const btnOpen = document.getElementById('btn-open-modal');
+  const btnConfirm = document.getElementById('btn-confirm');
+  const modalEl = document.getElementById('modal-confirm');
+  const form = document.getElementById('form-rendir');
+
+  function format(val) {
+    const n = parseFloat((val||'0').replace(',', '.'))||0;
+    return n.toFixed(2);
+  }
+
+  btnOpen && btnOpen.addEventListener('click', function() {
+    const monto = document.getElementById('id_monto_a_devolver').value;
+    document.getElementById('conf-monto').textContent = format(monto);
+    const modal = new window.flowbite.Modal(modalEl);
+    modal.show();
+  });
+
+  btnConfirm && btnConfirm.addEventListener('click', function() {
+    form && form.submit();
+  });
+})();
+</script>
+{% endblock %}

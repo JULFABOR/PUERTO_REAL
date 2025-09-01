@@ -1,0 +1,137 @@
+{% extends "base_caja.html" %}
+{% block title %}Retiro de Efectivo{% endblock %}
+{% block content %}
+<div class="mx-auto max-w-2xl">
+  <div class="bg-white shadow rounded-2xl p-6">
+    <h2 class="text-lg font-semibold mb-1">Retiro de Efectivo</h2>
+    <p class="text-sm text-gray-600 mb-4">Saldo actual (teórico) de caja: <span class="font-semibold">${{ caja.monto_teorico_caja|default:"0.00" }}</span></p>
+
+    <form method="post" id="form-retiro" class="space-y-4">
+      {% csrf_token %}
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium mb-1">Monto a retirar</label>
+          {{ form.monto_retiro.as_widget(attrs={
+            'class':'block w-full rounded-xl border-gray-300 focus:border-sky-500 focus:ring-sky-500 p-2.5',
+            'step':'0.01',
+            'min':'0.01',
+            'placeholder':'0.00'
+          }) }}
+          {% if form.monto_retiro.errors %}
+            <p class="text-red-600 text-sm mt-1">{{ form.monto_retiro.errors.0 }}</p>
+          {% endif %}
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-1">Destino</label>
+          {{ form.destino.as_widget(attrs={
+            'class':'block w-full rounded-xl border-gray-300 focus:border-sky-500 focus:ring-sky-500 p-2.5'
+          }) }}
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1">Motivo</label>
+        {{ form.motivo.as_widget(attrs={
+          'class':'block w-full rounded-xl border-gray-300 focus:border-sky-500 focus:ring-sky-500 p-2.5',
+          'placeholder':'Describa brevemente el motivo'
+        }) }}
+        {% if form.motivo.errors %}
+          <p class="text-red-600 text-sm mt-1">{{ form.motivo.errors.0 }}</p>
+        {% endif %}
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1">Aprobador (opcional)</label>
+        {{ form.aprobador.as_widget(attrs={
+          'class':'block w-full rounded-xl border-gray-300 focus:border-sky-500 focus:ring-sky-500 p-2.5',
+          'placeholder':'Nombre de quien aprueba (si aplica)'
+        }) }}
+      </div>
+
+      <div id="alert-fondo" class="hidden p-4 mb-2 text-sm text-blue-800 rounded-lg bg-blue-50" role="alert">
+        <span class="font-medium">Transferencia interna:</span> si el destino es <em>Para pagos (Fondo)</em>, bajará caja y subirá el Fondo de Pagos.
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-2">
+        <a href="/" class="px-4 py-2 rounded-xl border hover:bg-gray-50">Cancelar</a>
+        <button type="button" id="btn-open-modal" class="px-4 py-2 rounded-xl bg-sky-600 text-white hover:bg-sky-700">Retirar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Confirmación (Flowbite Modal) -->
+<div id="modal-confirm" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+  <div class="relative p-4 w-full max-w-md max-h-full">
+    <div class="relative bg-white rounded-lg shadow">
+      <div class="flex items-center justify-between p-4 border-b rounded-t">
+        <h3 class="text-lg font-semibold">Confirmar retiro</h3>
+        <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center" data-modal-hide="modal-confirm">
+          <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1 1l12 12M13 1 1 13"/>
+          </svg>
+          <span class="sr-only">Close</span>
+        </button>
+      </div>
+      <div class="p-4 space-y-2">
+        <p><span class="font-medium">Monto:</span> $<span id="conf-monto">0.00</span></p>
+        <p><span class="font-medium">Destino:</span> <span id="conf-destino">—</span></p>
+        <p><span class="font-medium">Motivo:</span> <span id="conf-motivo">—</span></p>
+        <p><span class="font-medium">Aprobador:</span> <span id="conf-aprobador">—</span></p>
+      </div>
+      <div class="flex items-center justify-end gap-2 p-4 border-t">
+        <button data-modal-hide="modal-confirm" type="button" class="px-4 py-2 rounded-xl border hover:bg-gray-50">Volver</button>
+        <button id="btn-confirm" type="button" class="px-4 py-2 rounded-xl bg-sky-600 text-white hover:bg-sky-700">Confirmar</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+  const selectDestino = document.getElementById('id_destino');
+  const alertFondo = document.getElementById('alert-fondo');
+  const btnOpen = document.getElementById('btn-open-modal');
+  const btnConfirm = document.getElementById('btn-confirm');
+  const modalEl = document.getElementById('modal-confirm');
+  const form = document.getElementById('form-retiro');
+
+  function toggleAlert() {
+    if (!selectDestino) return;
+    const esFondo = selectDestino.value === 'fondo';
+    alertFondo.classList.toggle('hidden', !esFondo);
+  }
+  selectDestino && selectDestino.addEventListener('change', toggleAlert);
+  toggleAlert();
+
+  function format(val) {
+    const n = parseFloat((val||'0').replace(',', '.'))||0;
+    return n.toFixed(2);
+  }
+
+  btnOpen && btnOpen.addEventListener('click', function() {
+    // Volcar datos a modal
+    const monto = document.getElementById('id_monto_retiro').value;
+    const destino = document.getElementById('id_destino').selectedOptions[0].textContent;
+    const motivo = document.getElementById('id_motivo').value || '—';
+    const aprobador = document.getElementById('id_aprobador').value || '—';
+    document.getElementById('conf-monto').textContent = format(monto);
+    document.getElementById('conf-destino').textContent = destino;
+    document.getElementById('conf-motivo').textContent = motivo;
+    document.getElementById('conf-aprobador').textContent = aprobador;
+
+    // Abrir modal (Flowbite)
+    const modal = new window.flowbite.Modal(modalEl);
+    modal.show();
+  });
+
+  btnConfirm && btnConfirm.addEventListener('click', function() {
+    form && form.submit();
+  });
+})();
+</script>
+{% endblock %}
