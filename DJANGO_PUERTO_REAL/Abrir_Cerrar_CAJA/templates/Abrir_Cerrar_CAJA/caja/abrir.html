@@ -1,0 +1,65 @@
+{% extends "base_caja.html" %}
+{% block title %}Abrir Caja{% endblock %}
+{% block content %}
+<div class="mx-auto max-w-2xl">
+  <div class="bg-white shadow rounded-2xl p-6">
+    <h2 class="text-lg font-semibold mb-1">Abrir Caja</h2>
+    <p class="text-sm text-gray-600 mb-4">Monto sugerido (saldo final de ayer): <span id="monto-sugerido" class="font-semibold">${{ monto_sugerido|default:"0.00" }}</span></p>
+
+    <form method="post" id="form-abrir" class="space-y-4">
+      {% csrf_token %}
+
+      <div>
+        <label class="block text-sm font-medium mb-1">Monto inicial</label>
+        {{ form.monto_inicial.as_widget(attrs={
+          'class':'block w-full rounded-xl border-gray-300 focus:border-sky-500 focus:ring-sky-500 p-2.5',
+          'step':'0.01',
+          'min':'0'
+        }) }}
+        {% if form.monto_inicial.errors %}
+          <p class="text-red-600 text-sm mt-1">{{ form.monto_inicial.errors.0 }}</p>
+        {% endif %}
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1">Motivo del ajuste (si corresponde)</label>
+        {{ form.desc_ajuste.as_widget(attrs={
+          'class':'block w-full rounded-xl border-gray-300 focus:border-sky-500 focus:ring-sky-500 p-2.5',
+          'placeholder':'Explique por qué difiere del sugerido'
+        }) }}
+        {% if form.desc_ajuste.errors %}
+          <p class="text-red-600 text-sm mt-1">{{ form.desc_ajuste.errors.0 }}</p>
+        {% endif %}
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-2">
+        <a href="/" class="px-4 py-2 rounded-xl border hover:bg-gray-50">Cancelar</a>
+        <button type="submit" class="px-4 py-2 rounded-xl bg-sky-600 text-white hover:bg-sky-700">Abrir Caja</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+  const sugeridoTxt = document.getElementById('monto-sugerido');
+  const sugerido = Number((sugeridoTxt ? sugeridoTxt.textContent.replace(/[^0-9.,-]/g,'') : '0').replace(',', '.')) || 0;
+  const inputMonto = document.getElementById('id_monto_inicial');
+  const inputDesc = document.getElementById('id_desc_ajuste');
+  const form = document.getElementById('form-abrir');
+
+  function checkAjuste() {
+    const v = parseFloat((inputMonto.value || '0').replace(',', '.')) || 0;
+    const requiere = (v !== sugerido);
+    if (inputDesc) {
+      inputDesc.required = requiere;
+    }
+  }
+  if (inputMonto) inputMonto.addEventListener('input', checkAjuste);
+  form && form.addEventListener('submit', function(){ checkAjuste(); });
+  checkAjuste();
+})();
+</script>
+{% endblock %}

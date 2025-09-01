@@ -1,0 +1,19 @@
+<nav class="w-full border-b bg-white">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div class="font-bold">Puerto Real</div>
+        <div class="hidden md:flex items-center gap-4 text-sm">
+            <a class="hover:underline" href="{% url 'home:home_inicio' %}">Inicio</a>
+            {% if url 'home:fn_caja' %}<a class="hover:underline" href="{% url 'home:fn_caja' %}">Caja</a>{% endif %}
+            {% if url 'home:fn_ventas' %}<a class="hover:underline" href="{% url 'home:fn_ventas' %}">Ventas</a>{% endif %}
+            {% if url 'home:fn_compras' %}<a class="hover:underline" href="{% url 'home:fn_compras' %}">Compras</a>{% endif %}
+            {% if url 'home:fn_stock' %}<a class="hover:underline" href="{% url 'home:fn_stock' %}">Stock</a>{% endif %}
+            {% if url 'home:fn_fidelizacion' %}<a class="hover:underline" href="{% url 'home:fn_fidelizacion' %}">Fidelización</a>{% endif %}
+            {% if url 'home:fn_reportes' %}<a class="hover:underline" href="{% url 'home:fn_reportes' %}">Reportes</a>{% endif %}
+        </div>
+        <div class="flex items-center gap-3">
+            <form action="{% url 'home:logout' %}" method="post">{% csrf_token %}
+            <button class="text-sm px-3 py-1.5 rounded bg-gray-900 text-white">Cerrar sesión</button>
+            </form>
+        </div>
+    </div>
+</nav>
