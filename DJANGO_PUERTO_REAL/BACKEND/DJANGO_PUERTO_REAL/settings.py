@@ -43,6 +43,11 @@ INSTALLED_APPS = [
     'rest_framework',
     'HOME',
     'Abrir_Cerrar_CAJA',
+    'Control_COMPRAS'
+    'Control_VENTAS',
+    'Control_STOCK',
+    'Fidelizar_CLIENTES',
+    'Analizar_INGRESOS_EGRESOS',
 ]
 
 MIDDLEWARE = [
@@ -130,3 +135,7 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Custom settings
+PESOS_POR_PUNTO = 110
+

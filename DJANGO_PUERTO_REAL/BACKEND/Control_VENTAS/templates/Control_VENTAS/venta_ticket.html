@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Ticket de Venta</title>
+    <style>
+        body {
+            font-family: 'Helvetica', 'sans-serif';
+            font-size: 10px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .details {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        .details td {
+            padding: 2px;
+        }
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+        }
+        .items-table th, .items-table td {
+            border-bottom: 1px dashed #ddd;
+            padding: 4px;
+            text-align: left;
+        }
+        .items-table th {
+            background-color: #f2f2f2;
+        }
+        .total-section {
+            text-align: right;
+            margin-top: 10px;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>Ticket de Venta</h2>
+        <p>Fecha: {{ venta.fecha_venta|date:"d/m/Y H:i" }}</p>
+        <p>Venta #: {{ venta.id_venta }}</p>
+    </div>
+
+    <table class="details">
+        <tr>
+            <td><strong>Cliente:</strong></td>
+            <td>{{ venta.cliente_venta.user_cliente.get_full_name }}</td>
+        </tr>
+        <tr>
+            <td><strong>Atendido por:</strong></td>
+            <td>{{ venta.empleado_venta.user_empleado.get_full_name }}</td>
+        </tr>
+    </table>
+
+    <table class="items-table">
+        <thead>
+            <tr>
+                <th>Producto</th>
+                <th>Cant.</th>
+                <th>P. Unit.</th>
+                <th>Subtotal</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for detalle in venta.detalles.all %}
+            <tr>
+                <td>{{ detalle.producto_det_vent.nombre_producto }}</td>
+                <td>{{ detalle.cantidad_det_vent }}</td>
+                <td>${{ detalle.precio_unitario_det_vent }}</td>
+                <td>${{ detalle.subtotal_det_vent }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="total-section">
+        <p>Subtotal: ${{ venta.total_venta|add:venta.descuento_aplicado }}</p>
+        <p>Descuento: ${{ venta.descuento_aplicado }}</p>
+        <h3>Total: ${{ venta.total_venta }}</h3>
+        <p>Vuelto: ${{ venta.vuelto_entregado }}</p>
+    </div>
+
+    <div class="footer">
+        <p>¡Gracias por su compra!</p>
+    </div>
+
+</body>
+</html>

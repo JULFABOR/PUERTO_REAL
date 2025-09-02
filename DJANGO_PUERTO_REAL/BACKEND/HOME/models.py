@@ -77,6 +77,7 @@ class Empleados(models.Model):
 class Tipos_Movimientos(models.Model):
     id_tipo_movimiento = models.AutoField(primary_key=True)
     nombre_movimiento = models.CharField(max_length=50)
+    is_transfer = models.BooleanField(default=False) # New field
     DELETE_TM = models.BooleanField(default=False)
     def __str__(self):
         return self.nombre_movimiento
@@ -175,6 +176,8 @@ class Proveedores(models.Model):
 class Compras(models.Model):
     id_compra = models.BigAutoField(primary_key =True)
     fecha_compra = models.DateTimeField(auto_now_add=True)
+    fecha_limite = models.DateTimeField(null=True, blank=True) # Para compras pendientes
+    es_credito = models.BooleanField(default=False) # Para compras a crédito
     total_compra = models.DecimalField(max_digits=10, decimal_places=2)
     proveedor_compra = models.ForeignKey(Proveedores, on_delete=models.PROTECT)
     estado_compra = models.ForeignKey(Estados, on_delete=models.CASCADE)
@@ -202,6 +205,17 @@ class Detalle_Compras(models.Model):
         super().save(*args, **kwargs)
     def __str__(self):
         return f"Detalle Compra #{self.id_det_comp} - Producto: {self.producto_dt_comp.nombre_producto} - Cantidad: {self.cant_det_comp} - Subtotal: {self.subtotal_det_comp}"
+
+class Compra_MetodoPago(models.Model):
+    compra = models.ForeignKey(Compras, on_delete=models.CASCADE, related_name='metodos_pago')
+    metodo_pago = models.ForeignKey('Metodos_Pago', on_delete=models.CASCADE)
+    monto = models.DecimalField(max_digits=10, decimal_places=2)
+
+    class Meta:
+        unique_together = ('compra', 'metodo_pago')
+
+    def __str__(self):
+        return f"{self.compra} - {self.metodo_pago}: {self.monto}"
 # class Facturas_Compras(models.Model):
 #     id_factura_compra = models.BigAutoField(primary_key=True)
 #     fecha_orden_compra = models.DateTimeField(auto_now_add=True)
@@ -270,31 +284,39 @@ class Cupones_Clientes (models.Model):
 class Ventas(models.Model):
     id_venta = models.BigAutoField(primary_key = True)
     total_venta = models.DecimalField(max_digits=10, decimal_places=2)
+    descuento_aplicado = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    vuelto_entregado = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     fecha_venta = models.DateTimeField(auto_now_add=True)
     observaciones_venta = models.CharField(max_length=200)
     cliente_venta = models.ForeignKey(Clientes, on_delete= models.CASCADE)
     empleado_venta = models.ForeignKey(Empleados, on_delete=models.CASCADE)
     estado_venta = models.ForeignKey(Estados, on_delete=models.CASCADE)
     caja_venta = models.ForeignKey(Cajas,on_delete=models.CASCADE)
+    cupon_aplicado = models.ForeignKey(Cupones_Clientes, on_delete=models.SET_NULL, null=True, blank=True)
+    qr_token = models.CharField(max_length=255, blank=True, null=True)
+    puntos_cargados_qr = models.BooleanField(default=False)
     DELETE_Vent = models.BooleanField(default=False)
     def __str__(self):
         return f"Venta #{self.id_venta} - {self.estado_venta.value} - {self.fecha_venta.strftime('%Y-%m-%d %H:%M:%S')} - Total: {self.total_venta}"
-class Transacciones_Puntos(models.Model):
-    id_transaccion = models.AutoField(primary_key=True)
-    fecha_obtencion = models.DateTimeField(auto_now_add=True)
-    cliente_transaccion = models.ForeignKey(Clientes, on_delete=models.CASCADE)
-    origen_puntos_transaccion = models.ForeignKey(Ventas, on_delete=models.CASCADE)
-    DELETE_Trans = models.BooleanField(default=True)
+class Historial_Puntos(models.Model):
+    id_historial_puntos = models.AutoField(primary_key=True)
+    cliente = models.ForeignKey(Clientes, on_delete=models.CASCADE, related_name='historial_puntos')
+    venta_origen = models.ForeignKey(Ventas, on_delete=models.SET_NULL, null=True, blank=True)
+    cupon_canjeado = models.ForeignKey(Cupones_Clientes, on_delete=models.SET_NULL, null=True, blank=True)
+    puntos_movidos = models.IntegerField()
+    puntos_anteriores = models.IntegerField()
+    puntos_nuevos = models.IntegerField()
+    fecha_movimiento = models.DateTimeField(auto_now_add=True)
+    TIPO_MOVIMIENTO_CHOICES = (
+        ('GANADOS', 'Ganados por compra'),
+        ('CANJEADOS', 'Canjeados por cupón'),
+        ('AJUSTE', 'Ajuste manual'),
+    )
+    tipo_movimiento = models.CharField(max_length=20, choices=TIPO_MOVIMIENTO_CHOICES)
+    DELETE_Hist_Puntos = models.BooleanField(default=False)
+
     def __str__(self):
-        return self.cliente_transaccion
-class Puntajes(models.Model):
-    id_puntaje = models.BigAutoField(primary_key=True)
-    puntos_acumulados = models.BigIntegerField()
-    puntos_utilizados = models.BigIntegerField()
-    transaccion_puntaje = models.ForeignKey(Transacciones_Puntos, on_delete=models.CASCADE)
-    DELETE_Puntaje = models.BooleanField(default=False)
-    def _str_(self):
-        return self.puntos_acumulados
+        return f"{self.fecha_movimiento.strftime('%Y-%m-%d')} - {self.cliente}: {self.puntos_movidos} puntos ({self.tipo_movimiento})"
 class Detalle_Ventas(models.Model):
     id_det_vent = models.BigAutoField(primary_key=True)
     precio_unitario_det_vent = models.DecimalField(max_digits=10, decimal_places=2)
@@ -303,7 +325,6 @@ class Detalle_Ventas(models.Model):
     descripcion_det_vent = models.CharField(max_length=200)
     producto_det_vent = models.ForeignKey(Productos, on_delete=models.CASCADE)
     venta_det_vent = models.ForeignKey(Ventas, on_delete=models.CASCADE, related_name='detalles')
-    cupon_canje_det_vent = models.ForeignKey(Cupones_Clientes, on_delete=models.CASCADE)
     DELETE_Det_Vent = models.BooleanField(default=False)
     def __str__(self):
         return f"{self.producto_det_vent.nombre_producto} x {self.cantidad_det_vent}"
@@ -337,6 +358,18 @@ class Venta_MetodoPago(models.Model):
 #      producto_det_devo = models.ForeignKey(Productos, on_delete=models.CASCADE)
 #      devolucion_det_devo = models.ForeignKey(Devoluciones, on_delete=models.CASCADE)
 #      DELETE_Det_Devo = models.BooleanField(default=False)
+
+class ConfiguracionFidelizacion(models.Model):
+    id_config = models.AutoField(primary_key=True)
+    habilitado = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Configuracion de Fidelizacion"
+        verbose_name_plural = "Configuraciones de Fidelizacion"
+
+    def __str__(self):
+        return "Configuracion de Fidelizacion"
+
 #Direcciones
 class Provincias(models.Model):
     id_provin = models.AutoField(primary_key=True)
