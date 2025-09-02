@@ -1,3 +1,95 @@
-from django.shortcuts import render
+from rest_framework import viewsets, status
+from rest_framework.response import Response
+from rest_framework.decorators import action
+from django.http import HttpResponse
+from django.template.loader import get_template
+from django.utils import timezone
+from xhtml2pdf import pisa
+from io import BytesIO
 
-# Create your views here.
+from HOME.models import Compras, Proveedores, Stocks, Historial_Stock, Tipos_Movimientos, Estados
+from .serializers import CompraSerializer, ProveedorSerializer
+
+class CompraViewSet(viewsets.ModelViewSet):
+    queryset = Compras.objects.all()
+    serializer_class = CompraSerializer
+
+    def get_serializer_context(self):
+        """
+        Extra context provided to the serializer class.
+        """
+        context = super().get_serializer_context()
+        context.update({"request": self.request})
+        return context
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        
+        # Check if only the state is being changed
+        data_keys = list(request.data.keys())
+        is_status_change_only = 'estado_compra' in data_keys and len(data_keys) == 1
+
+        if not is_status_change_only:
+            # Apply 20-minute rule for all other edits
+            time_diff = timezone.now() - instance.fecha_compra
+            if time_diff.total_seconds() > 1200: # 20 minutes
+                return Response(
+                    {"error": "Solo se puede editar la compra dentro de los 20 minutos de su creacion."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+        # The stock movement logic for when a purchase is marked as "RECIBIDA"
+        nuevo_estado_id = request.data.get('estado_compra')
+        if nuevo_estado_id and int(nuevo_estado_id) == 7 and instance.estado_compra.id_estado != 7:
+            try:
+                tipo_movimiento = Tipos_Movimientos.objects.get(id_tipo_movimiento=5) # COMPRA A PROVEEDOR
+                empleado = request.user.empleado
+
+                for detalle in instance.detalles.all():
+                    stock, created = Stocks.objects.get_or_create(
+                        producto_en_stock=detalle.producto_dt_comp,
+                        defaults={
+                            'cantidad_actual_stock': 0, 
+                            'lote_stock': 0, 
+                            'fecha_vencimiento': '2099-12-31',
+                            'observaciones_stock': 'Registro de stock inicial creado automaticamente'
+                        }
+                    )
+                    
+                    stock_anterior = stock.cantidad_actual_stock
+                    stock.cantidad_actual_stock += detalle.cant_det_comp
+                    stock.save()
+
+                    Historial_Stock.objects.create(
+                        stock_hs=stock, cantidad_hstock=detalle.cant_det_comp,
+                        stock_anterior_hstock=stock_anterior, stock_nuevo_hstock=stock.cantidad_actual_stock,
+                        tipo_movimiento_hs=tipo_movimiento, empleado_hs=empleado,
+                        observaciones_hstock=f"Entrada por compra ID: {instance.id_compra}"
+                    )
+            except Tipos_Movimientos.DoesNotExist:
+                return Response({"error": "Tipo de movimiento 'COMPRA A PROVEEDOR' no encontrado."}, status=status.HTTP_400_BAD_REQUEST)
+            except Exception as e:
+                return Response({"error": f"Error al actualizar el stock: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return super().update(request, *args, **kwargs)
+
+    @action(detail=True, methods=['get'])
+    def generate_pdf(self, request, pk=None):
+        compra = self.get_object()
+        template = get_template('Control_COMPRAS/compra_pdf.html')
+        context = {'compra': compra}
+        html = template.render(context)
+        
+        result = BytesIO()
+        pdf = pisa.pisaDocument(BytesIO(html.encode("UTF-8")), result)
+        
+        if not pdf.err:
+            response = HttpResponse(result.getvalue(), content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename=compra_{compra.id_compra}.pdf'
+            return response
+        return Response({'error': 'Error al generar el PDF'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ProveedorViewSet(viewsets.ModelViewSet):
+    queryset = Proveedores.objects.all()
+    serializer_class = ProveedorSerializer
