@@ -33,4 +33,4 @@ class ReporteEmpleado(models.Model):
         unique_together = ('empleado_id', 'fecha_reporte')
 
     def __str__(self):
-        return f"Reporte Empleado {self.nombre_empleado} - {self.fecha_reporte}
+        return f"Reporte Empleado {self.nombre_empleado} - {self.fecha_reporte}"

@@ -9,6 +9,10 @@
             <a class="hover:underline" href="{% url 'home:fn_stock' %}">Stock</a>
             <a class="hover:underline" href="{% url 'home:fn_fidelizacion' %}">Fidelización</a>
             <a class="hover:underline" href="{% url 'home:fn_reportes' %}">Reportes</a>
+            {% if user.is_staff %}
+            <a class="hover:underline" href="{% url 'Auditoria:audit_log' %}">Auditoría</a>
+            {% endif %}
+        </div>
         </div>
         <div class="flex items-center gap-3">
             <form action="{% url 'home:logout' %}" method="post">{% csrf_token %}

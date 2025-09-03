@@ -33,3 +33,18 @@ class HistorialPuntosSerializer(serializers.ModelSerializer):
     class Meta:
         model = Historial_Puntos
         fields = '__all__'
+
+class AjustePuntosSerializer(serializers.Serializer):
+    """
+    Serializador para validar los datos de un ajuste manual de puntos.
+    """
+    cantidad = serializers.IntegerField()
+    motivo = serializers.CharField(max_length=255, required=True, allow_blank=False)
+
+    def validate_cantidad(self, value):
+        """
+        Asegura que la cantidad no sea cero.
+        """
+        if value == 0:
+            raise serializers.ValidationError("La cantidad de puntos a ajustar no puede ser cero.")
+        return value
