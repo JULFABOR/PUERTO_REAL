@@ -7,10 +7,65 @@ from django.db import transaction
 from django.utils import timezone
 from datetime import timedelta
 
-from HOME.models import Productos, Stocks, Categorias_Productos, Historial_Stock, Tipos_Movimientos, Empleados
+from django.views.generic import ListView, CreateView, UpdateView, DeleteView
+from django.urls import reverse_lazy
+from django.contrib.auth.mixins import LoginRequiredMixin
+
+from HOME.models import Productos, Stocks, Categorias_Productos, Historial_Stock, Tipos_Movimientos, Empleados, Estados
 from .serializers import StockSerializer, StockUpdateSerializer, StockAdjustmentSerializer, ProductoSerializer, HistorialStockSerializer
+from .forms import ProductoForm
 from Auditoria.services import crear_registro
 
+
+# --- Vistas para el CRUD de Productos (Web) ---
+class ProductoListView(LoginRequiredMixin, ListView):
+    model = Productos
+    template_name = 'Control_STOCK/producto_list.html'
+    context_object_name = 'productos'
+    paginate_by = 10
+
+    def get_queryset(self):
+        # Excluir productos marcados para eliminación
+        return Productos.objects.filter(DELETE_Prod=False)
+
+class ProductoCreateView(LoginRequiredMixin, CreateView):
+    model = Productos
+    form_class = ProductoForm
+    template_name = 'Control_STOCK/producto_form.html'
+    success_url = reverse_lazy('producto_list') # Redirige a la lista de productos
+
+    def form_valid(self, form):
+        # Asigna el estado por defecto si no se selecciona uno (ej. 'Activo')
+        # Asegúrate de que exista un estado con nombre 'Activo' o el ID correspondiente
+        if not form.instance.estado_producto_id:
+            try:
+                estado_activo = Estados.objects.get(nombre_estado='Activo') # O el ID que corresponda
+                form.instance.estado_producto = estado_activo
+            except Estados.DoesNotExist:
+                # Manejar el error si el estado 'Activo' no existe
+                pass # O asignar un estado por defecto diferente
+        return super().form_valid(form)
+
+class ProductoUpdateView(LoginRequiredMixin, UpdateView):
+    model = Productos
+    form_class = ProductoForm
+    template_name = 'Control_STOCK/producto_form.html'
+    success_url = reverse_lazy('producto_list')
+
+class ProductoDeleteView(LoginRequiredMixin, DeleteView):
+    model = Productos
+    template_name = 'Control_STOCK/producto_confirm_delete.html'
+    success_url = reverse_lazy('producto_list')
+
+    def post(self, request, *args, **kwargs):
+        # En lugar de eliminar, marca como eliminado (soft delete)
+        self.object = self.get_object()
+        self.object.DELETE_Prod = True
+        self.object.save()
+        return super().post(request, *args, **kwargs)
+
+
+# --- Vistas de la API (existentes) ---
 class StockListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = StockSerializer
