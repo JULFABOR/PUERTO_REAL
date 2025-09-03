@@ -15,11 +15,69 @@ def plot_to_base64(fig):
     plt.close(fig)
     return img_base64
 
+def generate_expense_breakdown_report(start_date, end_date):
+    """
+    Genera un informe de desglose de gastos, mostrando la proporción de cada tipo de gasto.
+    """
+    # Obtener Datos de Compras (Gastos de Compras)
+    purchases_qs = Compras.objects.filter(
+        fecha_compra__range=(start_date, end_date)
+    ).values('fecha_compra', 'total_compra')
+    purchases_df = pd.DataFrame(list(purchases_qs))
+    total_gastos_compras = purchases_df['total_compra'].sum() if not purchases_df.empty else 0
+
+    # Obtener Datos de Historial_Caja (Gastos Operacionales)
+    cash_movements_qs = Historial_Caja.objects.filter(
+        fecha_movimiento_hcaja__range=(start_date, end_date)
+    ).values('fecha_movimiento_hcaja', 'cantidad_movida_hcaja', 'tipo_event_caja__nombre_evento', 'destino_movimiento')
+
+    cash_movements_df = pd.DataFrame(list(cash_movements_qs))
+    
+    gastos_operacionales_caja = 0
+    if not cash_movements_df.empty:
+        cash_movements_df['cantidad_movida_hcaja'] = pd.to_numeric(cash_movements_df['cantidad_movida_hcaja'], errors='coerce').fillna(0)
+        gastos_operacionales_caja = cash_movements_df[
+            (cash_movements_df['tipo_event_caja__nombre_evento'] == 'Retiro') &
+            (cash_movements_df['destino_movimiento'] != 'PARA_PAGOS_FONDO')
+        ]['cantidad_movida_hcaja'].sum()
+
+    # Obtener Datos de Movimiento_Fondo (Otros Gastos/Transferencias)
+    # Aquí asumimos que los movimientos de fondo de tipo 'Egreso' son gastos
+    fund_movements_qs = Movimiento_Fondo.objects.filter(
+        fecha_mov_fp__range=(start_date, end_date),
+        tipo_mov_fp='Egreso' # Asumiendo que 'Egreso' es un tipo de movimiento de gasto
+    ).values('fecha_mov_fp', 'monto_mov_fp')
+    fund_movements_df = pd.DataFrame(list(fund_movements_qs))
+    otros_gastos_fondo = fund_movements_df['monto_mov_fp'].sum() if not fund_movements_df.empty else 0
+
+    # Crear un DataFrame para el desglose de gastos
+    gastos_data = {
+        'categoria': ['Gastos de Compras', 'Gastos Operacionales de Caja', 'Otros Gastos de Fondo'],
+        'monto': [total_gastos_compras, gastos_operacionales_caja, otros_gastos_fondo]
+    }
+    df_gastos = pd.DataFrame(gastos_data)
+
+    # Filtrar categorías con monto cero para no mostrarlas en el gráfico
+    df_gastos = df_gastos[df_gastos['monto'] > 0]
+
+    gastos_desglose_plot_base64 = None
+    if not df_gastos.empty:
+        fig_gastos, ax_gastos = plt.subplots(figsize=(8, 8))
+        ax_gastos.pie(df_gastos['monto'], labels=df_gastos['categoria'], autopct='%1.1f%%', startangle=90, colors=sns.color_palette('pastel'))
+        ax_gastos.set_title('Desglose de Gastos')
+        ax_gastos.axis('equal') # Asegura que el pie chart sea circular.
+        gastos_desglose_plot_base64 = plot_to_base64(fig_gastos)
+
+    return {
+        "gastos_desglose_plot": gastos_desglose_plot_base64,
+        "status": "Informe de desglose de gastos generado exitosamente."
+    }
+
 def generate_financial_report(start_date, end_date):
     """
-    Generates a financial report including income, expenses, and net.
+    Genera un informe financiero que incluye ingresos, gastos y el neto.
     """
-    # 1. Fetch Sales Data (Income)
+    # 1. Obtener Datos de Ventas (Ingresos)
     sales_qs = Ventas.objects.filter(
         fecha_venta__range=(start_date, end_date)
     ).annotate(
@@ -28,14 +86,14 @@ def generate_financial_report(start_date, end_date):
     sales_df = pd.DataFrame(list(sales_qs))
     total_income = sales_df['income'].sum() if not sales_df.empty else 0
 
-    # 2. Fetch Purchase Data (Expenses from Purchases)
+    # 2. Obtener Datos de Compras (Gastos de Compras)
     purchases_qs = Compras.objects.filter(
         fecha_compra__range=(start_date, end_date)
     ).values('fecha_compra', 'total_compra')
     purchases_df = pd.DataFrame(list(purchases_qs))
     total_purchase_expenses = purchases_df['total_compra'].sum() if not purchases_df.empty else 0
 
-    # 3. Fetch Historial_Caja Data (Operational Expenses and Transfers)
+    # 3. Obtener Datos de Historial_Caja (Gastos Operacionales y Transferencias)
     cash_movements_qs = Historial_Caja.objects.filter(
         fecha_movimiento_hcaja__range=(start_date, end_date)
     ).values('fecha_movimiento_hcaja', 'cantidad_movida_hcaja', 'tipo_event_caja__nombre_evento', 'destino_movimiento')
@@ -50,19 +108,19 @@ def generate_financial_report(start_date, end_date):
             (cash_movements_df['destino_movimiento'] != 'PARA_PAGOS_FONDO')
         ]['cantidad_movida_hcaja'].sum()
 
-    # 4. Fetch Movimiento_Fondo Data (Transfers and other fund movements)
+    # 4. Obtener Datos de Movimiento_Fondo (Transferencias y otros movimientos de fondos)
     fund_movements_qs = Movimiento_Fondo.objects.filter(
         fecha_mov_fp__range=(start_date, end_date)
     ).values('fecha_mov_fp', 'tipo_mov_fp', 'monto_mov_fp')
     fund_movements_df = pd.DataFrame(list(fund_movements_qs))
 
-    # Calculate total expenses
+    # Calcular gastos totales
     total_expenses = total_purchase_expenses + operational_expenses_caja
 
-    # Calculate Net
+    # Calcular Neto
     net_income = total_income - total_expenses
 
-    # 5. Top Products Analysis
+    # 5. Análisis de Productos Principales
     detailed_sales_qs = Detalle_Ventas.objects.filter(
         venta_det_vent__fecha_venta__range=(start_date, end_date)
     ).values(
@@ -86,7 +144,7 @@ def generate_financial_report(start_date, end_date):
     else:
         top_products_data = []
 
-    # 6. Employee Performance Analysis
+    # 6. Análisis de Rendimiento de Empleados
     employee_sales_qs = Ventas.objects.filter(
         fecha_venta__range=(start_date, end_date)
     ).values(
@@ -104,25 +162,25 @@ def generate_financial_report(start_date, end_date):
     else:
         employee_sales_data = []
 
-    # 7. Time Series Analysis (Income, Expenses, Net)
-    # Prepare data for time series plotting
-    # Ensure date columns are datetime objects
+    # 7. Análisis de Series de Tiempo (Ingresos, Gastos, Neto)
+    # Preparar datos para el trazado de series de tiempo
+    # Asegurar que las columnas de fecha sean objetos datetime
     if not sales_df.empty: sales_df['fecha_venta'] = pd.to_datetime(sales_df['fecha_venta'])
     if not purchases_df.empty: purchases_df['fecha_compra'] = pd.to_datetime(purchases_df['fecha_compra'])
     if not cash_movements_df.empty: cash_movements_df['fecha_movimiento_hcaja'] = pd.to_datetime(cash_movements_df['fecha_movimiento_hcaja'])
 
-    # Resample to daily frequency
+    # Remuestrear a frecuencia diaria
     daily_income = sales_df.set_index('fecha_venta')['income'].resample('D').sum().fillna(0)
     daily_purchase_expenses = purchases_df.set_index('fecha_compra')['total_compra'].resample('D').sum().fillna(0)
     
-    # For operational expenses from caja, we need to be careful with aggregation
-    # Assuming 'Retiro' events are expenses, and we sum them up daily
+    # Para gastos operativos de caja, debemos tener cuidado con la agregación
+    # Asumiendo que los eventos 'Retiro' son gastos, y los sumamos diariamente
     daily_operational_expenses_caja = cash_movements_df[
         (cash_movements_df['tipo_event_caja__nombre_evento'] == 'Retiro') &
         (cash_movements_df['destino_movimiento'] != 'PARA_PAGOS_FONDO')
     ].set_index('fecha_movimiento_hcaja')['cantidad_movida_hcaja'].resample('D').sum().fillna(0)
 
-    # Combine all daily financial data
+    # Combinar todos los datos financieros diarios
     financial_data = pd.DataFrame({
         'income': daily_income,
         'purchase_expenses': daily_purchase_expenses,
@@ -131,35 +189,35 @@ def generate_financial_report(start_date, end_date):
     financial_data['total_expenses'] = financial_data['purchase_expenses'] + financial_data['operational_expenses_caja']
     financial_data['net_income'] = financial_data['income'] - financial_data['total_expenses']
 
-    # Plotting Time Series
+    # Trazado de Series de Tiempo
     fig_time_series, ax_time_series = plt.subplots(figsize=(12, 6))
     financial_data[['income', 'total_expenses', 'net_income']].plot(ax=ax_time_series)
-    ax_time_series.set_title('Income, Expenses, and Net Over Time')
-    ax_time_series.set_xlabel('Date')
-    ax_time_series.set_ylabel('Amount')
-    ax_time_series.legend(['Income', 'Total Expenses', 'Net Income'])
+    ax_time_series.set_title('Ingresos, Gastos y Neto a lo largo del tiempo')
+    ax_time_series.set_xlabel('Fecha')
+    ax_time_series.set_ylabel('Cantidad')
+    ax_time_series.legend(['Ingresos', 'Gastos Totales', 'Ingreso Neto'])
     time_series_plot_base64 = plot_to_base64(fig_time_series)
 
-    # 8. Bar Charts
-    # Top Products by Revenue
+    # 8. Gráficos de Barras
+    # Productos Principales por Ingresos
     top_products_plot_base64 = None
     if not top_products_df.empty:
         fig_top_products, ax_top_products = plt.subplots(figsize=(10, 6))
         sns.barplot(x='total_revenue', y='producto_det_vent__nombre_producto', data=top_products_df, ax=ax_top_products)
-        ax_top_products.set_title('Top 10 Products by Revenue')
-        ax_top_products.set_xlabel('Total Revenue')
-        ax_top_products.set_ylabel('Product')
+        ax_top_products.set_title('Los 10 Productos Principales por Ingresos')
+        ax_top_products.set_xlabel('Ingresos Totales')
+        ax_top_products.set_ylabel('Producto')
         top_products_plot_base64 = plot_to_base64(fig_top_products)
 
-    # Employee Sales Ranking
+    # Ranking de Ventas por Empleado
     employee_sales_plot_base64 = None
     if not employee_sales_df.empty:
         fig_employee_sales, ax_employee_sales = plt.subplots(figsize=(10, 6))
         sns.barplot(x='total_sales_amount', y='full_name', data=employee_sales_df, ax=ax_employee_sales)
-        ax_employee_sales.set_title('Employee Sales Ranking')
-        ax_employee_sales.set_xlabel('Total Sales Amount')
-        ax_employee_sales.set_ylabel('Employee')
-        employee_sales_plot_base64 = plot_to_base64(fig_employee_sales)
+        ax_employee_sales.set_title('Ranking de Ventas por Empleado')
+        ax_employee_sales.set_xlabel('Cantidad Total de Ventas')
+        ax_employee_sales.set_ylabel('Empleado')
+    employee_sales_plot_base64 = plot_to_base64(fig_employee_sales)
 
     return {
         "total_income": total_income,
@@ -172,14 +230,14 @@ def generate_financial_report(start_date, end_date):
         "time_series_plot": time_series_plot_base64,
         "top_products_plot": top_products_plot_base64,
         "employee_sales_plot": employee_sales_plot_base64,
-        "status": "Financial report generated successfully."
+        "status": "Informe financiero generado exitosamente."
     }
 
 def generate_product_and_sales_trends_report(start_date, end_date):
     """
-    Generates reports on product performance by category and sales trends.
+    Genera informes sobre el rendimiento del producto por categoría y tendencias de ventas.
     """
-    # 1. Product Performance by Category
+    # 1. Rendimiento del Producto por Categoría
     category_sales_qs = Detalle_Ventas.objects.filter(
         venta_det_vent__fecha_venta__range=(start_date, end_date)
     ).values(
@@ -194,17 +252,17 @@ def generate_product_and_sales_trends_report(start_date, end_date):
     if not category_sales_df.empty:
         category_performance_data = category_sales_df.to_dict(orient='records')
 
-        # Plotting Product Performance by Category
+        # Trazado del Rendimiento del Producto por Categoría
         fig_category_sales, ax_category_sales = plt.subplots(figsize=(10, 6))
         sns.barplot(x='total_revenue_category', y='producto_det_vent__categoria_producto__nombre_categoria', data=category_sales_df, ax=ax_category_sales)
-        ax_category_sales.set_title('Product Performance by Category (Revenue)')
-        ax_category_sales.set_xlabel('Total Revenue')
-        ax_category_sales.set_ylabel('Product Category')
+        ax_category_sales.set_title('Rendimiento del Producto por Categoría (Ingresos)')
+        ax_category_sales.set_xlabel('Ingresos Totales')
+        ax_category_sales.set_ylabel('Categoría de Producto')
         category_sales_plot_base64 = plot_to_base64(fig_category_sales)
     else:
         category_sales_plot_base64 = None
 
-    # 2. Sales Trend by Day of Week and Hour of Day
+    # 2. Tendencia de Ventas por Día de la Semana y Hora del Día
     sales_trend_qs = Ventas.objects.filter(
         fecha_venta__range=(start_date, end_date)
     ).values('fecha_venta', 'total_venta')
@@ -219,27 +277,27 @@ def generate_product_and_sales_trends_report(start_date, end_date):
         sales_trend_df['day_of_week'] = sales_trend_df['fecha_venta'].dt.day_name()
         sales_trend_df['hour_of_day'] = sales_trend_df['fecha_venta'].dt.hour
 
-        # Sales by Day of Week
+        # Ventas por Día de la Semana
         sales_by_day = sales_trend_df.groupby('day_of_week')['total_venta'].sum().reindex([
             'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
         ]).fillna(0)
         
         fig_sales_day, ax_sales_day = plt.subplots(figsize=(10, 6))
         sales_by_day.plot(kind='bar', ax=ax_sales_day)
-        ax_sales_day.set_title('Total Sales by Day of Week')
-        ax_sales_day.set_xlabel('Day of Week')
-        ax_sales_day.set_ylabel('Total Sales')
+        ax_sales_day.set_title('Ventas Totales por Día de la Semana')
+        ax_sales_day.set_xlabel('Día de la Semana')
+        ax_sales_day.set_ylabel('Ventas Totales')
         ax_sales_day.tick_params(axis='x', rotation=45)
         sales_day_of_week_plot_base64 = plot_to_base64(fig_sales_day)
 
-        # Sales by Hour of Day
+        # Ventas por Hora del Día
         sales_by_hour = sales_trend_df.groupby('hour_of_day')['total_venta'].sum().fillna(0)
         
         fig_sales_hour, ax_sales_hour = plt.subplots(figsize=(12, 6))
         sales_by_hour.plot(kind='line', marker='o', ax=ax_sales_hour)
-        ax_sales_hour.set_title('Total Sales by Hour of Day')
-        ax_sales_hour.set_xlabel('Hour of Day')
-        ax_sales_hour.set_ylabel('Total Sales')
+        ax_sales_hour.set_title('Ventas Totales por Hora del Día')
+        ax_sales_hour.set_xlabel('Hora del Día')
+        ax_sales_hour.set_ylabel('Ventas Totales')
         ax_sales_hour.set_xticks(range(24))
         sales_hour_of_day_plot_base64 = plot_to_base64(fig_sales_hour)
 
@@ -248,5 +306,5 @@ def generate_product_and_sales_trends_report(start_date, end_date):
         "category_sales_plot": category_sales_plot_base64,
         "sales_by_day_of_week_plot": sales_day_of_week_plot_base64,
         "sales_by_hour_of_day_plot": sales_hour_of_day_plot_base64,
-        "status": "Product and sales trends report generated successfully."
+        "status": "Informe de tendencias de productos y ventas generado exitosamente."
     }

@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mx-auto p-4">
+    <h1 class="text-2xl font-bold mb-4">Lista de Productos</h1>
+    <a href="{% url 'producto_create' %}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mb-4 inline-block">Agregar Nuevo Producto</a>
+
+    {% if productos %}
+    <div class="overflow-x-auto">
+        <table class="min-w-full bg-white border border-gray-200">
+            <thead>
+                <tr>
+                    <th class="py-2 px-4 border-b">Nombre</th>
+                    <th class="py-2 px-4 border-b">Marca</th>
+                    <th class="py-2 px-4 border-b">Precio Compra</th>
+                    <th class="py-2 px-4 border-b">Precio Venta</th>
+                    <th class="py-2 px-4 border-b">Categoría</th>
+                    <th class="py-2 px-4 border-b">Estado</th>
+                    <th class="py-2 px-4 border-b">Stock Mínimo</th>
+                    <th class="py-2 px-4 border-b">Código de Barras</th>
+                    <th class="py-2 px-4 border-b">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for producto in productos %}
+                <tr>
+                    <td class="py-2 px-4 border-b">{{ producto.nombre_producto }}</td>
+                    <td class="py-2 px-4 border-b">{{ producto.marca_producto }}</td>
+                    <td class="py-2 px-4 border-b">{{ producto.precio_unitario_compra_producto }}</td>
+                    <td class="py-2 px-4 border-b">{{ producto.precio_unitario_venta_producto }}</td>
+                    <td class="py-2 px-4 border-b">{{ producto.categoria_producto.nombre_categoria }}</td>
+                    <td class="py-2 px-4 border-b">{{ producto.estado_producto.nombre_estado }}</td>
+                    <td class="py-2 px-4 border-b">{{ producto.low_stock_threshold }}</td>
+                    <td class="py-2 px-4 border-b">{{ producto.barcode|default:"N/A" }}</td>
+                    <td class="py-2 px-4 border-b">
+                        <a href="{% url 'producto_update' producto.pk %}" class="text-yellow-600 hover:text-yellow-900 mr-2">Editar</a>
+                        <a href="{% url 'producto_delete' producto.pk %}" class="text-red-600 hover:text-red-900">Eliminar</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if is_paginated %}
+    <div class="pagination mt-4">
+        <span class="step-links">
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-l">Anterior</a>
+            {% endif %}
+
+            <span class="current bg-gray-200 py-2 px-4">
+                Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}.
+            </span>
+
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-r">Siguiente</a>
+            {% endif %}
+        </span>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <p>No hay productos registrados.</p>
+    {% endif %}
+</div>
+{% endblock %}

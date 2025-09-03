@@ -5,6 +5,8 @@ from django.db import transaction
 from django.utils import timezone
 
 from HOME.models import Cajas, Historial_Caja, Tipo_Evento, Estados, Fondo_Pagos, Movimiento_Fondo, Empleados
+# Importar el servicio de auditoría
+from Auditoria.services import crear_registro
 
 
 def _event(name: str) -> Tipo_Evento:
@@ -79,6 +81,19 @@ def abrir_caja_service(monto_inicial: Decimal, desc_ajuste: str, empleado_actual
             nuevo_saldo_hcaja=monto_inicial,
             descripcion_hcaja=desc_ajuste or 'Apertura de caja'
         )
+        
+        # --- REGISTRO DE AUDITORÍA ---
+        crear_registro(
+            usuario=getattr(empleado_actual, 'user_empleado', None),
+            accion='APERTURA_CAJA',
+            detalles={
+                'caja_id': nueva_caja.id_caja,
+                'monto_inicial': str(monto_inicial),
+                'observaciones': desc_ajuste
+            }
+        )
+        # --- FIN REGISTRO ---
+
     return nueva_caja
 
 def retiro_service(monto: Decimal, motivo: str, destino: str, aprobador: str, empleado_actual: Empleados):
@@ -122,6 +137,21 @@ def retiro_service(monto: Decimal, motivo: str, destino: str, aprobador: str, em
             descripcion_hcaja=motivo,
             destino_movimiento=destino
         )
+
+        # --- REGISTRO DE AUDITORÍA ---
+        crear_registro(
+            usuario=getattr(empleado_actual, 'user_empleado', None),
+            accion='RETIRO_CAJA',
+            detalles={
+                'caja_id': caja_activa.id_caja,
+                'monto': str(monto),
+                'motivo': motivo,
+                'destino': destino,
+                'aprobador': aprobador
+            }
+        )
+        # --- FIN REGISTRO ---
+
     _notificar_retiro(monto, motivo, empleado_actual.user_empleado, destino, aprobador) # Notificar con el usuario del empleado
     return caja_activa
 
@@ -192,4 +222,18 @@ def cerrar_caja_service(monto_cierre_real: Decimal, observaciones_cierre: str, e
             nuevo_saldo_hcaja=monto_cierre_real,
             descripcion_hcaja=observaciones_cierre or 'Cierre de caja'
         )
+        
+        # --- REGISTRO DE AUDITORÍA ---
+        crear_registro(
+            usuario=getattr(empleado_actual, 'user_empleado', None),
+            accion='CIERRE_CAJA',
+            detalles={
+                'caja_id': caja_activa.id_caja,
+                'monto_teorico': str(monto_teorico),
+                'monto_real': str(monto_cierre_real),
+                'diferencia': str(diferencia),
+                'observaciones': observaciones_cierre
+            }
+        )
+        # --- FIN REGISTRO ---
     return caja_activa

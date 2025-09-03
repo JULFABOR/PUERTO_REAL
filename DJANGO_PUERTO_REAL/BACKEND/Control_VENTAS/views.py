@@ -15,6 +15,7 @@ from HOME.models import (
     Cupones_Clientes, Estados, Historial_Puntos, Clientes, Empleados
 )
 from .serializers import VentaSerializer
+from Auditoria.services import crear_registro
 
 class VentaViewSet(viewsets.ModelViewSet):
     queryset = Ventas.objects.all()
@@ -28,20 +29,33 @@ class VentaViewSet(viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
         
-        # Check for cancellation request
+        # Comprobar solicitud de anulación
         nuevo_estado_id = request.data.get('estado_venta')
         if nuevo_estado_id and int(nuevo_estado_id) == 4 and instance.estado_venta.id_estado != 4: # 4: ANULADA
-            # Check 5-minute time limit for cancellation
+            # Comprobar límite de 5 minutos para anulación
             time_diff = timezone.now() - instance.fecha_venta
-            if time_diff.total_seconds() > 300: # 5 minutes
+            if time_diff.total_seconds() > 300: # 5 minutos
                 return Response(
                     {"error": "La venta solo puede ser anulada dentro de los 5 minutos de su creacion."},
                     status=status.HTTP_403_FORBIDDEN
                 )
+
+            # --- REGISTRO DE AUDITORÍA ---
+            crear_registro(
+                usuario=request.user,
+                accion='ANULACION_VENTA',
+                detalles={
+                    'venta_id': instance.id_venta,
+                    'cliente': instance.cliente_venta.id_cliente if instance.cliente_venta else None,
+                    'total_original': str(instance.total_venta),
+                    'realizada_por': instance.empleado_venta.user_empleado.username if instance.empleado_venta else None
+                }
+            )
+            # --- FIN REGISTRO ---
             
-            # Revert Stock
+            # Revertir Stock
             tipo_movimiento_entrada = Tipos_Movimientos.objects.get(id_tipo_movimiento=10) # MOV_STOCK_ENTRADA
-            empleado = request.user.empleado # Assumes user is linked to an Empleado
+            empleado = request.user.empleado # Asume que el usuario está enlazado a un Empleado
 
             for detalle in instance.detalles.all():
                 stock, created = Stocks.objects.get_or_create(
@@ -62,10 +76,10 @@ class VentaViewSet(viewsets.ModelViewSet):
                     observaciones_hstock=f"Entrada por anulacion de venta ID: {instance.id_venta}"
                 )
             
-            # Revert Caja
+            # Revertir Caja
             caja = instance.caja_venta
             
-            # Revert income from sale
+            # Revertir ingreso de la venta
             monto_ingreso_original = instance.total_venta - instance.descuento_aplicado
             saldo_anterior_caja = caja.monto_teorico_caja
             caja.monto_teorico_caja -= monto_ingreso_original
@@ -76,13 +90,13 @@ class VentaViewSet(viewsets.ModelViewSet):
                 caja_hc=caja,
                 empleado_hc=empleado,
                 tipo_event_caja=tipo_evento_egreso_anulacion,
-                cantidad_movida_hcaja=monto_ingreso_original * -1, # Negative for expense
+                cantidad_movida_hcaja=monto_ingreso_original * -1, # Negativo para egreso
                 saldo_anterior_hcaja=saldo_anterior_caja,
                 nuevo_saldo_hcaja=caja.monto_teorico_caja,
                 descripcion_hcaja=f"Egreso por anulacion de ingreso de venta ID: {instance.id_venta}"
             )
 
-            # Revert expense for change given (if any)
+            # Revertir egreso por vuelto entregado (si lo hubo)
             if instance.vuelto_entregado > 0:
                 saldo_anterior_vuelto = caja.monto_teorico_caja
                 caja.monto_teorico_caja += instance.vuelto_entregado
@@ -99,7 +113,7 @@ class VentaViewSet(viewsets.ModelViewSet):
                     descripcion_hcaja=f"Ingreso por anulacion de vuelto de venta ID: {instance.id_venta}"
                 )
             
-            # Revert points (if any were awarded)
+            # Revertir puntos (si se otorgaron)
             if instance.cliente_venta and instance.total_venta - instance.descuento_aplicado > 0:
                 neto_pagado = instance.total_venta - instance.descuento_aplicado
                 puntos_ganados = math.floor(neto_pagado / settings.PESOS_POR_PUNTO)
@@ -111,16 +125,16 @@ class VentaViewSet(viewsets.ModelViewSet):
                     Historial_Puntos.objects.create(
                         cliente=cliente, venta_origen=instance, puntos_movidos=puntos_ganados * -1,
                         puntos_anteriores=puntos_anteriores, puntos_nuevos=cliente.puntos_actuales,
-                        tipo_movimiento='AJUSTE' # Or a specific 'ANULACION_PUNTOS' type if defined
+                        tipo_movimiento='AJUSTE' # O un tipo específico 'ANULACION_PUNTOS' si está definido
                     )
             
-            # Revert coupon status (if a coupon was applied)
+            # Revertir estado del cupón (si se aplicó uno)
             if instance.cupon_aplicado:
                 estado_disponible = Estados.objects.get(id_estado=16) # 16: DISPONIBLE
                 instance.cupon_aplicado.estado_cupon_cli = estado_disponible
                 instance.cupon_aplicado.save()
 
-        # Proceed with the update (e.g., changing the status to ANULADA)
+        # Proceder con la actualización (ej., cambiando el estado a ANULADA)
         return super().update(request, *args, **kwargs)
 
     @action(detail=True, methods=['get'])

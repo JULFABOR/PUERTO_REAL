@@ -1,6 +1,7 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action, api_view
+from rest_framework.permissions import IsAdminUser
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.db import transaction
@@ -9,7 +10,8 @@ from django.conf import settings
 import math
 
 from HOME.models import ConfiguracionFidelizacion, Cupones_Descuento, Cupones_Clientes, Historial_Puntos, Clientes, Estados, Ventas
-from .serializers import ConfiguracionFidelizacionSerializer, CuponesDescuentoSerializer, CuponesClientesSerializer, HistorialPuntosSerializer, ClienteSerializer
+from .serializers import ConfiguracionFidelizacionSerializer, CuponesDescuentoSerializer, CuponesClientesSerializer, HistorialPuntosSerializer, ClienteSerializer, AjustePuntosSerializer
+from Auditoria.services import crear_registro
 
 class ConfiguracionFidelizacionViewSet(viewsets.ModelViewSet):
     queryset = ConfiguracionFidelizacion.objects.all()
@@ -89,7 +91,7 @@ class HistorialPuntosViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Historial_Puntos.objects.all().order_by('-fecha_movimiento')
     serializer_class = HistorialPuntosSerializer
 
-class ClientesViewSet(viewsets.ReadOnlyModelViewSet):
+class ClientesViewSet(viewsets.ModelViewSet):
     queryset = Clientes.objects.all()
     serializer_class = ClienteSerializer
 
@@ -117,6 +119,52 @@ class ClientesViewSet(viewsets.ReadOnlyModelViewSet):
         serializer = CuponesClientesSerializer(cupones_disponibles, many=True)
         return Response(serializer.data)
 
+    @action(detail=True, methods=['post'], permission_classes=[IsAdminUser])
+    def ajustar_puntos(self, request, pk=None):
+        cliente = self.get_object()
+        serializer = AjustePuntosSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        cantidad = serializer.validated_data['cantidad']
+        motivo = serializer.validated_data['motivo']
+
+        with transaction.atomic():
+            puntos_anteriores = cliente.puntos_actuales
+            nuevo_saldo = puntos_anteriores + cantidad
+
+            if nuevo_saldo < 0:
+                return Response({"error": "El cliente no puede tener un saldo de puntos negativo."}, status=status.HTTP_400_BAD_REQUEST)
+
+            cliente.puntos_actuales = nuevo_saldo
+            cliente.save()
+
+            Historial_Puntos.objects.create(
+                cliente=cliente,
+                puntos_movidos=cantidad,
+                puntos_anteriores=puntos_anteriores,
+                puntos_nuevos=nuevo_saldo,
+                tipo_movimiento='AJUSTE',
+                motivo_ajuste=motivo
+            )
+
+            # --- REGISTRO DE AUDITORÍA ---
+            crear_registro(
+                usuario=request.user,
+                accion='AJUSTE_PUNTOS_MANUAL',
+                detalles={
+                    'cliente_id': cliente.id_cliente,
+                    'cliente_dni': cliente.dni_cliente,
+                    'puntos_ajustados': cantidad,
+                    'puntos_anteriores': puntos_anteriores,
+                    'puntos_nuevos': nuevo_saldo,
+                    'motivo': motivo
+                }
+            )
+            # --- FIN REGISTRO ---
+
+        return Response({"message": f"Puntos ajustados exitosamente. Nuevo saldo: {nuevo_saldo}"}, status=status.HTTP_200_OK)
+
 @api_view(['POST'])
 def load_points_qr(request):
     token = request.data.get('token')
@@ -124,7 +172,7 @@ def load_points_qr(request):
         return Response({"error": "Token no proporcionado."}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        data = signing.loads(token, max_age=300) # 5 minutes validity
+        data = signing.loads(token, max_age=300) # 5 minutos de validez
         venta_id = data.get('venta_id')
         venta_fecha = data.get('venta_fecha')
     except signing.SignatureExpired:

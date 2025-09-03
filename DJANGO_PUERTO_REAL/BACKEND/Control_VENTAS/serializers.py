@@ -8,6 +8,7 @@ from HOME.models import (
 )
 import math
 from django.utils import timezone
+from Auditoria.services import crear_registro
 
 class DetalleVentaSerializer(serializers.ModelSerializer):
     class Meta:
@@ -16,7 +17,7 @@ class DetalleVentaSerializer(serializers.ModelSerializer):
 
 class VentaSerializer(serializers.ModelSerializer):
     detalles = DetalleVentaSerializer(many=True)
-    codigo_cupon = serializers.CharField(write_only=True, required=False) # New field for Mode 2
+    codigo_cupon = serializers.CharField(write_only=True, required=False) # Nuevo campo para Modo 2
 
     class Meta:
         model = Ventas
@@ -32,25 +33,25 @@ class VentaSerializer(serializers.ModelSerializer):
             'cupon_aplicado',
             'estado_venta',
             'detalles',
-            'codigo_cupon' # Include new field
+            'codigo_cupon' # Incluir nuevo campo
         )
         read_only_fields = ('fecha_venta', 'total_venta', 'descuento_aplicado')
 
     @transaction.atomic
     def create(self, validated_data):
         detalles_data = validated_data.pop('detalles')
-        cupon_cliente_id = validated_data.pop('cupon_aplicado', None) # Get ID for Mode 1
-        codigo_cupon = validated_data.pop('codigo_cupon', None) # Get code for Mode 2
+        cupon_cliente_id = validated_data.pop('cupon_aplicado', None) # Obtener ID para Modo 1
+        codigo_cupon = validated_data.pop('codigo_cupon', None) # Obtener código para Modo 2
         cliente = validated_data.get('cliente_venta')
 
-        # Ensure only one coupon mechanism is used
+        # Asegurar que solo se use un mecanismo de cupón
         if cupon_cliente_id and codigo_cupon:
             raise serializers.ValidationError("No se puede aplicar un cupon pre-existente y un codigo de cupon a la vez.")
         
         cupon_aplicado_instance = None
         descuento = 0
 
-        # 1. Stock Validation
+        # 1. Validación de Stock
         for detalle_data in detalles_data:
             producto = detalle_data['producto_det_vent']
             cantidad_solicitada = detalle_data['cantidad_det_vent']
@@ -61,14 +62,14 @@ class VentaSerializer(serializers.ModelSerializer):
             except Stocks.DoesNotExist:
                 raise serializers.ValidationError(f"No hay stock para: {producto.nombre_producto}")
 
-        # 2. Calculate total
+        # 2. Calcular total
         total_venta = sum(
             (d.get('precio_unitario_det_vent', d['producto_det_vent'].precio_unitario_venta_producto) * d['cantidad_det_vent'])
             for d in detalles_data
         )
         validated_data['total_venta'] = total_venta
 
-        # 3. Coupon Logic (Mode 1: Pre-existing Cupones_Clientes voucher)
+        # 3. Lógica de Cupón (Modo 1: Cupón_Clientes preexistente)
         if cupon_cliente_id:
             try:
                 cupon_aplicado_instance = Cupones_Clientes.objects.get(id_cupon_cli=cupon_cliente_id)
@@ -89,23 +90,23 @@ class VentaSerializer(serializers.ModelSerializer):
             validated_data['descuento_aplicado'] = descuento
             validated_data['cupon_aplicado'] = cupon_aplicado_instance
 
-        # 4. Coupon Logic (Mode 2: Instant redemption via code)
+        # 4. Lógica de Cupón (Modo 2: Canje instantáneo vía código)
         elif codigo_cupon:
             try:
                 cupon_desc = Cupones_Descuento.objects.get(nombre_cupon_desc=codigo_cupon)
             except Cupones_Descuento.DoesNotExist:
                 raise serializers.ValidationError("El codigo de cupon no es valido.")
             
-            # Validate coupon date
+            # Validar fecha del cupón
             if cupon_desc.fecha_vencimiento_cupon_desc and cupon_desc.fecha_vencimiento_cupon_desc < timezone.now().date():
                 raise serializers.ValidationError("El cupon ha vencido.")
 
-            # Validate points
+            # Validar puntos
             if cupon_desc.puntos_requeridos_cupon_desc > 0:
                 if not cliente or cliente.puntos_actuales < cupon_desc.puntos_requeridos_cupon_desc:
                     raise serializers.ValidationError("Puntos insuficientes para canjear este cupon.")
                 
-                # Deduct points
+                # Deducir puntos
                 puntos_anteriores = cliente.puntos_actuales
                 cliente.puntos_actuales -= cupon_desc.puntos_requeridos_cupon_desc
                 cliente.save()
@@ -115,7 +116,7 @@ class VentaSerializer(serializers.ModelSerializer):
                     tipo_movimiento='CANJEADOS'
                 )
             
-            # Create and mark new Cupones_Clientes instance as used
+            # Crear y marcar nueva instancia de Cupones_Clientes como usada
             estado_canjeado = Estados.objects.get(id_estado=17) # 17: CANJEADO
             cupon_aplicado_instance = Cupones_Clientes.objects.create(
                 cliente_cupon_cli=cliente,
@@ -131,20 +132,20 @@ class VentaSerializer(serializers.ModelSerializer):
             
             validated_data['descuento_aplicado'] = descuento
 
-        # 5. Create Sale and Details
+        # 5. Crear Venta y Detalles
         venta = Ventas.objects.create(**validated_data)
         for detalle_data in detalles_data:
             if 'precio_unitario_det_vent' not in detalle_data:
                 detalle_data['precio_unitario_det_vent'] = detalle_data['producto_det_vent'].precio_unitario_venta_producto
             Detalle_Ventas.objects.create(venta_det_vent=venta, **detalle_data)
 
-        # 6. Mark coupon as used (only for Mode 1, Mode 2 already marked)
-        if cupon_cliente_id and cupon_aplicado_instance: # Check if it was Mode 1
+        # 6. Marcar cupón como usado (solo para Modo 1, Modo 2 ya marcado)
+        if cupon_cliente_id and cupon_aplicado_instance: # Comprobar si fue Modo 1
             estado_canjeado = Estados.objects.get(id_estado=17) # 17: CANJEADO
             cupon_aplicado_instance.estado_cupon_cli = estado_canjeado
             cupon_aplicado_instance.save()
 
-        # 7. Points Logic (for points earned)
+        # 7. Lógica de Puntos (para puntos ganados)
         neto_pagado = venta.total_venta - venta.descuento_aplicado
         if neto_pagado > 0 and cliente:
             puntos_ganados = math.floor(neto_pagado / settings.PESOS_POR_PUNTO)
@@ -158,7 +159,7 @@ class VentaSerializer(serializers.ModelSerializer):
                     tipo_movimiento='GANADOS'
                 )
 
-        # 8. Deduct Stock and create history
+        # 8. Deducir Stock y crear historial
         tipo_movimiento_venta = Tipos_Movimientos.objects.get(id_tipo_movimiento=1) # VENTA
         for detalle in venta.detalles.all():
             stock = Stocks.objects.get(producto_en_stock=detalle.producto_det_vent)
@@ -172,7 +173,7 @@ class VentaSerializer(serializers.ModelSerializer):
                 observaciones_hstock=f"Salida por venta ID: {venta.id_venta}"
             )
 
-        # 9. Cash Register (Caja) Logic
+        # 9. Lógica de Caja
         caja = venta.caja_venta
         saldo_anterior_caja = caja.monto_teorico_caja
         monto_ingreso = neto_pagado
@@ -194,5 +195,19 @@ class VentaSerializer(serializers.ModelSerializer):
                 cantidad_movida_hcaja=venta.vuelto_entregado * -1, saldo_anterior_hcaja=saldo_anterior_vuelto,
                 nuevo_saldo_hcaja=caja.monto_teorico_caja, descripcion_hcaja=f"Vuelto por venta ID: {venta.id_venta}"
             )
-            
+        
+        # --- REGISTRO DE AUDITORÍA ---
+        crear_registro(
+            usuario=self.context['request'].user,
+            accion='VENTA_NUEVA',
+            detalles={
+                'venta_id': venta.id_venta,
+                'cliente': venta.cliente_venta.id_cliente if venta.cliente_venta else None,
+                'total': str(venta.total_venta),
+                'descuento': str(venta.descuento_aplicado),
+                'items': venta.detalles.count()
+            }
+        )
+        # --- FIN REGISTRO ---
+
         return venta

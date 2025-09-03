@@ -9,6 +9,7 @@ from io import BytesIO
 
 from HOME.models import Compras, Proveedores, Stocks, Historial_Stock, Tipos_Movimientos, Estados
 from .serializers import CompraSerializer, ProveedorSerializer
+from Auditoria.services import crear_registro
 
 class CompraViewSet(viewsets.ModelViewSet):
     queryset = Compras.objects.all()
@@ -16,7 +17,7 @@ class CompraViewSet(viewsets.ModelViewSet):
 
     def get_serializer_context(self):
         """
-        Extra context provided to the serializer class.
+        Contexto extra proporcionado a la clase serializadora.
         """
         context = super().get_serializer_context()
         context.update({"request": self.request})
@@ -25,20 +26,20 @@ class CompraViewSet(viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
         
-        # Check if only the state is being changed
+        # Comprueba si solo se está cambiando el estado
         data_keys = list(request.data.keys())
         is_status_change_only = 'estado_compra' in data_keys and len(data_keys) == 1
 
         if not is_status_change_only:
-            # Apply 20-minute rule for all other edits
+            # Aplica la regla de 20 minutos para todas las demás ediciones
             time_diff = timezone.now() - instance.fecha_compra
-            if time_diff.total_seconds() > 1200: # 20 minutes
+            if time_diff.total_seconds() > 1200: # 20 minutos
                 return Response(
                     {"error": "Solo se puede editar la compra dentro de los 20 minutos de su creacion."},
                     status=status.HTTP_403_FORBIDDEN
                 )
 
-        # The stock movement logic for when a purchase is marked as "RECIBIDA"
+        # Lógica de movimiento de stock para cuando una compra se marca como "RECIBIDA"
         nuevo_estado_id = request.data.get('estado_compra')
         if nuevo_estado_id and int(nuevo_estado_id) == 7 and instance.estado_compra.id_estado != 7:
             try:
@@ -66,6 +67,19 @@ class CompraViewSet(viewsets.ModelViewSet):
                         tipo_movimiento_hs=tipo_movimiento, empleado_hs=empleado,
                         observaciones_hstock=f"Entrada por compra ID: {instance.id_compra}"
                     )
+                
+                # --- REGISTRO DE AUDITORÍA ---
+                crear_registro(
+                    usuario=request.user,
+                    accion='COMPRA_RECIBIDA',
+                    detalles={
+                        'compra_id': instance.id_compra,
+                        'proveedor': instance.proveedor_compra.nombre_proveedor if instance.proveedor_compra else None,
+                        'total_compra': str(instance.total_compra)
+                    }
+                )
+                # --- FIN REGISTRO ---
+
             except Tipos_Movimientos.DoesNotExist:
                 return Response({"error": "Tipo de movimiento 'COMPRA A PROVEEDOR' no encontrado."}, status=status.HTTP_400_BAD_REQUEST)
             except Exception as e:

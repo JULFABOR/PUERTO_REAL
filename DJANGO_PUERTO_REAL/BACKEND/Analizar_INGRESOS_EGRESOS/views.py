@@ -1,15 +1,14 @@
-
 from django.shortcuts import render
 from django.http import JsonResponse
-from .reports import generate_financial_report, generate_product_and_sales_trends_report
+from .reports import generate_financial_report, generate_product_and_sales_trends_report, generate_expense_breakdown_report
 from datetime import datetime, timedelta
 
 def financial_report_view(request):
-    # Default date range for demonstration: last 30 days
+    # Rango de fechas predeterminado para demostración: últimos 30 días
     end_date = datetime.now()
     start_date = end_date - timedelta(days=30)
 
-    # You can get dates from request.GET if needed for dynamic reports
+    # Puedes obtener fechas de request.GET si es necesario para informes dinámicos
     # start_date_str = request.GET.get('start_date')
     # end_date_str = request.GET.get('end_date')
     # if start_date_str and end_date_str:
@@ -26,3 +25,9 @@ def product_sales_trends_report_view(request):
     report_data = generate_product_and_sales_trends_report(start_date, end_date)
     return JsonResponse(report_data)
 
+def expense_breakdown_report_view(request):
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=30)
+
+    report_data = generate_expense_breakdown_report(start_date, end_date)
+    return JsonResponse(report_data)

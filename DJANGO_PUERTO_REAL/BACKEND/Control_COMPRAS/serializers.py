@@ -3,6 +3,7 @@ from HOME.models import (
     Compras, Detalle_Compras, Compra_MetodoPago, Productos, Metodos_Pago, 
     Proveedores, Stocks, Historial_Stock, Tipos_Movimientos, Alertas
 )
+from Auditoria.services import crear_registro
 
 class ProveedorSerializer(serializers.ModelSerializer):
     class Meta:
@@ -56,14 +57,28 @@ class CompraSerializer(serializers.ModelSerializer):
         for metodo_pago_data in metodos_pago_data:
             Compra_MetodoPago.objects.create(compra=compra, **metodo_pago_data)
 
-        # Create an alert if there is a deadline
+        # Crear una alerta si hay una fecha límite
         if compra.fecha_limite:
             Alertas.objects.create(
                 nombre_alerta=f"Compra pendiente: #{compra.id_compra}",
                 mensaje_alerta=f"La compra #{compra.id_compra} a {compra.proveedor_compra.nombre_proveedor} vence el {compra.fecha_limite.strftime('%d/%m/%Y')}. Revisar y cambiar estado."
-                # estado_alerta will use the default value from the model
+                # estado_alerta usará el valor por defecto del modelo
             )
-            
+        
+        # --- REGISTRO DE AUDITORÍA ---
+        crear_registro(
+            usuario=self.context['request'].user,
+            accion='COMPRA_NUEVA',
+            detalles={
+                'compra_id': compra.id_compra,
+                'proveedor': compra.proveedor_compra.nombre_proveedor if compra.proveedor_compra else None,
+                'total': str(compra.total_compra),
+                'es_credito': compra.es_credito,
+                'items': compra.detalles.count()
+            }
+        )
+        # --- FIN REGISTRO ---
+
         return compra
 
     def update(self, instance, validated_data):
@@ -72,7 +87,7 @@ class CompraSerializer(serializers.ModelSerializer):
         detalles_data = validated_data.pop('detalles', None)
         metodos_pago_data = validated_data.pop('metodos_pago', None)
 
-        # Update Compra fields
+        # Actualizar campos de Compra
         instance = super().update(instance, validated_data)
 
         if detalles_data is not None:
@@ -87,7 +102,7 @@ class CompraSerializer(serializers.ModelSerializer):
                     
                     detalle.cant_det_comp = detalle_data.get('cant_det_comp', detalle.cant_det_comp)
                     detalle.precio_unidad_det_comp = detalle_data.get('precio_unidad_det_comp', detalle.precio_unidad_det_comp)
-                    detalle.save() # Recalculates subtotal
+                    detalle.save() # Recalcula el subtotal
 
                     if is_recibida_antes:
                         cantidad_diff = detalle.cant_det_comp - original_cantidad
@@ -108,26 +123,26 @@ class CompraSerializer(serializers.ModelSerializer):
                                     observaciones_hstock=f"Ajuste por edicion de compra ID: {instance.id_compra}"
                                 )
                             except Stocks.DoesNotExist:
-                                # Handle case where stock record doesn't exist if necessary
+                                # Manejar caso donde el registro de stock no existe si es necesario
                                 pass
                 else:
-                    # New detail
+                    # Nuevo detalle
                     Detalle_Compras.objects.create(compra_dt_comp=instance, **detalle_data)
             
-            # Handle deleted details
+            # Manejar detalles eliminados
             for detalle_id, detalle in existing_detalles.items():
                 if is_recibida_antes:
-                     # Adjust stock for deleted items
+                     # Ajustar stock para ítems eliminados
                     try:
                         stock = Stocks.objects.get(producto_en_stock=detalle.producto_dt_comp)
                         stock.cantidad_actual_stock -= detalle.cant_det_comp
                         stock.save()
-                        # ... create history record for deletion ...
+                        # ... crear registro de historial para eliminación ...
                     except Stocks.DoesNotExist:
                         pass
                 detalle.delete()
 
-            # Recalculate total
+            # Recalcular total
             instance.refresh_from_db()
             new_total = sum(d.subtotal_det_comp for d in instance.detalles.all())
             instance.total_compra = new_total
