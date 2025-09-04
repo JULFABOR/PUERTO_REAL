@@ -9,10 +9,27 @@ from django.core import signing
 from django.conf import settings
 import math
 
+from django.views.generic import TemplateView
+from django.contrib.auth.decorators import login_required
+from django.utils.decorators import method_decorator
+
 from HOME.models import ConfiguracionFidelizacion, Cupones_Descuento, Cupones_Clientes, Historial_Puntos, Clientes, Estados, Ventas
 from .serializers import ConfiguracionFidelizacionSerializer, CuponesDescuentoSerializer, CuponesClientesSerializer, HistorialPuntosSerializer, ClienteSerializer, AjustePuntosSerializer
 from Auditoria.services import crear_registro
 
+# --- Vista de Template para el Dashboard de Fidelización ---
+@method_decorator(login_required, name='dispatch')
+class FidelizacionDashboardView(TemplateView):
+    template_name = 'Fidelizar_CLIENTES/fidelizacion_dashboard.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = "Dashboard de Fidelización"
+        context['ultimos_movimientos'] = Historial_Puntos.objects.order_by('-fecha_movimiento')[:10]
+        return context
+
+
+# --- Vistas de API ---
 class ConfiguracionFidelizacionViewSet(viewsets.ModelViewSet):
     queryset = ConfiguracionFidelizacion.objects.all()
     serializer_class = ConfiguracionFidelizacionSerializer

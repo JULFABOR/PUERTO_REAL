@@ -10,9 +10,8 @@
             <a class="hover:underline" href="{% url 'producto_list' %}">Productos</a>
             <a class="hover:underline" href="{% url 'fidelizacion_dashboard' %}">Fidelización</a>
             <a class="hover:underline" href="{% url 'home:fn_reportes' %}">Reportes</a>
-            {% if user.is_staff %}
             <a class="hover:underline" href="{% url 'Auditoria:audit_log' %}">Auditoría</a>
-            {% endif %}
+            <a class="hover:underline font-bold text-purple-600" href="{% url 'Analizar_INGRESOS_EGRESOS:analisis_dashboard' %}">Análisis I/E</a>
         </div>
         </div>
         <div class="flex items-center gap-3">

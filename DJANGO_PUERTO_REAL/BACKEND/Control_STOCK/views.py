@@ -1,15 +1,17 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status, generics
+from rest_framework import status, generics, viewsets
 from rest_framework.permissions import IsAuthenticated
-from django.db.models import Sum, Q 
+from django.db.models import Sum, Q, F
 from django.db import transaction
 from django.utils import timezone
 from datetime import timedelta
 
-from django.views.generic import ListView, CreateView, UpdateView, DeleteView
+from django.views.generic import ListView, CreateView, UpdateView, DeleteView, TemplateView
 from django.urls import reverse_lazy
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.decorators import login_required
+from django.utils.decorators import method_decorator
 
 from HOME.models import Productos, Stocks, Categorias_Productos, Historial_Stock, Tipos_Movimientos, Empleados, Estados
 from .serializers import StockSerializer, StockUpdateSerializer, StockAdjustmentSerializer, ProductoSerializer, HistorialStockSerializer
@@ -17,7 +19,25 @@ from .forms import ProductoForm
 from Auditoria.services import crear_registro
 
 
-# --- Vistas para el CRUD de Productos (Web) ---
+# --- Vistas de Template ---
+@method_decorator(login_required, name='dispatch')
+class StockDashboardView(TemplateView):
+    template_name = 'Control_STOCK/stock_dashboard.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = "Dashboard de Stock"
+        
+        # Obtener productos con bajo stock
+        low_stock_products = Productos.objects.annotate(
+            total_stock=Sum('stocks__cantidad_actual_stock')
+        ).filter(total_stock__lt=F('low_stock_threshold'), DELETE_Prod=False)
+        
+        context['low_stock_products'] = low_stock_products
+        return context
+
+
+
 class ProductoListView(LoginRequiredMixin, ListView):
     model = Productos
     template_name = 'Control_STOCK/producto_list.html'
@@ -65,7 +85,16 @@ class ProductoDeleteView(LoginRequiredMixin, DeleteView):
         return super().post(request, *args, **kwargs)
 
 
-# --- Vistas de la API (existentes) ---
+# --- Vistas de la API (existentes y nuevas) ---
+
+class ProductoViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint que permite ver, crear, editar y eliminar productos.
+    """
+    queryset = Productos.objects.filter(DELETE_Prod=False).order_by('-id_producto')
+    serializer_class = ProductoSerializer
+    # Los permisos y la autenticación se manejan globalmente por la config en settings.py
+
 class StockListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = StockSerializer

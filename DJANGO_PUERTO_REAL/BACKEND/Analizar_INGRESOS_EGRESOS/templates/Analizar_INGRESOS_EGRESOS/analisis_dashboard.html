@@ -1,0 +1,20 @@
+{% extends 'base_privado.html' %}
+
+{% block content %}
+<div class="container mx-auto p-4">
+    <h1 class="text-3xl font-bold text-gray-800 mb-4">{{ page_title }}</h1>
+    
+    <div class="bg-white p-6 rounded-lg shadow-md">
+        <p class="text-gray-700">
+            Bienvenido al Dashboard de Análisis. Esta sección es exclusiva para el personal de administración.
+        </p>
+        <p class="text-gray-600 mt-2">
+            Próximamente, aquí se mostrarán los gráficos y reportes detallados de ingresos, egresos, ventas y más.
+        </p>
+    </div>
+
+    {# Aquí se podrán añadir los componentes de los gráficos en el futuro #}
+    {# Por ejemplo: {% include 'partials/charts/ventas_mensuales.html' %} #}
+
+</div>
+{% endblock %}

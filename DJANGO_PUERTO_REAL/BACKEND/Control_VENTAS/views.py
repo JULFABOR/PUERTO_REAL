@@ -9,6 +9,10 @@ from io import BytesIO
 from django.conf import settings
 import math
 
+from django.views.generic import TemplateView
+from django.contrib.auth.decorators import login_required
+from django.utils.decorators import method_decorator
+
 from HOME.models import (
     Ventas, Detalle_Ventas, Stocks, Historial_Stock,
     Cajas, Historial_Caja, Tipos_Movimientos, Tipo_Evento, Productos,
@@ -17,6 +21,20 @@ from HOME.models import (
 from .serializers import VentaSerializer
 from Auditoria.services import crear_registro
 
+# --- Vista de Template para el Dashboard de Ventas ---
+@method_decorator(login_required, name='dispatch')
+class VentasDashboardView(TemplateView):
+    template_name = 'Control_VENTAS/ventas_dashboard.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = "Dashboard de Ventas"
+        # Aquí podrías añadir datos como las últimas 5 ventas, etc.
+        context['ultimas_ventas'] = Ventas.objects.order_by('-fecha_venta')[:5]
+        return context
+
+
+# --- Vistas de API ---
 class VentaViewSet(viewsets.ModelViewSet):
     queryset = Ventas.objects.all()
     serializer_class = VentaSerializer

@@ -7,10 +7,27 @@ from django.utils import timezone
 from xhtml2pdf import pisa
 from io import BytesIO
 
+from django.views.generic import TemplateView
+from django.contrib.auth.decorators import login_required
+from django.utils.decorators import method_decorator
+
 from HOME.models import Compras, Proveedores, Stocks, Historial_Stock, Tipos_Movimientos, Estados
 from .serializers import CompraSerializer, ProveedorSerializer
 from Auditoria.services import crear_registro
 
+# --- Vista de Template para el Dashboard de Compras ---
+@method_decorator(login_required, name='dispatch')
+class ComprasDashboardView(TemplateView):
+    template_name = 'Control_COMPRAS/compras_dashboard.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = "Dashboard de Compras"
+        context['ultimas_compras'] = Compras.objects.order_by('-fecha_compra')[:5]
+        return context
+
+
+# --- Vistas de API ---
 class CompraViewSet(viewsets.ModelViewSet):
     queryset = Compras.objects.all()
     serializer_class = CompraSerializer
