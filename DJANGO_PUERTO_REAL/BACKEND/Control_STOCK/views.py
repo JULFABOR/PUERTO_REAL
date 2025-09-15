@@ -1,71 +1,50 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status, generics
+from rest_framework import status, generics, viewsets
 from rest_framework.permissions import IsAuthenticated
-from django.db.models import Sum, Q 
+from django.db.models import Sum, Q, F
 from django.db import transaction
 from django.utils import timezone
 from datetime import timedelta
-
-from django.views.generic import ListView, CreateView, UpdateView, DeleteView
+from django.views.generic import TemplateView
 from django.urls import reverse_lazy
 from django.contrib.auth.mixins import LoginRequiredMixin
-
+from django.contrib.auth.decorators import login_required
+from django.utils.decorators import method_decorator
 from HOME.models import Productos, Stocks, Categorias_Productos, Historial_Stock, Tipos_Movimientos, Empleados, Estados
 from .serializers import StockSerializer, StockUpdateSerializer, StockAdjustmentSerializer, ProductoSerializer, HistorialStockSerializer
 from .forms import ProductoForm
 from Auditoria.services import crear_registro
 
 
-# --- Vistas para el CRUD de Productos (Web) ---
-class ProductoListView(LoginRequiredMixin, ListView):
-    model = Productos
-    template_name = 'Control_STOCK/producto_list.html'
-    context_object_name = 'productos'
-    paginate_by = 10
+# --- Vistas de Template ---
+@method_decorator(login_required, name='dispatch')
+class StockDashboardView(TemplateView):
+    template_name = 'Control_STOCK/Control-Stock.html'
 
-    def get_queryset(self):
-        # Excluir productos marcados para eliminación
-        return Productos.objects.filter(DELETE_Prod=False)
-
-class ProductoCreateView(LoginRequiredMixin, CreateView):
-    model = Productos
-    form_class = ProductoForm
-    template_name = 'Control_STOCK/producto_form.html'
-    success_url = reverse_lazy('producto_list') # Redirige a la lista de productos
-
-    def form_valid(self, form):
-        # Asigna el estado por defecto si no se selecciona uno (ej. 'Activo')
-        # Asegúrate de que exista un estado con nombre 'Activo' o el ID correspondiente
-        if not form.instance.estado_producto_id:
-            try:
-                estado_activo = Estados.objects.get(nombre_estado='Activo') # O el ID que corresponda
-                form.instance.estado_producto = estado_activo
-            except Estados.DoesNotExist:
-                # Manejar el error si el estado 'Activo' no existe
-                pass # O asignar un estado por defecto diferente
-        return super().form_valid(form)
-
-class ProductoUpdateView(LoginRequiredMixin, UpdateView):
-    model = Productos
-    form_class = ProductoForm
-    template_name = 'Control_STOCK/producto_form.html'
-    success_url = reverse_lazy('producto_list')
-
-class ProductoDeleteView(LoginRequiredMixin, DeleteView):
-    model = Productos
-    template_name = 'Control_STOCK/producto_confirm_delete.html'
-    success_url = reverse_lazy('producto_list')
-
-    def post(self, request, *args, **kwargs):
-        # En lugar de eliminar, marca como eliminado (soft delete)
-        self.object = self.get_object()
-        self.object.DELETE_Prod = True
-        self.object.save()
-        return super().post(request, *args, **kwargs)
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = "Gestión de Inventario"
+        
+        # Obtener todos los productos con su información de stock
+        productos = Productos.objects.filter(DELETE_Prod=False).annotate(
+            total_stock=Sum('stocks__cantidad_actual_stock')
+        )
+        
+        context['productos'] = productos
+        return context
 
 
-# --- Vistas de la API (existentes) ---
+# --- Vistas de la API (existentes y nuevas) ---
+
+class ProductoViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint que permite ver, crear, editar y eliminar productos.
+    """
+    queryset = Productos.objects.filter(DELETE_Prod=False).order_by('-id_producto')
+    serializer_class = ProductoSerializer
+    # Los permisos y la autenticación se manejan globalmente por la config en settings.py
+
 class StockListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = StockSerializer
@@ -96,12 +75,12 @@ class StockListView(generics.ListAPIView):
             try:
                 days = int(expiring_days)
                 future_date = timezone.now() + timedelta(days=days)
-                queryset = queryset.filter(fecha_vencimiento__range=[timezone.now(), future_date])
+                queryset = queryset.filter(producto_en_stock__fecha_vencimiento_producto__range=[timezone.now(), future_date])
             except ValueError:
                 pass # dias_expiracion inválido, ignorar filtro
 
         if expired == 'true':
-            queryset = queryset.filter(fecha_vencimiento__lt=timezone.now())
+            queryset = queryset.filter(producto_en_stock__fecha_vencimiento_producto__lt=timezone.now())
 
         if search_query:
             queryset = queryset.filter(
@@ -122,7 +101,7 @@ class StockDecrementAPIView(APIView):
         barcode = serializer.validated_data.get('barcode')
         quantity_to_decrement = serializer.validated_data['quantity']
         reason = serializer.validated_data.get('reason', '')
-        employee_id = serializer.validated_data['employee_id']
+        employee = serializer.validated_data['employee'] # Directly get the Empleados object
 
         try:
             if product_id:
@@ -137,10 +116,10 @@ class StockDecrementAPIView(APIView):
                             status=status.HTTP_404_NOT_FOUND)
 
         try:
-            employee = Empleados.objects.get(id_empleado=employee_id)
-        except Empleados.DoesNotExist:
-            return Response({"detail": "Empleado no encontrado."},
-                            status=status.HTTP_404_NOT_FOUND)
+            tipo_movimiento_salida = Tipos_Movimientos.objects.get(nombre_movimiento='MOV_STOCK_SALIDA')
+        except Tipos_Movimientos.DoesNotExist:
+            return Response({"detail": "Tipo de movimiento 'MOV_STOCK_SALIDA' no encontrado."},
+                            status=status.HTTP_400_BAD_REQUEST)
 
         with transaction.atomic():
             # Encontrar la entrada de stock de la cual decrementar (ej., lote más antiguo primero, o lote específico)
@@ -148,7 +127,7 @@ class StockDecrementAPIView(APIView):
             available_stock_entries = Stocks.objects.filter(
                 producto_en_stock=product,
                 cantidad_actual_stock__gt=0
-            ).order_by('fecha_vencimiento') # Priorizar lotes/stock más antiguos
+            ).order_by('producto_en_stock__fecha_vencimiento_producto') # Priorizar lotes/stock más antiguos
 
             total_available_quantity = available_stock_entries.aggregate(Sum('cantidad_actual_stock'))['cantidad_actual_stock__sum'] or 0
 
@@ -169,7 +148,7 @@ class StockDecrementAPIView(APIView):
                         cantidad_hstock=str(quantity_to_decrement), # Guardar como cadena de texto según el modelo
                         stock_hs=stock_entry,
                         empleado_hs=employee,
-                        tipo_movimiento_hs=Tipos_Movimientos.objects.get(nombre_movimiento='MOV_STOCK_SALIDA'),
+                        tipo_movimiento_hs=tipo_movimiento_salida,
                         stock_anterior_hstock=stock_entry.cantidad_actual_stock + remaining_to_decrement, # Antes de este decremento
                         stock_nuevo_hstock=stock_entry.cantidad_actual_stock, # Después de este decremento
                         observaciones_hstock=reason
@@ -182,8 +161,8 @@ class StockDecrementAPIView(APIView):
                         cantidad_hstock=str(stock_entry.cantidad_actual_stock),
                         stock_hs=stock_entry,
                         empleado_hs=employee,
-                        tipo_movimiento_hs=Tipos_Movimientos.objects.get(nombre_movimiento='SALIDA'),
-                        stock_anterior_hstock=0, # Este lote está completamente consumido
+                        tipo_movimiento_hs=tipo_movimiento_salida,
+                        stock_anterior_hstock=stock_entry.cantidad_actual_stock, # Antes de este decremento
                         stock_nuevo_hstock=0,
                         observaciones_hstock=reason
                     )
@@ -204,7 +183,7 @@ class StockAdjustmentAPIView(APIView):
         quantity_change = serializer.validated_data['quantity'] # Puede ser positivo o negativo
         movement_type_str = serializer.validated_data['movement_type'] # Debería ser 'ADJUSTMENT'
         reason = serializer.validated_data.get('reason', '')
-        employee_id = serializer.validated_data['employee_id']
+        employee = serializer.validated_data['employee']
 
         try:
             if product_id:
@@ -216,12 +195,6 @@ class StockAdjustmentAPIView(APIView):
                                 status=status.HTTP_404_NOT_FOUND)
         except Productos.DoesNotExist:
             return Response({"detail": "Producto no encontrado."},
-                            status=status.HTTP_404_NOT_FOUND)
-
-        try:
-            employee = Empleados.objects.get(id_empleado=employee_id)
-        except Empleados.DoesNotExist:
-            return Response({"detail": "Empleado no encontrado."},
                             status=status.HTTP_404_NOT_FOUND)
 
         try:
@@ -242,7 +215,6 @@ class StockAdjustmentAPIView(APIView):
                         producto_en_stock=product,
                         cantidad_actual_stock=0, # Será actualizado
                         lote_stock=0, # Placeholder, podría necesitar una estrategia de lotes adecuada
-                        fecha_vencimiento=timezone.now() + timedelta(days=365), # Placeholder
                         observaciones_stock="Stock inicial por ajuste"
                     )
                 else:

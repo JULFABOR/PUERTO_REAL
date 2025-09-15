@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PUERTO REAL - Mi Fidelización</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Flowbite CSS CDN -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.css" rel="stylesheet" />
+    <!-- Google Fonts: Poppins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script>
+        // Configuración de colores y fuentes para Tailwind CSS
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'pr-yellow': '#FFC700',      // Amarillo principal
+                        'pr-dark': '#121212',         // Negro suave para tarjetas
+                        'pr-dark-gray': '#1F2937',  // Gris oscuro para el fondo
+                        'pr-gray': '#6B7280',         // Gris para texto secundario
+                    },
+                    fontFamily: {
+                        'sans': ['Poppins', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-pr-dark-gray font-sans text-gray-300">
+
+    <!-- Barra de Navegación (simplificada para cliente) -->
+    <nav class="bg-pr-dark border-b border-pr-gray/20 fixed w-full z-20 top-0 start-0">
+        <div class="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
+            <a href="{% url 'home:index_publico' %}" class="flex items-center space-x-3 rtl:space-x-reverse">
+                <span class="self-center text-2xl font-bold whitespace-nowrap text-pr-yellow">PUERTO REAL</span>
+            </a>
+            <div class="flex items-center md:order-2 space-x-3 rtl:space-x-reverse">
+                <!-- Dropdown de Usuario -->
+                <button type="button" class="flex text-sm bg-gray-800 rounded-full focus:ring-4 focus:ring-pr-yellow" id="user-menu-button" aria-expanded="false" data-dropdown-toggle="user-dropdown" data-dropdown-placement="bottom">
+                    <span class="sr-only">Abrir menú de usuario</span>
+                    <img class="w-8 h-8 rounded-full" src="https://placehold.co/40x40/FFC700/121212?text=C" alt="foto de usuario">
+                </button>
+                <div class="z-50 hidden my-4 text-base list-none bg-pr-dark divide-y divide-gray-600 rounded-lg shadow" id="user-dropdown">
+                    <div class="px-4 py-3">
+                        <span class="block text-sm text-white">{{ request.user.username }}</span>
+                        <span class="block text-sm text-gray-400 truncate">{{ request.user.email }}</span>
+                    </div>
+                    <ul class="py-2" aria-labelledby="user-menu-button">
+                        <li><a href="{% url 'home:logout' %}" class="block px-4 py-2 text-sm text-gray-300 hover:bg-pr-dark-gray">Cerrar Sesión</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Contenido Principal -->
+    <div class="flex mt-16">
+        <main id="main-content" class="flex-1 p-6 lg:p-8">
+            <h1 class="text-3xl font-bold text-white mb-6">Mi Fidelización</h1>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Columna Izquierda: Información del Cliente -->
+                <div class="lg:col-span-1 bg-pr-dark p-6 rounded-lg shadow-lg h-fit">
+                    <div class="flex flex-col items-center text-center">
+                        <img class="w-24 h-24 mb-3 rounded-full shadow-lg" src="https://placehold.co/100x100/FFC700/121212?text=C" alt="Cliente"/>
+                        <h2 class="mb-1 text-2xl font-bold text-white">{{ cliente.nombre_cliente }} {{ cliente.apellido_cliente }}</h2>
+                        <span class="text-sm text-pr-gray">Cliente desde {{ cliente.fecha_registro|date:"d/m/Y" }}</span>
+                    </div>
+                    <div class="mt-6 border-t border-gray-700 pt-6">
+                        <h3 class="text-lg font-bold text-white mb-4">Mis Puntos</h3>
+                        <div class="flex items-center justify-center gap-3 text-pr-yellow text-5xl font-bold">
+                            <i class="fa-solid fa-star"></i>
+                            <span>{{ cliente.puntos_actuales }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Columna Derecha: Promociones Canjeables -->
+                <div class="lg:col-span-2">
+                    <h2 class="text-2xl font-bold text-white mb-6">Promociones Canjeables</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {% if cupones_canjeables %}
+                            {% for cupon in cupones_canjeables %}
+                            <div class="bg-pr-dark p-6 rounded-lg shadow-lg border border-pr-gray/20 text-center flex flex-col justify-between">
+                                <div>
+                                    <div class="text-pr-yellow text-5xl mb-4"><i class="fa-solid fa-gift"></i></div>
+                                    <h3 class="text-xl font-bold text-white mb-2">{{ cupon.cupon_descuento_cupon_cli.nombre_cupon_desc }}</h3>
+                                    <p class="text-pr-gray mb-4">{{ cupon.cupon_descuento_cupon_cli.descripcion_cupon_desc }}</p>
+                                </div>
+                                <div>
+                                    <div class="text-2xl font-semibold text-pr-yellow mb-4">{{ cupon.cupon_descuento_cupon_cli.puntos_requeridos_cupon_desc }} Puntos</div>
+                                    <button data-modal-target="conditions-modal-{{ cupon.id_cupon_cliente }}" data-modal-toggle="conditions-modal-{{ cupon.id_cupon_cliente }}" class="w-full bg-pr-dark-gray text-white font-bold py-2 px-4 rounded-lg hover:bg-pr-gray transition-colors">Ver Condiciones</button>
+                                </div>
+                            </div>
+
+                            <!-- Modal para Ver Condiciones de Promoción -->
+                            <div id="conditions-modal-{{ cupon.id_cupon_cliente }}" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+                                <div class="relative p-4 w-full max-w-lg max-h-full">
+                                    <div class="relative rounded-lg shadow bg-pr-dark">
+                                        <!-- Modal header -->
+                                        <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t border-gray-600">
+                                            <h3 class="text-xl font-semibold text-white">Términos y Condiciones</h3>
+                                            <button type="button" class="end-2.5 text-gray-400 bg-transparent rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center hover:bg-gray-600 hover:text-white" data-modal-hide="conditions-modal-{{ cupon.id_cupon_cliente }}">
+                                                <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/></svg>
+                                                <span class="sr-only">Cerrar modal</span>
+                                            </button>
+                                        </div>
+                                        <!-- Modal body -->
+                                        <div class="p-4 md:p-5 space-y-4">
+                                            <h4 class="text-lg font-bold text-pr-yellow">{{ cupon.cupon_descuento_cupon_cli.nombre_cupon_desc }}</h4>
+                                            <p class="text-pr-gray">{{ cupon.cupon_descuento_cupon_cli.condiciones_cupon_desc }}</p>
+                                            <ul class="list-disc list-inside text-gray-400 space-y-2">
+                                                <li>Válido hasta: {{ cupon.cupon_descuento_cupon_cli.fecha_vencimiento_cupon_desc|date:"d/m/Y" }}</li>
+                                                <li>Puntos requeridos: {{ cupon.cupon_descuento_cupon_cli.puntos_requeridos_cupon_desc }}</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-pr-gray lg:col-span-2">No tienes promociones canjeables en este momento.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Flowbite JS CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.js"></script>
+</body>
+</html>

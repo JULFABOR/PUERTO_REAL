@@ -2,17 +2,18 @@ from datetime import datetime, timedelta
 from typing import Tuple, Optional
 from django.utils import timezone
 from django.db.models import Sum, Count
+from django.contrib.auth import get_user_model, authenticate
+from django.db import models
 
 
-# ==== Helpers de rango ====
 
+# ==== Helpers de rango ==== 
 
 def _today_bounds() -> Tuple[datetime, datetime]:
     now = timezone.localtime()
     start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     end = start + timedelta(days=1)
     return start, end
-
 
 
 def parse_rango(rango: str, desde: Optional[str] = None, hasta: Optional[str] = None) -> Tuple[datetime, datetime, str]:
@@ -40,8 +41,7 @@ def parse_rango(rango: str, desde: Optional[str] = None, hasta: Optional[str] = 
 
 
 
-
-# ==== KPI y estado de caja ====
+# ==== KPI y estado de caja ==== 
 
 
 def kpi_ventas(start, end) -> float:
@@ -92,7 +92,6 @@ def obtener_estado_caja() -> str:
 
 
 
-
 def kpi_saldo_caja_actual() -> float:
     try:
         from HOME.models import Cajas
@@ -102,7 +101,7 @@ def kpi_saldo_caja_actual() -> float:
         return 0.0
 
 
-# ==== Listados ====
+# ==== Listados ==== 
 
 
 def listar_ventas(start, end, ordenar: str = "-fecha_hora", limite: int = 50):
@@ -120,7 +119,7 @@ def listar_ventas(start, end, ordenar: str = "-fecha_hora", limite: int = 50):
 
 
 
-# ==== Autenticación y permisos básicos ====
+# ==== Autenticación y permisos básicos ==== 
 
 
 def autenticar_staff(usuario: str, password: str):
@@ -145,29 +144,68 @@ def cargar_permisos(user_id) -> list:
 
 
 
-
 def listar_sucursales_de_usuario(user_id) -> list:
     # Reemplazá por tu modelo real de Sucursales/Asignaciones
     return ["Sucursal Principal"]
 
 
 
-
 def autenticar_cliente(dni_o_email: str, pin_o_password: str):
-    """TODO: Implementar contra tu modelo Cliente. Devolver dict {ok, cliente_id}."""
-    return {"ok": False}
+    """Implementar contra tu modelo Cliente. Devolver dict {ok, cliente_id}."""
+    from HOME.models import Clientes
+    User = get_user_model()
+    try:
+        # Try to find client by DNI
+        cliente = Clientes.objects.get(dni_cliente=dni_o_email)
+        if cliente.user_cliente.check_password(pin_o_password): # Assuming PIN is stored as password
+            return {"ok": True, "cliente_id": cliente.id_cliente, "user": cliente.user_cliente}
+    except Clientes.DoesNotExist:
+        pass
 
+    try:
+        # Try to find client by email
+        user = User.objects.get(email__iexact=dni_o_email)
+        if user.check_password(pin_o_password):
+            try:
+                cliente = Clientes.objects.get(user_cliente=user)
+                return {"ok": True, "cliente_id": cliente.id_cliente, "user": user}
+            except Clientes.DoesNotExist:
+                pass
+    except User.DoesNotExist:
+        pass
 
+    return {"ok": False, "error": "DNI/Email o PIN/Contraseña incorrectos."}
 
 
 def crear_cliente(datos: dict):
-    """TODO: Implementar creación real. Devolver {ok, error?}."""
-    return {"ok": False, "error": "Implementar persistencia de clientes"}
+    """Implementar creación real. Devolver {ok, error?}."""
+    from HOME.models import Clientes
+    User = get_user_model()
+    try:
+        # Create a new User instance
+        user = User.objects.create_user(
+            username=datos['dni'], # Using DNI as username for simplicity
+            email=datos.get('email', ''),
+            password=datos['pin']
+        )
+        user.first_name = datos.get('nombre', '')
+        user.last_name = datos.get('apellido', '')
+        user.save()
+
+        # Create a new Cliente instance
+        cliente = Clientes.objects.create(
+            user_cliente=user,
+            dni_cliente=datos['dni'],
+            telefono_cliente=datos.get('telefono', '') # Assuming 'telefono' might be in datos
+        )
+        # You might want to handle 'direccion' separately if it's a related model
+        return {"ok": True, "cliente_id": cliente.id_cliente}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
 
 
 
-
-# ==== Pings (placeholders) ====
+# ==== Pings (placeholders) ==== 
 
 
 def ping_red() -> bool:
@@ -175,12 +213,11 @@ def ping_red() -> bool:
 
 
 
-
 def ping_backend() -> bool:
     return True
 
 
-# ==== Global Search (placeholder) ====
+# ==== Global Search (placeholder) ==== 
 
 
 def global_search(query: str):
@@ -188,14 +225,42 @@ def global_search(query: str):
     return []
 
 
-# ==== Alertas (placeholders) ====
+# ==== Alertas (placeholders) ==== 
 def hay_stock_bajo() -> bool:
-    return False
+    from HOME.models import Productos, Stocks
+    try:
+        # Find products where current stock is below the low_stock_threshold
+        low_stock_products = Productos.objects.filter(
+            DELETE_Prod=False,
+            stocks__cantidad_actual_stock__lt=models.F('low_stock_threshold')
+        ).distinct()
+        return low_stock_products.exists()
+    except Exception:
+        return False
 
 
 def cxp_vencen_hoy() -> bool:
-    return False
-
+    from HOME.models import Compras
+    today = timezone.localdate()
+    try:
+        expiring_purchases = Compras.objects.filter(
+            fecha_limite__date=today,
+            estado_compra__nombre_estado="PENDIENTE", # Assuming an 'PENDIENTE' state for purchases
+            DELETE_Comp=False
+        ).exists()
+        return expiring_purchases
+    except Exception:
+        return False
 
 def fondos_pagos_bajo_saldo() -> bool:
-    return False
+    from HOME.models import Fondo_Pagos
+    LOW_BALANCE_THRESHOLD = 100.00 # Define a threshold for low balance
+    try:
+        low_balance_funds = Fondo_Pagos.objects.filter(
+            saldo_fp__lt=LOW_BALANCE_THRESHOLD,
+            estado_fp__nombre_estado="ACTIVO", # Assuming an 'ACTIVO' state for Fondo_Pagos
+            DELETE_fp=False
+        ).exists()
+        return low_balance_funds
+    except Exception:
+        return False

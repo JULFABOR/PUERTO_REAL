@@ -1,10 +1,11 @@
 from django.shortcuts import render, redirect
 from django.urls import reverse
 from django.contrib import messages
-from django.contrib.auth import login, logout
+from django.contrib.auth import login, logout, authenticate, get_user_model
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 from django.views.decorators.http import require_http_methods
+from django.views.generic import TemplateView
 
 
 from .forms import StaffLoginForm, ClienteLoginForm, ClienteRegistroForm
@@ -20,24 +21,29 @@ def index_root(request):
         messages.error(request, "Sin conexión con el servidor. Reintentá o trabajá en modo limitado.")
 
 
-    autenticado = request.user.is_authenticated or request.session.get("autenticado_cliente", False)
-
-
-    if not autenticado:
+    # Check if any user is authenticated (staff or client)
+    if request.user.is_authenticated:
+        # Staff user is authenticated
+        return redirect("home:index_privado_staff")
+    elif request.session.get("autenticado_cliente"):
+        # Client user is authenticated via session
+        cliente_id = request.session.get("cliente_id")
+        if cliente_id:
+            return redirect("fidelizacion:cliente_perfil", cliente_id=cliente_id)
+        else:
+            # Fallback if cliente_id is missing for an authenticated client
+            messages.error(request, "Error de sesión de cliente. Por favor, inicia sesión de nuevo.")
+            logout(request) # Log out the client if session is inconsistent
+            return redirect("home:index_publico")
+    else:
+        # No user is authenticated, redirect to public index
         return redirect("home:index_publico")
 
-
-# Session.rol: "ADMIN" | "EMPLEADO" | "CLIENTE"
-    rol = request.session.get("rol")
-    if rol in ("ADMIN", "EMPLEADO") or request.user.is_authenticated:
-        return redirect("home:index_privado_staff")
-    if rol == "CLIENTE" or request.session.get("autenticado_cliente"):
-# Redirigir a app cliente real si existe
-        return redirect("home:index_publico") # TODO: reemplazar por url de App Cliente
-
-
-# fallback
-    logout_view(request)
+    # The original "fallback" section is now covered by the explicit checks above.
+    # If execution reaches here, it implies an unhandled state, which should ideally not happen.
+    # As a last resort, ensure logout and redirect to public.
+    messages.error(request, "Estado de sesión inesperado. Redirigiendo a la página pública.")
+    logout(request) # Ensure full logout
     return redirect("home:index_publico")
 
 def index_publico(request):
@@ -94,7 +100,107 @@ def index_privado_staff(request):
             {"titulo": "Reportes", "desc": "Ingresos/Egresos, Top, Heatmap", "href": reverse("home:fn_reportes")},
             ],
     }
-    return render(request, "home/index_privado_staff.html", ctx)
+    return render(request, "HOME/Home.html", ctx)
+
+
+@method_decorator(login_required, name='dispatch')
+class ConfiguracionView(TemplateView):
+    template_name = 'HOME/Configuracion.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = "Configuración"
+        return context
+
+@method_decorator(login_required, name='dispatch')
+class AnalisisView(TemplateView):
+    template_name = 'HOME/Analisis.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = "Análisis"
+        return context
+
+@method_decorator(login_required, name='dispatch')
+class CajaView(TemplateView):
+    template_name = 'HOME/Caja.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = "Caja"
+        return context
+
+@method_decorator(login_required, name='dispatch')
+class ClientePerfilView(TemplateView):
+    template_name = 'HOME/Cliente-Perfil.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = "Perfil de Cliente"
+        return context
+
+@method_decorator(login_required, name='dispatch')
+class ClientesView(TemplateView):
+    template_name = 'HOME/Clientes.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = "Clientes"
+        return context
+
+@method_decorator(login_required, name='dispatch')
+class ControlStockView(TemplateView):
+    template_name = 'HOME/Control-Stock.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = "Control de Stock"
+        return context
+
+@method_decorator(login_required, name='dispatch')
+class ForgotPasswordView(TemplateView):
+    template_name = 'HOME/Forgot-Password.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = "Recuperar Contraseña"
+        return context
+
+@method_decorator(login_required, name='dispatch')
+class LoginRegisterView(TemplateView):
+    template_name = 'HOME/Login-register.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = "Login / Registro"
+        return context
+
+@method_decorator(login_required, name='dispatch')
+class ProveedoresView(TemplateView):
+    template_name = 'HOME/Proveedores.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = "Proveedores"
+        return context
+
+@method_decorator(login_required, name='dispatch')
+class StockView(TemplateView):
+    template_name = 'HOME/Stock.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = "Stock"
+        return context
+
+@method_decorator(login_required, name='dispatch')
+class VentaView(TemplateView):
+    template_name = 'HOME/Venta.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = "Venta"
+        return context
 
 # =============== LOGIN / LOGOUT ==================
 
@@ -122,9 +228,11 @@ def login_cliente(request):
         if auth.get("ok"):
             request.session["autenticado_cliente"] = True
             request.session["rol"] = "CLIENTE"
-            request.session["cliente_id"] = auth.get("cliente_id")
-            # TODO: redirigir a app cliente real
-            return redirect("home:index_publico")
+            cliente_id = auth.get("cliente_id")
+            request.session["cliente_id"] = cliente_id
+            if cliente_id:
+                return redirect("fidelizacion:cliente_perfil", cliente_id=cliente_id)
+            return redirect("home:index_publico") # Fallback if cliente_id is missing
         messages.error(request, "Datos incorrectos.")
     return render(request, "home/index_publico.html", {"form_cliente": form, "focus_login_cliente": True})
 

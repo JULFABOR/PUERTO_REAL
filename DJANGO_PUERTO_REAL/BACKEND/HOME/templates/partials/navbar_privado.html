@@ -4,10 +4,11 @@
         <div class="hidden md:flex items-center gap-4 text-sm">
             <a class="hover:underline" href="{% url 'home:home_inicio' %}">Inicio</a>
             <a class="hover:underline" href="{% url 'home:fn_caja' %}">Caja</a>
-            <a class="hover:underline" href="{% url 'home:fn_ventas' %}">Ventas</a>
-            <a class="hover:underline" href="{% url 'home:fn_compras' %}">Compras</a>
-            <a class="hover:underline" href="{% url 'home:fn_stock' %}">Stock</a>
-            <a class="hover:underline" href="{% url 'home:fn_fidelizacion' %}">Fidelización</a>
+            <a class="hover:underline" href="{% url 'ventas_dashboard' %}">Ventas</a>
+            <a class="hover:underline" href="{% url 'compras_dashboard' %}">Compras</a>
+            <a class="hover:underline" href="{% url 'stock_dashboard' %}">Stock</a>
+            <a class="hover:underline" href="{% url 'producto_list' %}">Productos</a>
+            <a class="hover:underline" href="{% url 'fidelizacion_dashboard' %}">Fidelización</a>
             <a class="hover:underline" href="{% url 'home:fn_reportes' %}">Reportes</a>
             {% if user.is_staff %}
             <a class="hover:underline" href="{% url 'Auditoria:audit_log' %}">Auditoría</a>

@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block body %}
+<div class="min-h-screen bg-gray-100">
+    <header>
+        {% if user.is_staff %}
+            {% include 'partials/navbar_staff.html' %}
+        {% else %}
+            {% include 'partials/navbar_privado.html' %}
+        {% endif %}
+    </header>
+
+    <main class="p-4 md:p-8">
+        {% block content %}
+        {# El contenido específico de cada página irá aquí #}
+        {% endblock %}
+    </main>
+
+    <footer class="text-center text-xs text-gray-500 pb-4">
+        <p>Puerto Real - Sistema de Gestión</p>
+    </footer>
+</div>
+{% endblock %}

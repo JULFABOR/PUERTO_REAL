@@ -7,10 +7,27 @@ from django.utils import timezone
 from xhtml2pdf import pisa
 from io import BytesIO
 
+from django.views.generic import TemplateView
+from django.contrib.auth.decorators import login_required
+from django.utils.decorators import method_decorator
+
 from HOME.models import Compras, Proveedores, Stocks, Historial_Stock, Tipos_Movimientos, Estados
 from .serializers import CompraSerializer, ProveedorSerializer
 from Auditoria.services import crear_registro
 
+# --- Vistas de Template ---
+@method_decorator(login_required, name='dispatch')
+class ProveedorListView(TemplateView):
+    template_name = 'Control_COMPRAS/Proveedores.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = "Gestión de Proveedores"
+        context['proveedores'] = Proveedores.objects.all()
+        return context
+
+
+# --- Vistas de API ---
 class CompraViewSet(viewsets.ModelViewSet):
     queryset = Compras.objects.all()
     serializer_class = CompraSerializer
@@ -41,10 +58,21 @@ class CompraViewSet(viewsets.ModelViewSet):
 
         # Lógica de movimiento de stock para cuando una compra se marca como "RECIBIDA"
         nuevo_estado_id = request.data.get('estado_compra')
-        if nuevo_estado_id and int(nuevo_estado_id) == 7 and instance.estado_compra.id_estado != 7:
+        
+        try:
+            estado_recibida = Estados.objects.get(nombre_estado='RECIBIDA')
+        except Estados.DoesNotExist:
+            return Response({"error": "Estado 'RECIBIDA' no encontrado."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if nuevo_estado_id and int(nuevo_estado_id) == estado_recibida.id_estado and instance.estado_compra != estado_recibida:
             try:
-                tipo_movimiento = Tipos_Movimientos.objects.get(id_tipo_movimiento=5) # COMPRA A PROVEEDOR
-                empleado = request.user.empleado
+                tipo_movimiento = Tipos_Movimientos.objects.get(nombre_movimiento='COMPRA A PROVEEDOR')
+                
+                empleado = None
+                if hasattr(request.user, 'empleado'):
+                    empleado = request.user.empleado
+                else:
+                    return Response({"error": "Solo los empleados pueden realizar esta acción."}, status=status.HTTP_403_FORBIDDEN)
 
                 for detalle in instance.detalles.all():
                     stock, created = Stocks.objects.get_or_create(
@@ -52,7 +80,6 @@ class CompraViewSet(viewsets.ModelViewSet):
                         defaults={
                             'cantidad_actual_stock': 0, 
                             'lote_stock': 0, 
-                            'fecha_vencimiento': '2099-12-31',
                             'observaciones_stock': 'Registro de stock inicial creado automaticamente'
                         }
                     )

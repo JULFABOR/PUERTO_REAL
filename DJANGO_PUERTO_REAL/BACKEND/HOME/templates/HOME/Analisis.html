@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PUERTO REAL - Reportes de Venta</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Flowbite CSS CDN -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.css" rel="stylesheet" />
+    <!-- Google Fonts: Poppins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- ApexCharts CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <!-- jsPDF CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script>
+        // Configuración de colores y fuentes para Tailwind CSS
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'pr-yellow': '#FFC700',      // Amarillo principal
+                        'pr-dark': '#121212',         // Negro suave para tarjetas
+                        'pr-dark-gray': '#1F2937',  // Gris oscuro para el fondo
+                        'pr-gray': '#6B7280',         // Gris para texto secundario
+                    },
+                    fontFamily: {
+                        'sans': ['Poppins', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-pr-dark-gray font-sans text-gray-300">
+
+    <!-- Barra de Navegación -->
+    <nav class="bg-pr-dark border-b border-pr-gray/20 fixed w-full z-20 top-0 start-0">
+        <div class="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
+            <a href="home.html" class="flex items-center space-x-3 rtl:space-x-reverse">
+                <span class="self-center text-2xl font-bold whitespace-nowrap text-pr-yellow">PUERTO REAL</span>
+            </a>
+            <div class="flex items-center md:order-2 space-x-3 rtl:space-x-reverse">
+                 <!-- Botón para toggling del Sidebar -->
+                <button id="sidebar-toggle" type="button" class="p-2 text-sm text-gray-400 rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-600">
+                    <span class="sr-only">Toggle sidebar</span>
+                    <i class="fa-solid fa-bars text-xl"></i>
+                </button>
+                <!-- Dropdown de Usuario -->
+                <button type="button" class="flex text-sm bg-gray-800 rounded-full focus:ring-4 focus:ring-pr-yellow" id="user-menu-button" aria-expanded="false" data-dropdown-toggle="user-dropdown" data-dropdown-placement="bottom">
+                    <span class="sr-only">Abrir menú de usuario</span>
+                    <img class="w-8 h-8 rounded-full" src="https://placehold.co/40x40/FFC700/121212?text=G" alt="foto de usuario">
+                </button>
+                <div class="z-50 hidden my-4 text-base list-none bg-pr-dark divide-y divide-gray-600 rounded-lg shadow" id="user-dropdown">
+                    <div class="px-4 py-3">
+                        <span class="block text-sm text-white">Gerente de Tienda</span>
+                        <span class="block text-sm text-gray-400 truncate">gerente@puertoreal.com</span>
+                    </div>
+                    <ul class="py-2" aria-labelledby="user-menu-button">
+                        <li><a href="settings.html" class="block px-4 py-2 text-sm text-gray-300 hover:bg-pr-dark-gray">Configuración</a></li>
+                        <li><a href="index.html" class="block px-4 py-2 text-sm text-gray-300 hover:bg-pr-dark-gray">Cerrar Sesión</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Contenido Principal con Sidebar -->
+    <div class="flex mt-16">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="fixed top-16 left-0 z-40 w-64 h-[calc(100vh-4rem)] bg-pr-dark p-4 space-y-6 shrink-0 transition-transform -translate-x-full md:translate-x-0">
+             <div>
+                <h3 class="font-bold text-white text-lg mb-4">Gestión de Tienda</h3>
+                <ul class="space-y-2">
+                    <li><a href="pos.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-cash-register w-5 text-center text-lg"></i> Ventas (POS)</a></li>
+                    <li><a href="inventory.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-boxes-stacked w-5 text-center text-lg"></i> Inventario</a></li>
+                    <li><a href="catalog.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-book-open w-5 text-center text-lg"></i> Catálogo</a></li>
+                    <li><a href="clients.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-users w-5 text-center text-lg"></i> Clientes</a></li>
+                    <li><a href="suppliers.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-truck-field w-5 text-center text-lg"></i> Proveedores</a></li>
+                    <li><a href="cash-control.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-money-bill-wave w-5 text-center text-lg"></i> Control de Caja</a></li>
+                </ul>
+            </div>
+            <div>
+                 <h3 class="font-bold text-white text-lg mb-4">Análisis</h3>
+                 <ul class="space-y-2">
+                    <li><a href="reports.html" class="flex items-center gap-3 text-pr-yellow bg-pr-dark-gray py-2 px-3 rounded-lg transition-colors"><i class="fa-solid fa-chart-pie w-5 text-center text-lg"></i> Reportes de Venta</a></li>
+                 </ul>
+            </div>
+        </aside>
+
+        <!-- Backdrop para sidebar móvil -->
+        <div id="sidebar-backdrop" class="bg-gray-900/50 fixed inset-0 z-30 hidden"></div>
+
+        <!-- Contenido principal -->
+        <main id="main-content" class="flex-1 p-6 lg:p-8 transition-all duration-300 md:ml-64">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+                <h1 class="text-3xl font-bold text-white mb-4 sm:mb-0">Reportes de Venta</h1>
+                <button id="export-pdf-button" class="w-full sm:w-auto text-white bg-pr-dark hover:bg-gray-700 font-bold rounded-lg text-sm px-5 py-2.5 text-center flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-file-export"></i>
+                    <span>Exportar a PDF</span>
+                </button>
+            </div>
+
+            <!-- Filtros -->
+            <div class="flex flex-col md:flex-row gap-4 mb-6">
+                <!-- Date Range Picker -->
+                <div date-rangepicker class="flex items-center w-full md:w-auto">
+                  <div class="relative w-full">
+                    <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none"><i class="fa-solid fa-calendar-days text-gray-400"></i></div>
+                    <input name="start" type="text" class="border text-sm rounded-lg block w-full ps-10 p-2.5 bg-pr-dark-gray border-gray-600 text-white" placeholder="Fecha de inicio">
+                  </div>
+                  <span class="mx-4 text-gray-400 hidden sm:block">a</span>
+                  <div class="relative w-full mt-2 sm:mt-0">
+                    <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none"><i class="fa-solid fa-calendar-days text-gray-400"></i></div>
+                    <input name="end" type="text" class="border text-sm rounded-lg block w-full ps-10 p-2.5 bg-pr-dark-gray border-gray-600 text-white" placeholder="Fecha de fin">
+                  </div>
+                </div>
+            </div>
+
+            <!-- KPIs -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="bg-pr-dark p-6 rounded-lg shadow-lg"><p class="text-sm text-pr-gray">Ventas Totales</p><p class="text-3xl font-bold text-white">$450,700.00</p></div>
+                <div class="bg-pr-dark p-6 rounded-lg shadow-lg"><p class="text-sm text-pr-gray">Ganancia Bruta</p><p class="text-3xl font-bold text-green-500">$180,350.00</p></div>
+                <div class="bg-pr-dark p-6 rounded-lg shadow-lg"><p class="text-sm text-pr-gray">Nº Transacciones</p><p class="text-3xl font-bold text-white">128</p></div>
+                <div class="bg-pr-dark p-6 rounded-lg shadow-lg"><p class="text-sm text-pr-gray">Ticket Promedio</p><p class="text-3xl font-bold text-white">$3,521.09</p></div>
+            </div>
+
+            <!-- Gráficos y Tablas -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Columna Izquierda: Gráficos -->
+                <div class="lg:col-span-2 space-y-6">
+                    <div class="bg-pr-dark p-6 rounded-lg shadow-lg">
+                        <h2 class="text-xl font-bold text-white mb-4">Ventas por Día</h2>
+                        <div id="sales-bar-chart"></div>
+                    </div>
+                     <div class="bg-pr-dark p-6 rounded-lg shadow-lg">
+                        <h2 class="text-xl font-bold text-white mb-4">Ventas por Categoría</h2>
+                        <div id="category-donut-chart"></div>
+                    </div>
+                </div>
+
+                <!-- Columna Derecha: Desglose -->
+                <div class="space-y-6">
+                    <div class="bg-pr-dark p-6 rounded-lg shadow-lg">
+                        <h2 class="text-xl font-bold text-white mb-4">Ventas por Medio de Pago</h2>
+                        <ul class="space-y-3">
+                            <li class="flex justify-between items-center"><span class="text-gray-300">Efectivo</span><span class="font-bold text-white">$195,300</span></li>
+                            <li class="flex justify-between items-center"><span class="text-gray-300">Tarjeta de Crédito</span><span class="font-bold text-white">$120,500</span></li>
+                            <li class="flex justify-between items-center"><span class="text-gray-300">Tarjeta de Débito</span><span class="font-bold text-white">$85,200</span></li>
+                            <li class="flex justify-between items-center"><span class="text-gray-300">Transferencia / QR</span><span class="font-bold text-white">$49,700</span></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabla de Rentabilidad -->
+            <div class="mt-8 bg-pr-dark p-6 rounded-lg shadow-lg">
+                <h2 class="text-2xl font-bold text-white mb-4">Rentabilidad por Producto</h2>
+                <div class="relative overflow-x-auto rounded-lg">
+                    <table class="w-full text-sm text-left text-gray-400">
+                        <thead class="text-xs text-white uppercase bg-pr-dark-gray">
+                            <tr>
+                                <th scope="col" class="px-6 py-3">Producto</th>
+                                <th scope="col" class="px-6 py-3 text-center">Uds. Vendidas</th>
+                                <th scope="col" class="px-6 py-3 text-right hidden sm:table-cell">Ingresos</th>
+                                <th scope="col" class="px-6 py-3 text-right hidden md:table-cell">Costo Total</th>
+                                <th scope="col" class="px-6 py-3 text-right">Ganancia Bruta</th>
+                                <th scope="col" class="px-6 py-3 text-right hidden lg:table-cell">Margen</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="border-b bg-pr-dark border-gray-700"><th scope="row" class="px-6 py-4 font-medium text-white whitespace-nowrap">Malbec Reserva</th><td class="px-6 py-4 text-center">48</td><td class="px-6 py-4 text-right hidden sm:table-cell">$408,000</td><td class="px-6 py-4 text-right hidden md:table-cell">$244,800</td><td class="px-6 py-4 text-right font-bold text-green-500">$163,200</td><td class="px-6 py-4 text-right hidden lg:table-cell">40%</td></tr>
+                            <tr class="border-b bg-pr-dark border-gray-700"><th scope="row" class="px-6 py-4 font-medium text-white whitespace-nowrap">Gin Artesanal</th><td class="px-6 py-4 text-center">35</td><td class="px-6 py-4 text-right hidden sm:table-cell">$437,500</td><td class="px-6 py-4 text-right hidden md:table-cell">$306,250</td><td class="px-6 py-4 text-right font-bold text-green-500">$131,250</td><td class="px-6 py-4 text-right hidden lg:table-cell">30%</td></tr>
+                            <tr class="border-b bg-pr-dark border-gray-700"><th scope="row" class="px-6 py-4 font-medium text-white whitespace-nowrap">Espumante Extra Brut</th><td class="px-6 py-4 text-center">29</td><td class="px-6 py-4 text-right hidden sm:table-cell">$284,200</td><td class="px-6 py-4 text-right hidden md:table-cell">$188,500</td><td class="px-6 py-4 text-right font-bold text-green-500">$95,700</td><td class="px-6 py-4 text-right hidden lg:table-cell">33.7%</td></tr>
+                            <tr class="bg-pr-dark"><th scope="row" class="px-6 py-4 font-medium text-white whitespace-nowrap">Whisky Single Malt</th><td class="px-6 py-4 text-center">21</td><td class="px-6 py-4 text-right hidden sm:table-cell">$525,000</td><td class="px-6 py-4 text-right hidden md:table-cell">$393,750</td><td class="px-6 py-4 text-right font-bold text-green-500">$131,250</td><td class="px-6 py-4 text-right hidden lg:table-cell">25%</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+    </div>
+    
+    <!-- Flowbite JS CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.js"></script>
+    
+    <!-- Script para Sidebar y Gráficos -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebarToggle = document.getElementById('sidebar-toggle');
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('main-content');
+            const backdrop = document.getElementById('sidebar-backdrop');
+            const exportButton = document.getElementById('export-pdf-button');
+
+            const toggleSidebar = () => {
+                const isDesktop = window.innerWidth >= 768;
+                if (isDesktop) {
+                    sidebar.classList.toggle('md:hidden');
+                    mainContent.classList.toggle('md:ml-64');
+                } else {
+                    sidebar.classList.toggle('-translate-x-full');
+                    backdrop.classList.toggle('hidden');
+                }
+            };
+
+            if (sidebarToggle) sidebarToggle.addEventListener('click', (e) => { e.stopPropagation(); toggleSidebar(); });
+            if (backdrop) backdrop.addEventListener('click', () => { if (window.innerWidth < 768) { toggleSidebar(); } });
+
+            // --- Lógica de Gráficos con ApexCharts ---
+            const barChartOptions = { series: [{ name: 'Ventas', data: [35200, 48900, 29800, 65400, 78900, 95100, 97400] }], chart: { type: 'bar', height: 350, toolbar: { show: false } }, plotOptions: { bar: { borderRadius: 4, horizontal: false, columnWidth: '50%' } }, dataLabels: { enabled: false }, stroke: { show: true, width: 2, colors: ['transparent'] }, xaxis: { categories: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'], labels: { style: { colors: '#9CA3AF' } } }, yaxis: { labels: { style: { colors: '#9CA3AF' }, formatter: (val) => `$${val.toLocaleString('es-AR')}` } }, fill: { colors: ['#FFC700'] }, tooltip: { theme: 'dark', y: { formatter: (val) => `$${val.toLocaleString('es-AR')}` } }, grid: { borderColor: '#374151' }, theme: { mode: 'dark' } };
+            const barChart = new ApexCharts(document.querySelector("#sales-bar-chart"), barChartOptions);
+            barChart.render();
+
+            const donutChartOptions = { series: [45, 25, 20, 10], chart: { type: 'donut', height: 250 }, labels: ['Vinos Tintos', 'Destilados', 'Espumantes', 'Vinos Blancos'], plotOptions: { pie: { donut: { size: '65%' } } }, fill: { colors: ['#FFC700', '#FBBF24', '#F59E0B', '#D97706'] }, stroke: { show: false }, legend: { position: 'bottom', horizontalAlign: 'center', labels: { colors: '#9CA3AF' } }, theme: { mode: 'dark' } };
+            const donutChart = new ApexCharts(document.querySelector("#category-donut-chart"), donutChartOptions);
+            donutChart.render();
+
+            // --- Lógica para Exportar PDF ---
+            if (exportButton) {
+                exportButton.addEventListener('click', () => {
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF();
+                    const today = new Date().toLocaleDateString('es-AR');
+                    
+                    doc.setFontSize(20);
+                    doc.text("Reporte de Ventas - PUERTO REAL", 105, 20, { align: 'center' });
+                    doc.setFontSize(12);
+                    doc.text(`Periodo: 01/09/2025 - 07/09/2025`, 105, 28, { align: 'center' });
+
+                    doc.setFontSize(14);
+                    doc.text("Indicadores Principales", 14, 45);
+                    doc.setFontSize(10);
+                    doc.text("- Ventas Totales: $450,700.00", 14, 52);
+                    doc.text("- Ganancia Bruta: $180,350.00", 14, 59);
+                    doc.text("- Nº Transacciones: 128", 105, 52);
+                    doc.text("- Ticket Promedio: $3,521.09", 105, 59);
+
+                    doc.save(`reporte-ventas-${today}.pdf`);
+                });
+            }
+        });
+    </script>
+</body>
+</html>
+

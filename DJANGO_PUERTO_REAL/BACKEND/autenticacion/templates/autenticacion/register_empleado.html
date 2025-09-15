@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block title %}Registrar Nuevo Empleado{% endblock %}
+
+{% block body %}
+<div class="min-h-screen flex items-center justify-center bg-gray-100">
+    <div class="max-w-md w-full bg-white p-8 rounded-lg shadow-md">
+        <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">Registrar Nuevo Empleado</h2>
+        <p class="text-center text-sm text-gray-600 mb-4">Estás registrando un nuevo empleado como administrador.</p>
+        <form method="post">
+            {% csrf_token %}
+            <div class="space-y-4">
+                {{ form.as_p }}
+            </div>
+            <div class="mt-6">
+                <button type="submit" class="w-full bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
+                    Guardar Empleado
+                </button>
+            </div>
+        </form>
+        <p class="text-center text-sm text-gray-600 mt-4">
+            <a href="{% url 'home' %}" class="font-medium text-blue-600 hover:text-blue-500">Volver al inicio</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

@@ -4,7 +4,7 @@ from rest_framework import serializers
 from HOME.models import (
     Ventas, Detalle_Ventas, Stocks, Historial_Stock, 
     Cajas, Historial_Caja, Tipos_Movimientos, Tipo_Evento, Productos,
-    Cupones_Clientes, Estados, Historial_Puntos, Clientes, Cupones_Descuento
+    Promos_Clientes, Estados, Historial_Puntos, Clientes, Promociones_Descuento
 )
 import math
 from django.utils import timezone
@@ -17,7 +17,7 @@ class DetalleVentaSerializer(serializers.ModelSerializer):
 
 class VentaSerializer(serializers.ModelSerializer):
     detalles = DetalleVentaSerializer(many=True)
-    codigo_cupon = serializers.CharField(write_only=True, required=False) # Nuevo campo para Modo 2
+    codigo_cupon = serializers.CharField(write_only=True, required=False, allow_blank=True)
 
     class Meta:
         model = Ventas
@@ -28,30 +28,26 @@ class VentaSerializer(serializers.ModelSerializer):
             'caja_venta',
             'fecha_venta',
             'total_venta',
-            'descuento_aplicado',
-            'vuelto_entregado',
-            'cupon_aplicado',
+            'promo_aplicada',
             'estado_venta',
             'detalles',
-            'codigo_cupon' # Incluir nuevo campo
+            'codigo_cupon'
         )
-        read_only_fields = ('fecha_venta', 'total_venta', 'descuento_aplicado')
+        read_only_fields = ('fecha_venta', 'total_venta')
 
     @transaction.atomic
     def create(self, validated_data):
         detalles_data = validated_data.pop('detalles')
-        cupon_cliente_id = validated_data.pop('cupon_aplicado', None) # Obtener ID para Modo 1
-        codigo_cupon = validated_data.pop('codigo_cupon', None) # Obtener código para Modo 2
+        promo_aplicada_id = validated_data.pop('promo_aplicada', None)
+        codigo_cupon = validated_data.pop('codigo_cupon', None)
         cliente = validated_data.get('cliente_venta')
 
-        # Asegurar que solo se use un mecanismo de cupón
-        if cupon_cliente_id and codigo_cupon:
-            raise serializers.ValidationError("No se puede aplicar un cupon pre-existente y un codigo de cupon a la vez.")
+        if promo_aplicada_id and codigo_cupon:
+            raise serializers.ValidationError("No se puede aplicar un cupón pre-existente y un código de cupón a la vez.")
         
-        cupon_aplicado_instance = None
+        promo_aplicada_instance = None
         descuento = 0
 
-        # 1. Validación de Stock
         for detalle_data in detalles_data:
             producto = detalle_data['producto_det_vent']
             cantidad_solicitada = detalle_data['cantidad_det_vent']
@@ -62,105 +58,116 @@ class VentaSerializer(serializers.ModelSerializer):
             except Stocks.DoesNotExist:
                 raise serializers.ValidationError(f"No hay stock para: {producto.nombre_producto}")
 
-        # 2. Calcular total
         total_venta = sum(
             (d.get('precio_unitario_det_vent', d['producto_det_vent'].precio_unitario_venta_producto) * d['cantidad_det_vent'])
             for d in detalles_data
         )
         validated_data['total_venta'] = total_venta
 
-        # 3. Lógica de Cupón (Modo 1: Cupón_Clientes preexistente)
-        if cupon_cliente_id:
+        if promo_aplicada_id:
             try:
-                cupon_aplicado_instance = Cupones_Clientes.objects.get(id_cupon_cli=cupon_cliente_id)
-            except Cupones_Clientes.DoesNotExist:
-                raise serializers.ValidationError("El cupon de cliente especificado no existe.")
+                promo_aplicada_instance = Promos_Clientes.objects.get(id_promo_cli=promo_aplicada_id.id_promo_cli)
+            except Promos_Clientes.DoesNotExist:
+                raise serializers.ValidationError("El cupón de cliente especificado no existe.")
 
-            if cupon_aplicado_instance.cliente_cupon_cli != cliente:
-                raise serializers.ValidationError("El cupon no pertenece al cliente.")
-            if cupon_aplicado_instance.estado_cupon_cli.id_estado != 16: # 16: DISPONIBLE
-                raise serializers.ValidationError(f"El cupon no esta disponible (estado: {cupon_aplicado_instance.estado_cupon_cli.nombre_estado}).")
+            if promo_aplicada_instance.cliente_promo_cli != cliente:
+                raise serializers.ValidationError("El cupón no pertenece al cliente.")
             
-            cupon_desc = cupon_aplicado_instance.cupon_descuento_cupon_cli
-            if cupon_desc.descuento_monto_cupon_desc > 0:
-                descuento = cupon_desc.descuento_monto_cupon_desc
-            elif cupon_desc.descuento_porcentaje_cupon_desc > 0:
-                descuento = (total_venta * cupon_desc.descuento_porcentaje_cupon_desc) / 100
-            
-            validated_data['descuento_aplicado'] = descuento
-            validated_data['cupon_aplicado'] = cupon_aplicado_instance
+            try:
+                estado_disponible = Estados.objects.get(nombre_estado='DISPONIBLE')
+            except Estados.DoesNotExist:
+                raise serializers.ValidationError("Estado 'DISPONIBLE' no encontrado.")
 
-        # 4. Lógica de Cupón (Modo 2: Canje instantáneo vía código)
+            if promo_aplicada_instance.estado_promo_cli != estado_disponible:
+                raise serializers.ValidationError(f"El cupón no está disponible (estado: {promo_aplicada_instance.estado_promo_cli.nombre_estado}).")
+            
+            promo_desc = promo_aplicada_instance.cupon_descuento_promo_cli
+            if promo_desc.descuento_monto_promo_desc > 0:
+                descuento = promo_desc.descuento_monto_promo_desc
+            elif promo_desc.descuento_porcentaje_promo_desc > 0:
+                descuento = (total_venta * promo_desc.descuento_porcentaje_promo_desc) / 100
+            
+            validated_data['total_venta'] -= descuento
+            validated_data['promo_aplicada'] = promo_aplicada_instance
+
         elif codigo_cupon:
             try:
-                cupon_desc = Cupones_Descuento.objects.get(nombre_cupon_desc=codigo_cupon)
-            except Cupones_Descuento.DoesNotExist:
-                raise serializers.ValidationError("El codigo de cupon no es valido.")
+                promo_desc = Promociones_Descuento.objects.get(nombre_promo_desc=codigo_cupon)
+            except Promociones_Descuento.DoesNotExist:
+                raise serializers.ValidationError("El código de cupón no es válido.")
             
-            # Validar fecha del cupón
-            if cupon_desc.fecha_vencimiento_cupon_desc and cupon_desc.fecha_vencimiento_cupon_desc < timezone.now().date():
-                raise serializers.ValidationError("El cupon ha vencido.")
+            if promo_desc.fecha_vencimiento_promo_desc and promo_desc.fecha_vencimiento_promo_desc < timezone.now().date():
+                raise serializers.ValidationError("El cupón ha vencido.")
 
-            # Validar puntos
-            if cupon_desc.puntos_requeridos_cupon_desc > 0:
-                if not cliente or cliente.puntos_actuales < cupon_desc.puntos_requeridos_cupon_desc:
-                    raise serializers.ValidationError("Puntos insuficientes para canjear este cupon.")
+            # if promo_desc.puntos_requeridos_promo_desc > 0:
+            #     if not cliente or cliente.puntos_actuales < promo_desc.puntos_requeridos_promo_desc:
+            #         raise serializers.ValidationError("Puntos insuficientes para canjear este cupón.")
                 
-                # Deducir puntos
-                puntos_anteriores = cliente.puntos_actuales
-                cliente.puntos_actuales -= cupon_desc.puntos_requeridos_cupon_desc
-                cliente.save()
-                Historial_Puntos.objects.create(
-                    cliente=cliente, puntos_movidos=cupon_desc.puntos_requeridos_cupon_desc * -1,
-                    puntos_anteriores=puntos_anteriores, puntos_nuevos=cliente.puntos_actuales,
-                    tipo_movimiento='CANJEADOS'
-                )
-            
-            # Crear y marcar nueva instancia de Cupones_Clientes como usada
-            estado_canjeado = Estados.objects.get(id_estado=17) # 17: CANJEADO
-            cupon_aplicado_instance = Cupones_Clientes.objects.create(
-                cliente_cupon_cli=cliente,
-                cupon_descuento_cupon_cli=cupon_desc,
-                estado_cupon_cli=estado_canjeado
+            #     puntos_anteriores = cliente.puntos_actuales
+            #     cliente.puntos_actuales -= promo_desc.puntos_requeridos_promo_desc
+            #     cliente.save()
+            #     Historial_Puntos.objects.create(
+            #         cliente=cliente, puntos_movidos=promo_desc.puntos_requeridos_promo_desc * -1,
+            #         puntos_anteriores=puntos_anteriores, puntos_nuevos=cliente.puntos_actuales,
+            #         tipo_movimiento='CANJEADOS'
+            #     )
+
+            try:
+                estado_canjeado = Estados.objects.get(nombre_estado='CANJEADO')
+            except Estados.DoesNotExist:
+                raise serializers.ValidationError("Estado 'CANJEADO' no encontrado.")
+
+            promo_aplicada_instance = Promos_Clientes.objects.create(
+                cliente_promo_cli=cliente,
+                cupon_descuento_promo_cli=promo_desc,
+                estado_promo_cli=estado_canjeado
             )
-            validated_data['cupon_aplicado'] = cupon_aplicado_instance
+            validated_data['promo_aplicada'] = promo_aplicada_instance
 
-            if cupon_desc.descuento_monto_cupon_desc > 0:
-                descuento = cupon_desc.descuento_monto_cupon_desc
-            elif cupon_desc.descuento_porcentaje_cupon_desc > 0:
-                descuento = (total_venta * cupon_desc.descuento_porcentaje_cupon_desc) / 100
+            if promo_desc.descuento_monto_promo_desc > 0:
+                descuento = promo_desc.descuento_monto_promo_desc
+            elif promo_desc.descuento_porcentaje_promo_desc > 0:
+                descuento = (total_venta * promo_desc.descuento_porcentaje_promo_desc) / 100
             
-            validated_data['descuento_aplicado'] = descuento
+            validated_data['total_venta'] -= descuento
 
-        # 5. Crear Venta y Detalles
         venta = Ventas.objects.create(**validated_data)
+        venta.descuento_aplicado = descuento
+        # Si vuelto_entregado se envía en validated_data, se guardará automáticamente
+        # ya que es un campo del modelo Ventas y está en validated_data.
+        # Si no se envía, usará el default=Decimal('0.00')
+        venta.save()
+
         for detalle_data in detalles_data:
             if 'precio_unitario_det_vent' not in detalle_data:
                 detalle_data['precio_unitario_det_vent'] = detalle_data['producto_det_vent'].precio_unitario_venta_producto
             Detalle_Ventas.objects.create(venta_det_vent=venta, **detalle_data)
 
-        # 6. Marcar cupón como usado (solo para Modo 1, Modo 2 ya marcado)
-        if cupon_cliente_id and cupon_aplicado_instance: # Comprobar si fue Modo 1
-            estado_canjeado = Estados.objects.get(id_estado=17) # 17: CANJEADO
-            cupon_aplicado_instance.estado_cupon_cli = estado_canjeado
-            cupon_aplicado_instance.save()
+        if promo_aplicada_id and promo_aplicada_instance:
+            try:
+                estado_canjeado = Estados.objects.get(nombre_estado='CANJEADO')
+            except Estados.DoesNotExist:
+                raise serializers.ValidationError("Estado 'CANJEADO' no encontrado.")
+            promo_aplicada_instance.estado_promo_cli = estado_canjeado
+            promo_aplicada_instance.save()
 
-        # 7. Lógica de Puntos (para puntos ganados)
-        neto_pagado = venta.total_venta - venta.descuento_aplicado
-        if neto_pagado > 0 and cliente:
-            puntos_ganados = math.floor(neto_pagado / settings.PESOS_POR_PUNTO)
-            if puntos_ganados > 0:
-                puntos_anteriores = cliente.puntos_actuales
-                cliente.puntos_actuales += puntos_ganados
-                cliente.save()
-                Historial_Puntos.objects.create(
-                    cliente=cliente, venta_origen=venta, puntos_movidos=puntos_ganados,
-                    puntos_anteriores=puntos_anteriores, puntos_nuevos=cliente.puntos_actuales,
-                    tipo_movimiento='GANADOS'
-                )
+        # if neto_pagado > 0 and cliente:
+        #     puntos_ganados = math.floor(neto_pagado / settings.PESOS_POR_PUNTO)
+        #     if puntos_ganados > 0:
+        #         puntos_anteriores = cliente.puntos_actuales
+        #         cliente.puntos_actuales += puntos_ganados
+        #         cliente.save()
+        #         Historial_Puntos.objects.create(
+        #             cliente=cliente, venta_origen=venta, puntos_movidos=puntos_ganados,
+        #             puntos_anteriores=puntos_anteriores, puntos_nuevos=cliente.puntos_actuales,
+        #             tipo_movimiento='GANADOS'
+        #         )
 
-        # 8. Deducir Stock y crear historial
-        tipo_movimiento_venta = Tipos_Movimientos.objects.get(id_tipo_movimiento=1) # VENTA
+        try:
+            tipo_movimiento_venta = Tipos_Movimientos.objects.get(nombre_movimiento='VENTA')
+        except Tipos_Movimientos.DoesNotExist:
+            raise serializers.ValidationError("Tipo de movimiento 'VENTA' no encontrado.")
+
         for detalle in venta.detalles.all():
             stock = Stocks.objects.get(producto_en_stock=detalle.producto_det_vent)
             stock_anterior = stock.cantidad_actual_stock
@@ -173,10 +180,9 @@ class VentaSerializer(serializers.ModelSerializer):
                 observaciones_hstock=f"Salida por venta ID: {venta.id_venta}"
             )
 
-        # 9. Lógica de Caja
         caja = venta.caja_venta
         saldo_anterior_caja = caja.monto_teorico_caja
-        monto_ingreso = neto_pagado
+        monto_ingreso = venta.total_venta
         caja.monto_teorico_caja += monto_ingreso
         caja.save()
         tipo_evento_ingreso, _ = Tipo_Evento.objects.get_or_create(nombre_evento="INGRESO_VENTA")
@@ -185,18 +191,7 @@ class VentaSerializer(serializers.ModelSerializer):
             cantidad_movida_hcaja=monto_ingreso, saldo_anterior_hcaja=saldo_anterior_caja,
             nuevo_saldo_hcaja=caja.monto_teorico_caja, descripcion_hcaja=f"Ingreso por venta ID: {venta.id_venta}"
         )
-        if venta.vuelto_entregado > 0:
-            saldo_anterior_vuelto = caja.monto_teorico_caja
-            caja.monto_teorico_caja -= venta.vuelto_entregado
-            caja.save()
-            tipo_evento_egreso, _ = Tipo_Evento.objects.get_or_create(nombre_evento="EGRESO_VUELTO")
-            Historial_Caja.objects.create(
-                caja_hc=caja, empleado_hc=venta.empleado_venta, tipo_event_caja=tipo_evento_egreso,
-                cantidad_movida_hcaja=venta.vuelto_entregado * -1, saldo_anterior_hcaja=saldo_anterior_vuelto,
-                nuevo_saldo_hcaja=caja.monto_teorico_caja, descripcion_hcaja=f"Vuelto por venta ID: {venta.id_venta}"
-            )
         
-        # --- REGISTRO DE AUDITORÍA ---
         crear_registro(
             usuario=self.context['request'].user,
             accion='VENTA_NUEVA',
@@ -204,10 +199,9 @@ class VentaSerializer(serializers.ModelSerializer):
                 'venta_id': venta.id_venta,
                 'cliente': venta.cliente_venta.id_cliente if venta.cliente_venta else None,
                 'total': str(venta.total_venta),
-                'descuento': str(venta.descuento_aplicado),
+                'descuento': str(descuento),
                 'items': venta.detalles.count()
             }
         )
-        # --- FIN REGISTRO ---
 
         return venta

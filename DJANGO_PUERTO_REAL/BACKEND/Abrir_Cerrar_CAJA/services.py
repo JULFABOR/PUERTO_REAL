@@ -3,6 +3,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.db import transaction
 from django.utils import timezone
+from django.core.mail import send_mail
 
 from HOME.models import Cajas, Historial_Caja, Tipo_Evento, Estados, Fondo_Pagos, Movimiento_Fondo, Empleados
 # Importar el servicio de auditoría
@@ -14,11 +15,21 @@ def _event(name: str) -> Tipo_Evento:
     return ev
 
 def _caja_abierta():
-    # Mapeo: usamos Estados.ACTIVO como "ABIERTO"
-    return Cajas.objects.filter(estado_caja=Estados.ACTIVO).order_by('-id_caja').first()
+    # Obtener el objeto Estado correspondiente a 'ABIERTO'
+    try:
+        estado_abierto = Estados.objects.get(nombre_estado='ABIERTO')
+    except Estados.DoesNotExist:
+        return None # O lanzar una excepción, dependiendo de la lógica de negocio
+
+    return Cajas.objects.filter(estado_caja=estado_abierto).order_by('-id_caja').first()
 
 def _ultima_caja_cerrada():
-    return Cajas.objects.filter(estado_caja=Estados.CERRADA).order_by('-id_caja').first()
+    try:
+        estado_cerrado = Estados.objects.get(nombre_estado='CERRADO')
+    except Estados.DoesNotExist:
+        return None
+
+    return Cajas.objects.filter(estado_caja=estado_cerrado).order_by('-id_caja').first()
 
 def _saldo_final_de_ayer() -> Decimal:
     ult = _ultima_caja_cerrada()
@@ -46,7 +57,13 @@ def _notificar_retiro(monto, motivo, usuario, destino, aprobador=""):
 # SERVICIOS DE CAJA
 # ==============================================================================
 
-def abrir_caja_service(monto_inicial: Decimal, desc_ajuste: str, empleado_actual: Empleados):
+def abrir_caja_service(monto_inicial: Decimal = None, desc_ajuste: str = '', empleado_actual: Empleados = None):
+    if monto_inicial is None or monto_inicial == Decimal('0.00'):
+        monto_inicial = _saldo_final_de_ayer()
+
+    # Validaciones de negocio (reutilizadas de la vista)
+    estado_abierto = Estados.objects.get(nombre_estado='ABIERTO')
+    tipo_evento_apertura = Tipo_Evento.objects.get(nombre_evento='APERTURA')
     # Validaciones de negocio (reutilizadas de la vista)
     estado_abierto = Estados.objects.get(nombre_estado='ABIERTO')
     tipo_evento_apertura = Tipo_Evento.objects.get(nombre_evento='APERTURA')
@@ -113,7 +130,7 @@ def retiro_service(monto: Decimal, motivo: str, destino: str, aprobador: str, em
             tipo_evento_retiro = Tipo_Evento.objects.get(nombre_evento='TRANSFERENCIA_A_FONDO')
             fondo = Fondo_Pagos.objects.filter(estado_fp__nombre_estado='ACTIVO').first() # Asumiendo un estado ACTIVO para Fondo_Pagos
             if not fondo:
-                fondo = Fondo_Pagos.objects.create(nombre_fp="Fondo de Pagos por Defecto", saldo_fp=Decimal('0.00'), estado_fp=Estados.objects.get(nombre_estado='ACTIVO')) # Asumiendo un estado ACTIVO
+                fondo = Fondo_Pagos.objects.create(saldo_fp=Decimal('0.00'), estado_fp=Estados.objects.get(nombre_estado='ACTIVO')) # Asumiendo un estado ACTIVO
             fondo.saldo_fp += monto
             fondo.save(update_fields=['saldo_fp'])
             Movimiento_Fondo.objects.create(

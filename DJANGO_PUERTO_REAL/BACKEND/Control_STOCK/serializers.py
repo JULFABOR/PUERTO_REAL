@@ -16,7 +16,7 @@ class ProductoSerializer(serializers.ModelSerializer):
         model = Productos
         fields = [
             'id_producto', 'nombre_producto', 'descripcion_producto',
-            'marca_producto', 'precio_unitario_venta_producto',
+            'precio_unitario_venta_producto',
             'categoria_producto', 'low_stock_threshold', 'barcode',
             'is_low_stock'
         ]
@@ -35,24 +35,25 @@ class StockSerializer(serializers.ModelSerializer):
         model = Stocks
         fields = [
             'id_stock', 'cantidad_actual_stock', 'lote_stock',
-            'fecha_vencimiento', 'observaciones_stock', 'producto_en_stock',
+            'observaciones_stock', 'producto_en_stock',
             'is_expired', 'days_until_expiration'
         ]
 
     def get_is_expired(self, obj):
-        return obj.fecha_vencimiento < timezone.now()
+        if obj.producto_en_stock.fecha_vencimiento_producto:
+            return obj.producto_en_stock.fecha_vencimiento_producto < timezone.now()
+        return False
 
     def get_days_until_expiration(self, obj):
-        if obj.fecha_vencimiento:
-            time_difference = obj.fecha_vencimiento - timezone.now()
+        if obj.producto_en_stock.fecha_vencimiento_producto:
+            time_difference = obj.producto_en_stock.fecha_vencimiento_producto - timezone.now()
             return time_difference.days
         return None
 
 class HistorialStockSerializer(serializers.ModelSerializer):
     stock_hs = StockSerializer(read_only=True)
-    empleado_hs = serializers.StringRelatedField(read_only=True) # Assuming Empleados has a good __str__
-    tipo_movimiento_hs = serializers.StringRelatedField(read_only=True) # Assuming Tipos_Movimientos has a good __str__
-
+    empleado_hs = serializers.StringRelatedField(read_only=True) 
+    tipo_movimiento_hs = serializers.StringRelatedField(read_only=True) 
     class Meta:
         model = Historial_Stock
         fields = '__all__'
@@ -63,7 +64,7 @@ class StockUpdateSerializer(serializers.Serializer):
     barcode = serializers.CharField(max_length=100, required=False)
     quantity = serializers.IntegerField(min_value=1)
     reason = serializers.CharField(max_length=500, required=False, allow_blank=True)
-    employee_id = serializers.IntegerField() # Assuming employee ID is passed
+    employee = serializers.PrimaryKeyRelatedField(queryset=Empleados.objects.all()) 
 
     def validate(self, data):
         if not data.get('product_id') and not data.get('barcode'):
@@ -76,7 +77,7 @@ class StockAdjustmentSerializer(serializers.Serializer):
     quantity = serializers.IntegerField() # Can be positive or negative for adjustment
     movement_type = serializers.ChoiceField(choices=['MOV_STOCK_AJUSTE']) # Only 'MOV_STOCK_AJUSTE' allowed here
     reason = serializers.CharField(max_length=500, required=False, allow_blank=True)
-    employee_id = serializers.IntegerField()
+    employee = serializers.PrimaryKeyRelatedField(queryset=Empleados.objects.all())
 
     def validate(self, data):
         if not data.get('product_id') and not data.get('barcode'):

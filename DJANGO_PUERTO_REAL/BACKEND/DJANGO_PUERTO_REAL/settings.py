@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_framework.authtoken', # Para autenticación por token
     'HOME',
     'Abrir_Cerrar_CAJA',
     'Control_COMPRAS',
@@ -49,6 +50,7 @@ INSTALLED_APPS = [
     'Fidelizar_CLIENTES',
     'Analizar_INGRESOS_EGRESOS',
     'Auditoria',
+    'autenticacion',
 ]
 
 MIDDLEWARE = [
@@ -139,3 +141,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Configuraciones personalizadas
 PESOS_POR_PUNTO = 110
+
+# Redirecciones de Login/Logout
+LOGIN_REDIRECT_URL = 'home:index_privado_staff'
+LOGOUT_REDIRECT_URL = 'home:index_publico'

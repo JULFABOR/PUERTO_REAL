@@ -1,0 +1,23 @@
+<nav class="w-full border-b bg-white">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div class="font-bold">Puerto Real</div>
+        <div class="hidden md:flex items-center gap-4 text-sm">
+            <a class="hover:underline" href="{% url 'home:home_inicio' %}">Inicio</a>
+            <a class="hover:underline" href="{% url 'home:fn_caja' %}">Caja</a>
+            <a class="hover:underline" href="{% url 'ventas_dashboard' %}">Ventas</a>
+            <a class="hover:underline" href="{% url 'compras_dashboard' %}">Compras</a>
+            <a class="hover:underline" href="{% url 'stock_dashboard' %}">Stock</a>
+            <a class="hover:underline" href="{% url 'producto_list' %}">Productos</a>
+            <a class="hover:underline" href="{% url 'fidelizacion_dashboard' %}">Fidelización</a>
+            <a class="hover:underline" href="{% url 'home:fn_reportes' %}">Reportes</a>
+            <a class="hover:underline" href="{% url 'Auditoria:audit_log' %}">Auditoría</a>
+            <a class="hover:underline font-bold text-purple-600" href="{% url 'Analizar_INGRESOS_EGRESOS:analisis_dashboard' %}">Análisis I/E</a>
+        </div>
+        </div>
+        <div class="flex items-center gap-3">
+            <form action="{% url 'home:logout' %}" method="post">{% csrf_token %}
+            <button class="text-sm px-3 py-1.5 rounded bg-gray-900 text-white">Cerrar sesión</button>
+            </form>
+        </div>
+    </div>
+</nav>
