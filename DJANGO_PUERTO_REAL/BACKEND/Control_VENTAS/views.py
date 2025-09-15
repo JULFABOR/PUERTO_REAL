@@ -16,7 +16,7 @@ from django.utils.decorators import method_decorator
 from HOME.models import (
     Ventas, Detalle_Ventas, Stocks, Historial_Stock,
     Cajas, Historial_Caja, Tipos_Movimientos, Tipo_Evento, Productos,
-    Cupones_Clientes, Estados, Historial_Puntos, Clientes, Empleados
+    Promos_Clientes, Estados, Historial_Puntos, Clientes, Empleados
 )
 from .serializers import VentaSerializer
 from Auditoria.services import crear_registro
@@ -24,13 +24,13 @@ from Auditoria.services import crear_registro
 # --- Vista de Template para el Dashboard de Ventas ---
 @method_decorator(login_required, name='dispatch')
 class VentasDashboardView(TemplateView):
-    template_name = 'Control_VENTAS/ventas_dashboard.html'
+    template_name = 'Control_VENTAS/Venta.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['page_title'] = "Dashboard de Ventas"
-        # Aquí podrías añadir datos como las últimas 5 ventas, etc.
-        context['ultimas_ventas'] = Ventas.objects.order_by('-fecha_venta')[:5]
+        context['page_title'] = "Punto de Venta (POS)"
+        context['productos'] = Productos.objects.filter(DELETE_Prod=False)
+        context['clientes'] = Clientes.objects.all()
         return context
 
 
@@ -78,7 +78,7 @@ class VentaViewSet(viewsets.ModelViewSet):
             for detalle in instance.detalles.all():
                 stock, created = Stocks.objects.get_or_create(
                     producto_en_stock=detalle.producto_det_vent,
-                    defaults={'cantidad_actual_stock': 0, 'lote_stock': 0, 'fecha_vencimiento': '2099-12-31'}
+                    defaults={'cantidad_actual_stock': 0, 'lote_stock': 0}
                 )
                 stock_anterior = stock.cantidad_actual_stock
                 stock.cantidad_actual_stock += detalle.cantidad_det_vent
@@ -139,7 +139,6 @@ class VentaViewSet(viewsets.ModelViewSet):
                     cliente = instance.cliente_venta
                     puntos_anteriores = cliente.puntos_actuales
                     cliente.puntos_actuales -= puntos_ganados
-                    cliente.save()
                     Historial_Puntos.objects.create(
                         cliente=cliente, venta_origen=instance, puntos_movidos=puntos_ganados * -1,
                         puntos_anteriores=puntos_anteriores, puntos_nuevos=cliente.puntos_actuales,

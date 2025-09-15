@@ -7,7 +7,7 @@ from django.db import transaction
 from django.utils import timezone
 from datetime import timedelta
 
-from django.views.generic import ListView, CreateView, UpdateView, DeleteView, TemplateView
+from django.views.generic import TemplateView
 from django.urls import reverse_lazy
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
@@ -22,67 +22,19 @@ from Auditoria.services import crear_registro
 # --- Vistas de Template ---
 @method_decorator(login_required, name='dispatch')
 class StockDashboardView(TemplateView):
-    template_name = 'Control_STOCK/stock_dashboard.html'
+    template_name = 'Control_STOCK/Control-Stock.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['page_title'] = "Dashboard de Stock"
+        context['page_title'] = "Gestión de Inventario"
         
-        # Obtener productos con bajo stock
-        low_stock_products = Productos.objects.annotate(
+        # Obtener todos los productos con su información de stock
+        productos = Productos.objects.filter(DELETE_Prod=False).annotate(
             total_stock=Sum('stocks__cantidad_actual_stock')
-        ).filter(total_stock__lt=F('low_stock_threshold'), DELETE_Prod=False)
+        )
         
-        context['low_stock_products'] = low_stock_products
+        context['productos'] = productos
         return context
-
-
-
-class ProductoListView(LoginRequiredMixin, ListView):
-    model = Productos
-    template_name = 'Control_STOCK/producto_list.html'
-    context_object_name = 'productos'
-    paginate_by = 10
-
-    def get_queryset(self):
-        # Excluir productos marcados para eliminación
-        return Productos.objects.filter(DELETE_Prod=False)
-
-class ProductoCreateView(LoginRequiredMixin, CreateView):
-    model = Productos
-    form_class = ProductoForm
-    template_name = 'Control_STOCK/producto_form.html'
-    success_url = reverse_lazy('producto_list') # Redirige a la lista de productos
-
-    def form_valid(self, form):
-        # Asigna el estado por defecto si no se selecciona uno (ej. 'Activo')
-        # Asegúrate de que exista un estado con nombre 'Activo' o el ID correspondiente
-        if not form.instance.estado_producto_id:
-            try:
-                estado_activo = Estados.objects.get(nombre_estado='Activo') # O el ID que corresponda
-                form.instance.estado_producto = estado_activo
-            except Estados.DoesNotExist:
-                # Manejar el error si el estado 'Activo' no existe
-                pass # O asignar un estado por defecto diferente
-        return super().form_valid(form)
-
-class ProductoUpdateView(LoginRequiredMixin, UpdateView):
-    model = Productos
-    form_class = ProductoForm
-    template_name = 'Control_STOCK/producto_form.html'
-    success_url = reverse_lazy('producto_list')
-
-class ProductoDeleteView(LoginRequiredMixin, DeleteView):
-    model = Productos
-    template_name = 'Control_STOCK/producto_confirm_delete.html'
-    success_url = reverse_lazy('producto_list')
-
-    def post(self, request, *args, **kwargs):
-        # En lugar de eliminar, marca como eliminado (soft delete)
-        self.object = self.get_object()
-        self.object.DELETE_Prod = True
-        self.object.save()
-        return super().post(request, *args, **kwargs)
 
 
 # --- Vistas de la API (existentes y nuevas) ---
@@ -125,12 +77,12 @@ class StockListView(generics.ListAPIView):
             try:
                 days = int(expiring_days)
                 future_date = timezone.now() + timedelta(days=days)
-                queryset = queryset.filter(fecha_vencimiento__range=[timezone.now(), future_date])
+                queryset = queryset.filter(producto_en_stock__fecha_vencimiento_producto__range=[timezone.now(), future_date])
             except ValueError:
                 pass # dias_expiracion inválido, ignorar filtro
 
         if expired == 'true':
-            queryset = queryset.filter(fecha_vencimiento__lt=timezone.now())
+            queryset = queryset.filter(producto_en_stock__fecha_vencimiento_producto__lt=timezone.now())
 
         if search_query:
             queryset = queryset.filter(
@@ -177,7 +129,7 @@ class StockDecrementAPIView(APIView):
             available_stock_entries = Stocks.objects.filter(
                 producto_en_stock=product,
                 cantidad_actual_stock__gt=0
-            ).order_by('fecha_vencimiento') # Priorizar lotes/stock más antiguos
+            ).order_by('producto_en_stock__fecha_vencimiento_producto') # Priorizar lotes/stock más antiguos
 
             total_available_quantity = available_stock_entries.aggregate(Sum('cantidad_actual_stock'))['cantidad_actual_stock__sum'] or 0
 
@@ -271,7 +223,6 @@ class StockAdjustmentAPIView(APIView):
                         producto_en_stock=product,
                         cantidad_actual_stock=0, # Será actualizado
                         lote_stock=0, # Placeholder, podría necesitar una estrategia de lotes adecuada
-                        fecha_vencimiento=timezone.now() + timedelta(days=365), # Placeholder
                         observaciones_stock="Stock inicial por ajuste"
                     )
                 else:

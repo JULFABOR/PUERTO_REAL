@@ -21,6 +21,17 @@ path("logout/", views.logout_view, name="logout"),
 
 # HOME (staff)
 path("home/", views.home_inicio, name="home_inicio"),
+path('configuracion/', views.ConfiguracionView.as_view(), name='configuracion'),
+path('analisis/', views.AnalisisView.as_view(), name='analisis'),
+path('caja/', views.CajaView.as_view(), name='caja'),
+path('cliente-perfil/', views.ClientePerfilView.as_view(), name='cliente_perfil'),
+path('clientes/', views.ClientesView.as_view(), name='clientes'),
+path('control-stock/', views.ControlStockView.as_view(), name='control_stock'),
+path('forgot-password/', views.ForgotPasswordView.as_view(), name='forgot_password'),
+path('login-register/', views.LoginRegisterView.as_view(), name='login_register'),
+path('proveedores/', views.ProveedoresView.as_view(), name='proveedores'),
+path('stock/', views.StockView.as_view(), name='stock'),
+path('venta/', views.VentaView.as_view(), name='venta'),
 
 
 # Routers a módulos (puentes)

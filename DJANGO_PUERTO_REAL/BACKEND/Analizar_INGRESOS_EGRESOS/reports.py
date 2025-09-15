@@ -2,7 +2,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from django.db.models import Sum, F, ExpressionWrapper, DecimalField, Count
-from HOME.models import Ventas, Detalle_Ventas, Compras, Detalle_Compras, Historial_Caja, Movimiento_Fondo, Productos, Empleados, Tipos_Movimientos, Categorias_Productos
+from HOME.models import (
+    Ventas, Detalle_Ventas, Compras, Detalle_Compras, Historial_Caja, 
+    Movimiento_Fondo, Productos, Empleados, Tipos_Movimientos, 
+    Categorias_Productos, Historial_Movimientos_Financieros
+)
 from datetime import datetime, timedelta
 import io
 import base64
@@ -19,12 +23,11 @@ def generate_expense_breakdown_report(start_date, end_date):
     """
     Genera un informe de desglose de gastos, mostrando la proporción de cada tipo de gasto.
     """
-    # Obtener Datos de Compras (Gastos de Compras)
-    purchases_qs = Compras.objects.filter(
-        fecha_compra__range=(start_date, end_date)
-    ).values('fecha_compra', 'total_compra')
-    purchases_df = pd.DataFrame(list(purchases_qs))
-    total_gastos_compras = purchases_df['total_compra'].sum() if not purchases_df.empty else 0
+    # Obtener Datos de Movimientos Financieros para compras
+    total_gastos_compras = Historial_Movimientos_Financieros.objects.filter(
+        fecha_mov_fin__range=(start_date, end_date),
+        compra_mov_fin__isnull=False
+    ).aggregate(total=Sum('monto_mov_fin'))['total'] or 0
 
     # Obtener Datos de Historial_Caja (Gastos Operacionales)
     cash_movements_qs = Historial_Caja.objects.filter(
@@ -42,13 +45,10 @@ def generate_expense_breakdown_report(start_date, end_date):
         ]['cantidad_movida_hcaja'].sum()
 
     # Obtener Datos de Movimiento_Fondo (Otros Gastos/Transferencias)
-    # Aquí asumimos que los movimientos de fondo de tipo 'Egreso' son gastos
-    fund_movements_qs = Movimiento_Fondo.objects.filter(
+    otros_gastos_fondo = Movimiento_Fondo.objects.filter(
         fecha_mov_fp__range=(start_date, end_date),
-        tipo_mov_fp='Egreso' # Asumiendo que 'Egreso' es un tipo de movimiento de gasto
-    ).values('fecha_mov_fp', 'monto_mov_fp')
-    fund_movements_df = pd.DataFrame(list(fund_movements_qs))
-    otros_gastos_fondo = fund_movements_df['monto_mov_fp'].sum() if not fund_movements_df.empty else 0
+        tipo_mov_fp__nombre_movimiento='SALIDA'
+    ).aggregate(total=Sum('monto_mov_fp'))['total'] or 0
 
     # Crear un DataFrame para el desglose de gastos
     gastos_data = {
@@ -77,23 +77,22 @@ def generate_financial_report(start_date, end_date):
     """
     Genera un informe financiero que incluye ingresos, gastos y el neto.
     """
-    # 1. Obtener Datos de Ventas (Ingresos)
-    sales_qs = Ventas.objects.filter(
-        fecha_venta__range=(start_date, end_date)
-    ).annotate(
-        income=F('total_venta') - F('descuento_aplicado')
-    ).values('fecha_venta', 'income')
-    sales_df = pd.DataFrame(list(sales_qs))
-    total_income = sales_df['income'].sum() if not sales_df.empty else 0
+    # 1. Obtener Datos de Movimientos Financieros
+    financial_movements_qs = Historial_Movimientos_Financieros.objects.filter(
+        fecha_mov_fin__range=(start_date, end_date)
+    )
 
-    # 2. Obtener Datos de Compras (Gastos de Compras)
-    purchases_qs = Compras.objects.filter(
-        fecha_compra__range=(start_date, end_date)
-    ).values('fecha_compra', 'total_compra')
-    purchases_df = pd.DataFrame(list(purchases_qs))
-    total_purchase_expenses = purchases_df['total_compra'].sum() if not purchases_df.empty else 0
+    # 2. Calcular Ingresos Totales
+    total_income = financial_movements_qs.filter(venta_mov_fin__isnull=False).aggregate(
+        total=Sum('monto_mov_fin')
+    )['total'] or 0
 
-    # 3. Obtener Datos de Historial_Caja (Gastos Operacionales y Transferencias)
+    # 3. Calcular Gastos Totales de Compras
+    total_purchase_expenses = financial_movements_qs.filter(compra_mov_fin__isnull=False).aggregate(
+        total=Sum('monto_mov_fin')
+    )['total'] or 0
+
+    # 4. Obtener Datos de Historial_Caja (Gastos Operacionales y Transferencias)
     cash_movements_qs = Historial_Caja.objects.filter(
         fecha_movimiento_hcaja__range=(start_date, end_date)
     ).values('fecha_movimiento_hcaja', 'cantidad_movida_hcaja', 'tipo_event_caja__nombre_evento', 'destino_movimiento')
@@ -108,19 +107,13 @@ def generate_financial_report(start_date, end_date):
             (cash_movements_df['destino_movimiento'] != 'PARA_PAGOS_FONDO')
         ]['cantidad_movida_hcaja'].sum()
 
-    # 4. Obtener Datos de Movimiento_Fondo (Transferencias y otros movimientos de fondos)
-    fund_movements_qs = Movimiento_Fondo.objects.filter(
-        fecha_mov_fp__range=(start_date, end_date)
-    ).values('fecha_mov_fp', 'tipo_mov_fp', 'monto_mov_fp')
-    fund_movements_df = pd.DataFrame(list(fund_movements_qs))
-
-    # Calcular gastos totales
+    # 5. Calcular gastos totales
     total_expenses = total_purchase_expenses + operational_expenses_caja
 
-    # Calcular Neto
+    # 6. Calcular Neto
     net_income = total_income - total_expenses
 
-    # 5. Análisis de Productos Principales
+    # 7. Análisis de Productos Principales (esto no cambia)
     detailed_sales_qs = Detalle_Ventas.objects.filter(
         venta_det_vent__fecha_venta__range=(start_date, end_date)
     ).values(
@@ -144,7 +137,7 @@ def generate_financial_report(start_date, end_date):
     else:
         top_products_data = []
 
-    # 6. Análisis de Rendimiento de Empleados
+    # 8. Análisis de Rendimiento de Empleados (esto no cambia)
     employee_sales_qs = Ventas.objects.filter(
         fecha_venta__range=(start_date, end_date)
     ).values(
@@ -162,25 +155,24 @@ def generate_financial_report(start_date, end_date):
     else:
         employee_sales_data = []
 
-    # 7. Análisis de Series de Tiempo (Ingresos, Gastos, Neto)
+    # 9. Análisis de Series de Tiempo (Ingresos, Gastos, Neto)
     # Preparar datos para el trazado de series de tiempo
-    # Asegurar que las columnas de fecha sean objetos datetime
-    if not sales_df.empty: sales_df['fecha_venta'] = pd.to_datetime(sales_df['fecha_venta'])
-    if not purchases_df.empty: purchases_df['fecha_compra'] = pd.to_datetime(purchases_df['fecha_compra'])
+    sales_df = pd.DataFrame(list(financial_movements_qs.filter(venta_mov_fin__isnull=False).values('fecha_mov_fin', 'monto_mov_fin')))
+    purchases_df = pd.DataFrame(list(financial_movements_qs.filter(compra_mov_fin__isnull=False).values('fecha_mov_fin', 'monto_mov_fin')))
+    
+    if not sales_df.empty: sales_df['fecha_mov_fin'] = pd.to_datetime(sales_df['fecha_mov_fin'])
+    if not purchases_df.empty: purchases_df['fecha_mov_fin'] = pd.to_datetime(purchases_df['fecha_mov_fin'])
     if not cash_movements_df.empty: cash_movements_df['fecha_movimiento_hcaja'] = pd.to_datetime(cash_movements_df['fecha_movimiento_hcaja'])
 
     # Remuestrear a frecuencia diaria
-    daily_income = sales_df.set_index('fecha_venta')['income'].resample('D').sum().fillna(0)
-    daily_purchase_expenses = purchases_df.set_index('fecha_compra')['total_compra'].resample('D').sum().fillna(0)
+    daily_income = sales_df.set_index('fecha_mov_fin')['monto_mov_fin'].resample('D').sum().fillna(0) if not sales_df.empty else pd.Series()
+    daily_purchase_expenses = purchases_df.set_index('fecha_mov_fin')['monto_mov_fin'].resample('D').sum().fillna(0) if not purchases_df.empty else pd.Series()
     
-    # Para gastos operativos de caja, debemos tener cuidado con la agregación
-    # Asumiendo que los eventos 'Retiro' son gastos, y los sumamos diariamente
     daily_operational_expenses_caja = cash_movements_df[
         (cash_movements_df['tipo_event_caja__nombre_evento'] == 'Retiro') &
         (cash_movements_df['destino_movimiento'] != 'PARA_PAGOS_FONDO')
     ].set_index('fecha_movimiento_hcaja')['cantidad_movida_hcaja'].resample('D').sum().fillna(0)
 
-    # Combinar todos los datos financieros diarios
     financial_data = pd.DataFrame({
         'income': daily_income,
         'purchase_expenses': daily_purchase_expenses,
@@ -198,8 +190,7 @@ def generate_financial_report(start_date, end_date):
     ax_time_series.legend(['Ingresos', 'Gastos Totales', 'Ingreso Neto'])
     time_series_plot_base64 = plot_to_base64(fig_time_series)
 
-    # 8. Gráficos de Barras
-    # Productos Principales por Ingresos
+    # 10. Gráficos de Barras (sin cambios)
     top_products_plot_base64 = None
     if not top_products_df.empty:
         fig_top_products, ax_top_products = plt.subplots(figsize=(10, 6))
@@ -209,7 +200,6 @@ def generate_financial_report(start_date, end_date):
         ax_top_products.set_ylabel('Producto')
         top_products_plot_base64 = plot_to_base64(fig_top_products)
 
-    # Ranking de Ventas por Empleado
     employee_sales_plot_base64 = None
     if not employee_sales_df.empty:
         fig_employee_sales, ax_employee_sales = plt.subplots(figsize=(10, 6))
@@ -217,7 +207,7 @@ def generate_financial_report(start_date, end_date):
         ax_employee_sales.set_title('Ranking de Ventas por Empleado')
         ax_employee_sales.set_xlabel('Cantidad Total de Ventas')
         ax_employee_sales.set_ylabel('Empleado')
-    employee_sales_plot_base64 = plot_to_base64(fig_employee_sales)
+        employee_sales_plot_base64 = plot_to_base64(fig_employee_sales)
 
     return {
         "total_income": total_income,

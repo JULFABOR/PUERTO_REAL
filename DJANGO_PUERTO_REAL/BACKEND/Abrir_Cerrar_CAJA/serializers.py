@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from HOME.models import Cajas, Historial_Caja, Fondo_Pagos, Movimiento_Fondo, Empleados, Estados, Tipo_Evento
+from HOME.models import Cajas, Historial_Caja, Fondo_Pagos, Movimiento_Fondo, Empleados, Estados, Tipo_Evento, Tipos_Movimientos
 from django.contrib.auth.models import User
 
 class UserSerializer(serializers.ModelSerializer):
@@ -24,6 +24,11 @@ class TipoEventoSerializer(serializers.ModelSerializer):
         model = Tipo_Evento
         fields = ('id_evento', 'nombre_evento')
 
+class TiposMovimientosSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Tipos_Movimientos
+        fields = ('id_tipo_movimiento', 'nombre_movimiento', 'is_transfer')
+
 class CajasSerializer(serializers.ModelSerializer):
     estado_caja = EstadoSerializer(read_only=True)
 
@@ -37,24 +42,26 @@ class HistorialCajaSerializer(serializers.ModelSerializer):
     caja_hc = CajasSerializer(read_only=True)
     empleado_hc = EmpleadoSerializer(read_only=True)
     tipo_event_caja = TipoEventoSerializer(read_only=True)
+    cantidad_movida_hcaja = serializers.DecimalField(max_digits=20, decimal_places=2) # Assuming it should be Decimal
     
     class Meta:
         model = Historial_Caja
         fields = ('id_historial_caja', 'cantidad_movida_hcaja', 'caja_hc', 
                   'empleado_hc', 'tipo_event_caja', 'fecha_movimiento_hcaja', 
                   'saldo_anterior_hcaja', 'nuevo_saldo_hcaja', 'descripcion_hcaja', 
-                  'destino_movimiento') # Incluir el nuevo campo
+                  'destino_movimiento')
 
 class FondoPagosSerializer(serializers.ModelSerializer):
     estado_fp = EstadoSerializer(read_only=True)
 
     class Meta:
         model = Fondo_Pagos
-        fields = ('id_fondo_fp', 'nombre_fp', 'saldo_fp', 'estado_fp')
+        fields = ('id_fondo_fp', 'saldo_fp', 'estado_fp') # Removed nombre_fp
 
 class MovimientoFondoSerializer(serializers.ModelSerializer):
     fondo_mov_fp = FondoPagosSerializer(read_only=True)
     empleado_mov_fp = EmpleadoSerializer(read_only=True)
+    tipo_mov_fp = TiposMovimientosSerializer(read_only=True) # Nested serializer for ForeignKey
 
     class Meta:
         model = Movimiento_Fondo
@@ -81,4 +88,4 @@ class CerrarCajaInputSerializer(serializers.Serializer):
 class MovimientoFondoInputSerializer(serializers.Serializer):
     monto = serializers.DecimalField(max_digits=12, decimal_places=2)
     motivo = serializers.CharField(max_length=200, required=False, allow_blank=True)
-    tipo = serializers.ChoiceField(choices=Movimiento_Fondo.TIPO_mov)
+    tipo = serializers.ChoiceField(choices=[("ENTRADA", "Entrada"), ("SALIDA", "Salida")])

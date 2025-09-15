@@ -14,7 +14,7 @@ def is_staff(user):
 # --- Vista de Template para el Dashboard de Staff ---
 @method_decorator([login_required, user_passes_test(is_staff)], name='dispatch')
 class AnalisisDashboardView(TemplateView):
-    template_name = 'Analizar_INGRESOS_EGRESOS/analisis_dashboard.html'
+    template_name = 'Analizar_INGRESOS_EGRESOS/Analisis.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

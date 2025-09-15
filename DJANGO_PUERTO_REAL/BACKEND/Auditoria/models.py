@@ -17,6 +17,9 @@ class RegistroAuditoria(models.Model):
         ('COMPRA_RECIBIDA', 'Compra Marcada como Recibida'),
         ('AJUSTE_PUNTOS_MANUAL', 'Ajuste Manual de Puntos'),
         ('LOGIN_FALLIDO', 'Intento de Login Fallido'),
+        ('MODELO_CREADO', 'Modelo Creado'),
+        ('MODELO_ACTUALIZADO', 'Modelo Actualizado'),
+        ('MODELO_ELIMINADO', 'Modelo Eliminado'),
         # Agrega más acciones según sea necesario
     ]
 
@@ -40,6 +43,35 @@ class RegistroAuditoria(models.Model):
     fecha_hora = models.DateTimeField(
         auto_now_add=True,
         help_text="Fecha y hora en que se registró el evento."
+    )
+
+    historial_stock = models.ForeignKey(
+        'HOME.Historial_Stock',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="Enlace a un registro de historial de stock."
+    )
+    historial_caja = models.ForeignKey(
+        'HOME.Historial_Caja',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="Enlace a un registro de historial de caja."
+    )
+    historial_puntos = models.ForeignKey(
+        'HOME.Historial_Puntos',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="Enlace a un registro de historial de puntos."
+    )
+    historial_movimientos_financieros = models.ForeignKey(
+        'HOME.Historial_Movimientos_Financieros',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="Enlace a un registro de historial de movimientos financieros."
     )
 
     def __str__(self):

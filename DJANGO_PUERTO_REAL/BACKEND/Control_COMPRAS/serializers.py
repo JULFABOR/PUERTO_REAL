@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from HOME.models import ( 
     Compras, Detalle_Compras, Compra_MetodoPago, Productos, Metodos_Pago, 
-    Proveedores, Stocks, Historial_Stock, Tipos_Movimientos, Alertas
+    Proveedores, Stocks, Historial_Stock, Tipos_Movimientos, Alertas, Estados
 )
 from Auditoria.services import crear_registro
 
@@ -10,6 +10,11 @@ class ProveedorSerializer(serializers.ModelSerializer):
         model = Proveedores
         fields = '__all__'
 
+class MetodoPagoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Metodos_Pago
+        fields = ('id_metodo', 'nombre_metodo')
+
 class DetalleCompraSerializer(serializers.ModelSerializer):
     id_det_comp = serializers.IntegerField(required=False)
     class Meta:
@@ -17,9 +22,12 @@ class DetalleCompraSerializer(serializers.ModelSerializer):
         fields = ('id_det_comp', 'producto_dt_comp', 'cant_det_comp', 'precio_unidad_det_comp')
 
 class CompraMetodoPagoSerializer(serializers.ModelSerializer):
+    metodo_pago_comp_metpag = MetodoPagoSerializer(read_only=True)
+    metodo_pago = serializers.PrimaryKeyRelatedField(queryset=Metodos_Pago.objects.all(), source='metodo_pago_comp_metpag', write_only=True)
+
     class Meta:
         model = Compra_MetodoPago
-        fields = ('metodo_pago', 'monto')
+        fields = ('metodo_pago', 'monto_comp_metpag', 'metodo_pago_comp_metpag')
 
 class CompraSerializer(serializers.ModelSerializer):
     detalles = DetalleCompraSerializer(many=True)
@@ -34,7 +42,6 @@ class CompraSerializer(serializers.ModelSerializer):
             'fecha_limite', 
             'total_compra', 
             'estado_compra', 
-            'es_credito', 
             'detalles',
             'metodos_pago'
         )
@@ -55,7 +62,8 @@ class CompraSerializer(serializers.ModelSerializer):
         compra.save()
         
         for metodo_pago_data in metodos_pago_data:
-            Compra_MetodoPago.objects.create(compra=compra, **metodo_pago_data)
+            metodo_pago_instance = metodo_pago_data.pop('metodo_pago_comp_metpag')
+            Compra_MetodoPago.objects.create(compra_comp_metpag=compra, metodo_pago_comp_metpag=metodo_pago_instance, **metodo_pago_data)
 
         # Crear una alerta si hay una fecha límite
         if compra.fecha_limite:
@@ -73,7 +81,6 @@ class CompraSerializer(serializers.ModelSerializer):
                 'compra_id': compra.id_compra,
                 'proveedor': compra.proveedor_compra.nombre_proveedor if compra.proveedor_compra else None,
                 'total': str(compra.total_compra),
-                'es_credito': compra.es_credito,
                 'items': compra.detalles.count()
             }
         )
@@ -82,7 +89,8 @@ class CompraSerializer(serializers.ModelSerializer):
         return compra
 
     def update(self, instance, validated_data):
-        is_recibida_antes = instance.estado_compra.id_estado == 7
+        estado_recibida = Estados.objects.get(nombre_estado='RECIBIDA') # Assuming 'RECIBIDA' is the state name
+        is_recibida_antes = instance.estado_compra == estado_recibida
         
         detalles_data = validated_data.pop('detalles', None)
         metodos_pago_data = validated_data.pop('metodos_pago', None)
@@ -151,6 +159,7 @@ class CompraSerializer(serializers.ModelSerializer):
         if metodos_pago_data is not None:
             instance.metodos_pago.all().delete()
             for metodo_pago_data in metodos_pago_data:
-                Compra_MetodoPago.objects.create(compra=instance, **metodo_pago_data)
+                metodo_pago_instance = metodo_pago_data.pop('metodo_pago_comp_metpag')
+                Compra_MetodoPago.objects.create(compra_comp_metpag=instance, metodo_pago_comp_metpag=metodo_pago_instance, **metodo_pago_data)
 
         return instance

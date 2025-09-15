@@ -15,15 +15,15 @@ from HOME.models import Compras, Proveedores, Stocks, Historial_Stock, Tipos_Mov
 from .serializers import CompraSerializer, ProveedorSerializer
 from Auditoria.services import crear_registro
 
-# --- Vista de Template para el Dashboard de Compras ---
+# --- Vistas de Template ---
 @method_decorator(login_required, name='dispatch')
-class ComprasDashboardView(TemplateView):
-    template_name = 'Control_COMPRAS/compras_dashboard.html'
+class ProveedorListView(TemplateView):
+    template_name = 'Control_COMPRAS/Proveedores.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['page_title'] = "Dashboard de Compras"
-        context['ultimas_compras'] = Compras.objects.order_by('-fecha_compra')[:5]
+        context['page_title'] = "Gestión de Proveedores"
+        context['proveedores'] = Proveedores.objects.all()
         return context
 
 
@@ -69,7 +69,6 @@ class CompraViewSet(viewsets.ModelViewSet):
                         defaults={
                             'cantidad_actual_stock': 0, 
                             'lote_stock': 0, 
-                            'fecha_vencimiento': '2099-12-31',
                             'observaciones_stock': 'Registro de stock inicial creado automaticamente'
                         }
                     )

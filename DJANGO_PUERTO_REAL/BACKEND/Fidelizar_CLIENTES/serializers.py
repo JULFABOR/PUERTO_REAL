@@ -1,34 +1,35 @@
 from rest_framework import serializers
-from HOME.models import ConfiguracionFidelizacion, Cupones_Descuento, Cupones_Clientes, Historial_Puntos, Clientes, Estados
+from HOME.models import Promociones_Descuento, Promos_Clientes, Historial_Puntos, Clientes, Estados, Transacciones_Puntos
+from django.db.models import Sum
 
 class ClienteSerializer(serializers.ModelSerializer):
+    puntos = serializers.SerializerMethodField()
+
     class Meta:
         model = Clientes
-        fields = ('id_cliente', 'dni_cliente', 'telefono_cliente', 'puntos_actuales')
+        fields = ('id_cliente', 'dni_cliente', 'telefono_cliente', 'puntos')
 
-class ConfiguracionFidelizacionSerializer(serializers.ModelSerializer):
+    def get_puntos(self, obj):
+        return Transacciones_Puntos.objects.filter(cliente_trans_puntos=obj).aggregate(Sum('puntos_transaccion'))['puntos_transaccion__sum'] or 0
+
+class PromocionesDescuentoSerializer(serializers.ModelSerializer):
     class Meta:
-        model = ConfiguracionFidelizacion
+        model = Promociones_Descuento
         fields = '__all__'
 
-class CuponesDescuentoSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Cupones_Descuento
-        fields = '__all__'
-
-class CuponesClientesSerializer(serializers.ModelSerializer):
-    cliente_nombre = serializers.CharField(source='cliente_cupon_cli.user_cliente.first_name', read_only=True)
-    cupon_nombre = serializers.CharField(source='cupon_descuento_cupon_cli.nombre_cupon_desc', read_only=True)
-    estado_nombre = serializers.CharField(source='estado_cupon_cli.nombre_estado', read_only=True)
+class PromocionesClientesSerializer(serializers.ModelSerializer):
+    cliente_nombre = serializers.CharField(source='cliente_promo_cli.user_cliente.first_name', read_only=True)
+    cupon_nombre = serializers.CharField(source='cupon_descuento_promo_cli.nombre_promo_desc', read_only=True)
+    estado_nombre = serializers.CharField(source='estado_promo_cli.nombre_estado', read_only=True)
 
     class Meta:
-        model = Cupones_Clientes
+        model = Promos_Clientes
         fields = '__all__'
 
 class HistorialPuntosSerializer(serializers.ModelSerializer):
-    cliente_nombre = serializers.CharField(source='cliente.user_cliente.first_name', read_only=True)
-    venta_id = serializers.IntegerField(source='venta_origen.id_venta', read_only=True)
-    cupon_canjeado_nombre = serializers.CharField(source='cupon_canjeado.cupon_descuento_cupon_cli.nombre_cupon_desc', read_only=True)
+    cliente_nombre = serializers.CharField(source='trans_hist_puntos.cliente_trans_puntos.user_cliente.first_name', read_only=True)
+    venta_id = serializers.IntegerField(source='trans_hist_puntos.venta_origen.id_venta', read_only=True, allow_null=True)
+    cupon_canjeado_nombre = serializers.CharField(source='promo_usada_hist_puntos.cupon_descuento_promo_cli.nombre_promo_desc', read_only=True, allow_null=True)
 
     class Meta:
         model = Historial_Puntos

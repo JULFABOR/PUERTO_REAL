@@ -1,10 +1,11 @@
 from django.shortcuts import render, redirect
 from django.urls import reverse
 from django.contrib import messages
-from django.contrib.auth import login, logout
+from django.contrib.auth import login, logout, authenticate, get_user_model
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 from django.views.decorators.http import require_http_methods
+from django.views.generic import TemplateView
 
 
 from .forms import StaffLoginForm, ClienteLoginForm, ClienteRegistroForm
@@ -94,7 +95,107 @@ def index_privado_staff(request):
             {"titulo": "Reportes", "desc": "Ingresos/Egresos, Top, Heatmap", "href": reverse("home:fn_reportes")},
             ],
     }
-    return render(request, "home/index_privado_staff.html", ctx)
+    return render(request, "HOME/Home.html", ctx)
+
+
+@method_decorator(login_required, name='dispatch')
+class ConfiguracionView(TemplateView):
+    template_name = 'HOME/Configuracion.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = "Configuración"
+        return context
+
+@method_decorator(login_required, name='dispatch')
+class AnalisisView(TemplateView):
+    template_name = 'HOME/Analisis.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = "Análisis"
+        return context
+
+@method_decorator(login_required, name='dispatch')
+class CajaView(TemplateView):
+    template_name = 'HOME/Caja.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = "Caja"
+        return context
+
+@method_decorator(login_required, name='dispatch')
+class ClientePerfilView(TemplateView):
+    template_name = 'HOME/Cliente-Perfil.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = "Perfil de Cliente"
+        return context
+
+@method_decorator(login_required, name='dispatch')
+class ClientesView(TemplateView):
+    template_name = 'HOME/Clientes.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = "Clientes"
+        return context
+
+@method_decorator(login_required, name='dispatch')
+class ControlStockView(TemplateView):
+    template_name = 'HOME/Control-Stock.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = "Control de Stock"
+        return context
+
+@method_decorator(login_required, name='dispatch')
+class ForgotPasswordView(TemplateView):
+    template_name = 'HOME/Forgot-Password.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = "Recuperar Contraseña"
+        return context
+
+@method_decorator(login_required, name='dispatch')
+class LoginRegisterView(TemplateView):
+    template_name = 'HOME/Login-register.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = "Login / Registro"
+        return context
+
+@method_decorator(login_required, name='dispatch')
+class ProveedoresView(TemplateView):
+    template_name = 'HOME/Proveedores.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = "Proveedores"
+        return context
+
+@method_decorator(login_required, name='dispatch')
+class StockView(TemplateView):
+    template_name = 'HOME/Stock.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = "Stock"
+        return context
+
+@method_decorator(login_required, name='dispatch')
+class VentaView(TemplateView):
+    template_name = 'HOME/Venta.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = "Venta"
+        return context
 
 # =============== LOGIN / LOGOUT ==================
 

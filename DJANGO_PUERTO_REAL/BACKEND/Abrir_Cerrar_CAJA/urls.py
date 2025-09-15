@@ -1,11 +1,11 @@
 # urls.py
 from django.urls import path
-from .views import abrir_caja, retiro_medio_turno, rendir_fondo
+from .views import panel_caja, retiro_medio_turno, rendir_fondo
 from .views import AbrirCajaAPIView, HistorialCajaListAPIView, RetiroAPIView, RendirFondoAPIView, CerrarCajaAPIView, CajaEstadoAPIView, MovimientoFondoAPIView, MovimientoFondoListAPIView
 
 urlpatterns = [
     # Regular Django Views
-    path("caja/abrir/", abrir_caja, name="abrir_caja"),
+    path("caja/", panel_caja, name="panel_caja"),
     path("caja/retiro/", retiro_medio_turno, name="retiro_medio_turno"),
     path("caja/rendir-fondo/", rendir_fondo, name="rendir_fondo"),
 

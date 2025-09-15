@@ -7,7 +7,6 @@ class ProductoForm(forms.ModelForm):
         fields = [
             'nombre_producto',
             'descripcion_producto',
-            'marca_producto',
             'precio_unitario_compra_producto',
             'precio_unitario_venta_producto',
             'categoria_producto',

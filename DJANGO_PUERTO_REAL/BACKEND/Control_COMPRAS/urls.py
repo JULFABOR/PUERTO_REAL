@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import CompraViewSet, ProveedorViewSet, ComprasDashboardView
+from .views import CompraViewSet, ProveedorViewSet, ProveedorListView
 
 # Router para la API
 router = DefaultRouter()
@@ -9,7 +9,7 @@ router.register(r'proveedores', ProveedorViewSet)
 
 # URLs para las páginas web (plantillas de Django)
 urlpatterns = [
-    path('dashboard/', ComprasDashboardView.as_view(), name='compras_dashboard'),
+    path('proveedores/', ProveedorListView.as_view(), name='proveedor_list'),
 ]
 
 # URLs para la API

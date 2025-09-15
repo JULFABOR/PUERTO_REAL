@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PUERTO REAL - Perfil del Cliente</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Flowbite CSS CDN -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.css" rel="stylesheet" />
+    <!-- Google Fonts: Poppins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script>
+        // Configuración de colores y fuentes para Tailwind CSS
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'pr-yellow': '#FFC700',      // Amarillo principal
+                        'pr-dark': '#121212',         // Negro suave para tarjetas
+                        'pr-dark-gray': '#1F2937',  // Gris oscuro para el fondo
+                        'pr-gray': '#6B7280',         // Gris para texto secundario
+                    },
+                    fontFamily: {
+                        'sans': ['Poppins', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-pr-dark-gray font-sans text-gray-300">
+
+    <!-- Barra de Navegación -->
+    <nav class="bg-pr-dark border-b border-pr-gray/20 fixed w-full z-20 top-0 start-0">
+        <div class="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
+            <a href="home.html" class="flex items-center space-x-3 rtl:space-x-reverse">
+                <span class="self-center text-2xl font-bold whitespace-nowrap text-pr-yellow">PUERTO REAL</span>
+            </a>
+            <div class="flex items-center md:order-2 space-x-3 rtl:space-x-reverse">
+                 <!-- Botón para toggling del Sidebar -->
+                <button id="sidebar-toggle" type="button" class="p-2 text-sm text-gray-400 rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-600">
+                    <span class="sr-only">Toggle sidebar</span>
+                    <i class="fa-solid fa-bars text-xl"></i>
+                </button>
+                <!-- Dropdown de Usuario -->
+                <button type="button" class="flex text-sm bg-gray-800 rounded-full focus:ring-4 focus:ring-pr-yellow" id="user-menu-button" aria-expanded="false" data-dropdown-toggle="user-dropdown" data-dropdown-placement="bottom">
+                    <span class="sr-only">Abrir menú de usuario</span>
+                    <img class="w-8 h-8 rounded-full" src="https://placehold.co/40x40/FFC700/121212?text=G" alt="foto de usuario">
+                </button>
+                <div class="z-50 hidden my-4 text-base list-none bg-pr-dark divide-y divide-gray-600 rounded-lg shadow" id="user-dropdown">
+                    <div class="px-4 py-3">
+                        <span class="block text-sm text-white">Gerente de Tienda</span>
+                        <span class="block text-sm text-gray-400 truncate">gerente@puertoreal.com</span>
+                    </div>
+                    <ul class="py-2" aria-labelledby="user-menu-button">
+                        <li><a href="settings.html" class="block px-4 py-2 text-sm text-gray-300 hover:bg-pr-dark-gray">Configuración</a></li>
+                        <li><a href="index.html" class="block px-4 py-2 text-sm text-gray-300 hover:bg-pr-dark-gray">Cerrar Sesión</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Contenido Principal con Sidebar -->
+    <div class="flex mt-16">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="fixed top-16 left-0 z-40 w-64 h-[calc(100vh-4rem)] bg-pr-dark p-4 space-y-6 shrink-0 transition-transform -translate-x-full md:translate-x-0">
+             <div>
+                <h3 class="font-bold text-white text-lg mb-4">Gestión de Tienda</h3>
+                <ul class="space-y-2">
+                    <li><a href="pos.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-cash-register w-5 text-center text-lg"></i> Ventas (POS)</a></li>
+                    <li><a href="inventory.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-boxes-stacked w-5 text-center text-lg"></i> Inventario</a></li>
+                    <li><a href="catalog.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-book-open w-5 text-center text-lg"></i> Catálogo</a></li>
+                    <li><a href="clients.html" class="flex items-center gap-3 text-pr-yellow bg-pr-dark-gray py-2 px-3 rounded-lg transition-colors"><i class="fa-solid fa-users w-5 text-center text-lg"></i> Clientes</a></li>
+                    <li><a href="suppliers.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-truck-field w-5 text-center text-lg"></i> Proveedores</a></li>
+                    <li><a href="cash-control.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-money-bill-wave w-5 text-center text-lg"></i> Control de Caja</a></li>
+                </ul>
+            </div>
+            <div>
+                 <h3 class="font-bold text-white text-lg mb-4">Análisis</h3>
+                 <ul class="space-y-2">
+                    <li><a href="reports.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-chart-pie w-5 text-center text-lg"></i> Reportes de Venta</a></li>
+                 </ul>
+            </div>
+        </aside>
+
+        <!-- Backdrop para sidebar móvil -->
+        <div id="sidebar-backdrop" class="bg-gray-900/50 fixed inset-0 z-30 hidden"></div>
+
+        <!-- Contenido principal -->
+        <main id="main-content" class="flex-1 p-6 lg:p-8 transition-all duration-300 md:ml-64">
+            <div class="flex items-center mb-6">
+                <a href="clients.html" class="text-pr-yellow hover:underline flex items-center gap-2">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    Volver a Clientes
+                </a>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Columna Izquierda: Información del Cliente -->
+                <div class="lg:col-span-1 bg-pr-dark p-6 rounded-lg shadow-lg h-fit">
+                    <div class="flex flex-col items-center text-center">
+                        <img class="w-24 h-24 mb-3 rounded-full shadow-lg" src="https://placehold.co/100x100/FFC700/121212?text=JP" alt="Juan Perez"/>
+                        <h2 class="mb-1 text-2xl font-bold text-white">Juan Pérez</h2>
+                        <span class="text-sm text-pr-gray">Cliente desde 15/03/2023</span>
+                    </div>
+                    <div class="mt-6 border-t border-gray-700 pt-6">
+                        <h3 class="text-lg font-bold text-white mb-4">Información de Contacto</h3>
+                        <ul class="space-y-3 text-gray-300">
+                            <li class="flex items-center gap-3"><i class="fa-solid fa-envelope w-5 text-center text-pr-yellow"></i> juan.perez@email.com</li>
+                            <li class="flex items-center gap-3"><i class="fa-solid fa-phone w-5 text-center text-pr-yellow"></i> 11-2345-6789</li>
+                            <li class="flex items-center gap-3"><i class="fa-solid fa-location-dot w-5 text-center text-pr-yellow"></i> Av. Corrientes 1234, CABA</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Columna Derecha: Actividad -->
+                <div class="lg:col-span-2">
+                    <!-- KPIs del Cliente -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+                        <div class="bg-pr-dark p-6 rounded-lg shadow-lg text-center">
+                            <p class="text-sm text-pr-gray">Total Gastado</p>
+                            <p class="text-3xl font-bold text-white">$125,800</p>
+                        </div>
+                         <div class="bg-pr-dark p-6 rounded-lg shadow-lg text-center">
+                            <p class="text-sm text-pr-gray">Total de Compras</p>
+                            <p class="text-3xl font-bold text-white">8</p>
+                        </div>
+                        <div class="bg-pr-dark p-6 rounded-lg shadow-lg text-center">
+                            <p class="text-sm text-pr-gray">Puntos Acumulados</p>
+                            <p class="text-3xl font-bold text-pr-yellow">1258</p>
+                        </div>
+                    </div>
+
+                    <!-- Historial de Compras -->
+                    <div class="bg-pr-dark p-6 rounded-lg shadow-lg">
+                        <h3 class="text-xl font-bold text-white mb-4">Historial de Compras Recientes</h3>
+                        <div class="relative overflow-x-auto">
+                            <table class="w-full text-sm text-left text-gray-400">
+                                <thead class="text-xs text-white uppercase bg-pr-dark-gray">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3">Fecha</th>
+                                        <th scope="col" class="px-6 py-3 hidden sm:table-cell">Ticket Nº</th>
+                                        <th scope="col" class="px-6 py-3 text-right">Monto</th>
+                                        <th scope="col" class="px-6 py-3 text-right">Puntos Ganados</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="border-b bg-pr-dark border-gray-700"><td class="px-6 py-4">05/09/2025</td><td class="px-6 py-4 hidden sm:table-cell">#00121</td><td class="px-6 py-4 text-right">$18,500</td><td class="px-6 py-4 text-right text-pr-yellow">+185</td></tr>
+                                    <tr class="border-b bg-pr-dark border-gray-700"><td class="px-6 py-4">28/08/2025</td><td class="px-6 py-4 hidden sm:table-cell">#00115</td><td class="px-6 py-4 text-right">$25,000</td><td class="px-6 py-4 text-right text-pr-yellow">+250</td></tr>
+                                    <tr class="border-b bg-pr-dark border-gray-700"><td class="px-6 py-4">12/08/2025</td><td class="px-6 py-4 hidden sm:table-cell">#00102</td><td class="px-6 py-4 text-right">$9,200</td><td class="px-6 py-4 text-right text-pr-yellow">+92</td></tr>
+                                    <tr class="bg-pr-dark"><td class="px-6 py-4">25/07/2025</td><td class="px-6 py-4 hidden sm:table-cell">#00091</td><td class="px-6 py-4 text-right">$32,000</td><td class="px-6 py-4 text-right text-pr-yellow">+320</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Flowbite JS CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.js"></script>
+    
+    <!-- Script para Sidebar Responsive -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebarToggle = document.getElementById('sidebar-toggle');
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('main-content');
+            const backdrop = document.getElementById('sidebar-backdrop');
+
+            const toggleSidebar = () => {
+                const isDesktop = window.innerWidth >= 768;
+                if (isDesktop) {
+                    sidebar.classList.toggle('md:hidden');
+                    mainContent.classList.toggle('md:ml-64');
+                } else {
+                    sidebar.classList.toggle('-translate-x-full');
+                    backdrop.classList.toggle('hidden');
+                }
+            };
+
+            if (sidebarToggle) sidebarToggle.addEventListener('click', (e) => { e.stopPropagation(); toggleSidebar(); });
+            if (backdrop) backdrop.addEventListener('click', () => { if (window.innerWidth < 768) { toggleSidebar(); } });
+        });
+    </script>
+</body>
+</html>
+

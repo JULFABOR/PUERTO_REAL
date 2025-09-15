@@ -8,7 +8,7 @@ router.register(r'ventas', VentaViewSet)
 
 # URLs para las páginas web (plantillas de Django)
 urlpatterns = [
-    path('dashboard/', VentasDashboardView.as_view(), name='ventas_dashboard'),
+    path('pos/', VentasDashboardView.as_view(), name='pos'),
 ]
 
 # URLs para la API
