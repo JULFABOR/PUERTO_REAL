@@ -125,7 +125,7 @@ class Tipo_Evento(models.Model):
         return self.nombre_evento
 class Historial_Caja(models.Model):    
     id_historial_caja = models.BigAutoField(primary_key=True)
-    cantidad_movida_hcaja = models.CharField(max_length=100)
+    cantidad_movida_hcaja = models.DecimalField(max_digits=10, decimal_places=2)
     caja_hc = models.ForeignKey(Cajas, on_delete=models.CASCADE)
     empleado_hc = models.ForeignKey(Empleados,on_delete=models.CASCADE)
     tipo_event_caja = models.ForeignKey(Tipo_Evento, on_delete=models.CASCADE)
@@ -287,6 +287,8 @@ class Ventas(models.Model):
     estado_venta = models.ForeignKey(Estados, on_delete=models.CASCADE)
     caja_venta = models.ForeignKey(Cajas,on_delete=models.CASCADE)
     promo_aplicada = models.ForeignKey(Promos_Clientes, on_delete=models.SET_NULL, null=True, blank=True)
+    descuento_aplicado = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    vuelto_entregado = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
     DELETE_Vent = models.BooleanField(default=False)
     def __str__(self):
         return f"Venta #{self.id_venta} - {self.estado_venta.value} - {self.fecha_venta.strftime('%Y-%m-%d %H:%M:%S')} - Total: {self.total_venta}"

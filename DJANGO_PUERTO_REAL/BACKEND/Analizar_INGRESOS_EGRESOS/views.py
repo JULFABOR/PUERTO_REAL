@@ -3,7 +3,6 @@ from django.http import JsonResponse
 from django.views.generic import TemplateView
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.utils.decorators import method_decorator
-
 from .reports import generate_financial_report, generate_product_and_sales_trends_report, generate_expense_breakdown_report
 from datetime import datetime, timedelta
 

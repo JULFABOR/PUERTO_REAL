@@ -11,6 +11,11 @@ from datetime import datetime, timedelta
 import io
 import base64
 
+# Constants for event types
+EVENTO_RETIRO = 'Retiro'
+DESTINO_PARA_PAGOS_FONDO = 'PARA_PAGOS_FONDO'
+TIPO_MOVIMIENTO_SALIDA = 'SALIDA'
+
 def plot_to_base64(fig):
     buf = io.BytesIO()
     fig.savefig(buf, format='png', bbox_inches='tight')
@@ -40,14 +45,14 @@ def generate_expense_breakdown_report(start_date, end_date):
     if not cash_movements_df.empty:
         cash_movements_df['cantidad_movida_hcaja'] = pd.to_numeric(cash_movements_df['cantidad_movida_hcaja'], errors='coerce').fillna(0)
         gastos_operacionales_caja = cash_movements_df[
-            (cash_movements_df['tipo_event_caja__nombre_evento'] == 'Retiro') &
-            (cash_movements_df['destino_movimiento'] != 'PARA_PAGOS_FONDO')
+            (cash_movements_df['tipo_event_caja__nombre_evento'] == EVENTO_RETIRO) &
+            (cash_movements_df['destino_movimiento'] != DESTINO_PARA_PAGOS_FONDO)
         ]['cantidad_movida_hcaja'].sum()
 
     # Obtener Datos de Movimiento_Fondo (Otros Gastos/Transferencias)
     otros_gastos_fondo = Movimiento_Fondo.objects.filter(
         fecha_mov_fp__range=(start_date, end_date),
-        tipo_mov_fp__nombre_movimiento='SALIDA'
+        tipo_mov_fp__nombre_movimiento=TIPO_MOVIMIENTO_SALIDA
     ).aggregate(total=Sum('monto_mov_fp'))['total'] or 0
 
     # Crear un DataFrame para el desglose de gastos
@@ -103,8 +108,8 @@ def generate_financial_report(start_date, end_date):
     if not cash_movements_df.empty:
         cash_movements_df['cantidad_movida_hcaja'] = pd.to_numeric(cash_movements_df['cantidad_movida_hcaja'], errors='coerce').fillna(0)
         operational_expenses_caja = cash_movements_df[
-            (cash_movements_df['tipo_event_caja__nombre_evento'] == 'Retiro') &
-            (cash_movements_df['destino_movimiento'] != 'PARA_PAGOS_FONDO')
+            (cash_movements_df['tipo_event_caja__nombre_evento'] == EVENTO_RETIRO) &
+            (cash_movements_df['destino_movimiento'] != DESTINO_PARA_PAGOS_FONDO)
         ]['cantidad_movida_hcaja'].sum()
 
     # 5. Calcular gastos totales

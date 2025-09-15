@@ -72,7 +72,13 @@ class VentaSerializer(serializers.ModelSerializer):
 
             if promo_aplicada_instance.cliente_promo_cli != cliente:
                 raise serializers.ValidationError("El cupón no pertenece al cliente.")
-            if promo_aplicada_instance.estado_promo_cli.id_estado != 16: # 16: DISPONIBLE
+            
+            try:
+                estado_disponible = Estados.objects.get(nombre_estado='DISPONIBLE')
+            except Estados.DoesNotExist:
+                raise serializers.ValidationError("Estado 'DISPONIBLE' no encontrado.")
+
+            if promo_aplicada_instance.estado_promo_cli != estado_disponible:
                 raise serializers.ValidationError(f"El cupón no está disponible (estado: {promo_aplicada_instance.estado_promo_cli.nombre_estado}).")
             
             promo_desc = promo_aplicada_instance.cupon_descuento_promo_cli
@@ -106,7 +112,11 @@ class VentaSerializer(serializers.ModelSerializer):
             #         tipo_movimiento='CANJEADOS'
             #     )
 
-            estado_canjeado = Estados.objects.get(id_estado=17) # 17: CANJEADO
+            try:
+                estado_canjeado = Estados.objects.get(nombre_estado='CANJEADO')
+            except Estados.DoesNotExist:
+                raise serializers.ValidationError("Estado 'CANJEADO' no encontrado.")
+
             promo_aplicada_instance = Promos_Clientes.objects.create(
                 cliente_promo_cli=cliente,
                 cupon_descuento_promo_cli=promo_desc,
@@ -122,13 +132,22 @@ class VentaSerializer(serializers.ModelSerializer):
             validated_data['total_venta'] -= descuento
 
         venta = Ventas.objects.create(**validated_data)
+        venta.descuento_aplicado = descuento
+        # Si vuelto_entregado se envía en validated_data, se guardará automáticamente
+        # ya que es un campo del modelo Ventas y está en validated_data.
+        # Si no se envía, usará el default=Decimal('0.00')
+        venta.save()
+
         for detalle_data in detalles_data:
             if 'precio_unitario_det_vent' not in detalle_data:
                 detalle_data['precio_unitario_det_vent'] = detalle_data['producto_det_vent'].precio_unitario_venta_producto
             Detalle_Ventas.objects.create(venta_det_vent=venta, **detalle_data)
 
         if promo_aplicada_id and promo_aplicada_instance:
-            estado_canjeado = Estados.objects.get(id_estado=17) # 17: CANJEADO
+            try:
+                estado_canjeado = Estados.objects.get(nombre_estado='CANJEADO')
+            except Estados.DoesNotExist:
+                raise serializers.ValidationError("Estado 'CANJEADO' no encontrado.")
             promo_aplicada_instance.estado_promo_cli = estado_canjeado
             promo_aplicada_instance.save()
 
@@ -144,7 +163,11 @@ class VentaSerializer(serializers.ModelSerializer):
         #             tipo_movimiento='GANADOS'
         #         )
 
-        tipo_movimiento_venta = Tipos_Movimientos.objects.get(id_tipo_movimiento=1) # VENTA
+        try:
+            tipo_movimiento_venta = Tipos_Movimientos.objects.get(nombre_movimiento='VENTA')
+        except Tipos_Movimientos.DoesNotExist:
+            raise serializers.ValidationError("Tipo de movimiento 'VENTA' no encontrado.")
+
         for detalle in venta.detalles.all():
             stock = Stocks.objects.get(producto_en_stock=detalle.producto_det_vent)
             stock_anterior = stock.cantidad_actual_stock

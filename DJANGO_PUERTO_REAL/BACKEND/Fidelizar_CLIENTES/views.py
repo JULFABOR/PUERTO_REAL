@@ -8,11 +8,9 @@ from django.db import transaction, models
 from django.core import signing
 from django.conf import settings
 import math
-
 from django.views.generic import TemplateView
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
-
 from HOME.models import (
     Promociones_Descuento, Promos_Clientes, Historial_Puntos, Clientes, 
     Estados, Ventas, Transacciones_Puntos, Tipos_Movimientos

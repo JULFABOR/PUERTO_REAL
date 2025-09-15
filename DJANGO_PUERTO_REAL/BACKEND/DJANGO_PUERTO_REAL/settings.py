@@ -143,5 +143,5 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 PESOS_POR_PUNTO = 110
 
 # Redirecciones de Login/Logout
-LOGIN_REDIRECT_URL = 'home'
-LOGOUT_REDIRECT_URL = 'home'
+LOGIN_REDIRECT_URL = 'home:index_privado_staff'
+LOGOUT_REDIRECT_URL = 'home:index_publico'

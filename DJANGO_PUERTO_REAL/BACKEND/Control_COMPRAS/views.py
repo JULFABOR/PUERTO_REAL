@@ -58,10 +58,21 @@ class CompraViewSet(viewsets.ModelViewSet):
 
         # Lógica de movimiento de stock para cuando una compra se marca como "RECIBIDA"
         nuevo_estado_id = request.data.get('estado_compra')
-        if nuevo_estado_id and int(nuevo_estado_id) == 7 and instance.estado_compra.id_estado != 7:
+        
+        try:
+            estado_recibida = Estados.objects.get(nombre_estado='RECIBIDA')
+        except Estados.DoesNotExist:
+            return Response({"error": "Estado 'RECIBIDA' no encontrado."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if nuevo_estado_id and int(nuevo_estado_id) == estado_recibida.id_estado and instance.estado_compra != estado_recibida:
             try:
-                tipo_movimiento = Tipos_Movimientos.objects.get(id_tipo_movimiento=5) # COMPRA A PROVEEDOR
-                empleado = request.user.empleado
+                tipo_movimiento = Tipos_Movimientos.objects.get(nombre_movimiento='COMPRA A PROVEEDOR')
+                
+                empleado = None
+                if hasattr(request.user, 'empleado'):
+                    empleado = request.user.empleado
+                else:
+                    return Response({"error": "Solo los empleados pueden realizar esta acción."}, status=status.HTTP_403_FORBIDDEN)
 
                 for detalle in instance.detalles.all():
                     stock, created = Stocks.objects.get_or_create(

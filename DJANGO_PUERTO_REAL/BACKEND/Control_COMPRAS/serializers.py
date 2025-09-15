@@ -121,8 +121,13 @@ class CompraSerializer(serializers.ModelSerializer):
                                 stock.cantidad_actual_stock += cantidad_diff
                                 stock.save()
 
-                                tipo_movimiento = Tipos_Movimientos.objects.get(id_tipo_movimiento=12) # MOV_STOCK_AJUSTE
-                                empleado = self.context['request'].user.empleado
+                                tipo_movimiento = Tipos_Movimientos.objects.get(nombre_movimiento='MOV_STOCK_AJUSTE')
+                                
+                                empleado = None
+                                if hasattr(self.context['request'].user, 'empleado'):
+                                    empleado = self.context['request'].user.empleado
+                                else:
+                                    raise serializers.ValidationError({"error": "Solo los empleados pueden realizar esta acción."})
 
                                 Historial_Stock.objects.create(
                                     stock_hs=stock, cantidad_hstock=cantidad_diff,
@@ -133,6 +138,8 @@ class CompraSerializer(serializers.ModelSerializer):
                             except Stocks.DoesNotExist:
                                 # Manejar caso donde el registro de stock no existe si es necesario
                                 pass
+                            except Tipos_Movimientos.DoesNotExist:
+                                raise serializers.ValidationError({"error": "Tipo de movimiento 'MOV_STOCK_AJUSTE' no encontrado."})
                 else:
                     # Nuevo detalle
                     Detalle_Compras.objects.create(compra_dt_comp=instance, **detalle_data)
@@ -143,11 +150,28 @@ class CompraSerializer(serializers.ModelSerializer):
                      # Ajustar stock para ítems eliminados
                     try:
                         stock = Stocks.objects.get(producto_en_stock=detalle.producto_dt_comp)
+                        stock_anterior = stock.cantidad_actual_stock
                         stock.cantidad_actual_stock -= detalle.cant_det_comp
                         stock.save()
-                        # ... crear registro de historial para eliminación ...
+
+                        tipo_movimiento_eliminacion = Tipos_Movimientos.objects.get(nombre_movimiento='MOV_STOCK_AJUSTE') # Assuming same type for adjustment
+                        
+                        empleado_auditoria = None
+                        if hasattr(self.context['request'].user, 'empleado'):
+                            empleado_auditoria = self.context['request'].user.empleado
+                        else:
+                            pass # Or raise an error if strictly required
+
+                        Historial_Stock.objects.create(
+                            stock_hs=stock, cantidad_hstock=-detalle.cant_det_comp, # Negative quantity for removal
+                            stock_anterior_hstock=stock_anterior, stock_nuevo_hstock=stock.cantidad_actual_stock,
+                            tipo_movimiento_hs=tipo_movimiento_eliminacion, empleado_hs=empleado_auditoria,
+                            observaciones_hstock=f"Ajuste por eliminación de detalle de compra ID: {instance.id_compra}"
+                        )
                     except Stocks.DoesNotExist:
                         pass
+                    except Tipos_Movimientos.DoesNotExist:
+                        raise serializers.ValidationError({"error": "Tipo de movimiento 'MOV_STOCK_AJUSTE' no encontrado."})
                 detalle.delete()
 
             # Recalcular total

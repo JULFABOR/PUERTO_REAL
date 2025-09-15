@@ -6,13 +6,11 @@ from django.db.models import Sum, Q, F
 from django.db import transaction
 from django.utils import timezone
 from datetime import timedelta
-
 from django.views.generic import TemplateView
 from django.urls import reverse_lazy
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
-
 from HOME.models import Productos, Stocks, Categorias_Productos, Historial_Stock, Tipos_Movimientos, Empleados, Estados
 from .serializers import StockSerializer, StockUpdateSerializer, StockAdjustmentSerializer, ProductoSerializer, HistorialStockSerializer
 from .forms import ProductoForm
@@ -103,7 +101,7 @@ class StockDecrementAPIView(APIView):
         barcode = serializer.validated_data.get('barcode')
         quantity_to_decrement = serializer.validated_data['quantity']
         reason = serializer.validated_data.get('reason', '')
-        employee_id = serializer.validated_data['employee_id']
+        employee = serializer.validated_data['employee'] # Directly get the Empleados object
 
         try:
             if product_id:
@@ -118,10 +116,10 @@ class StockDecrementAPIView(APIView):
                             status=status.HTTP_404_NOT_FOUND)
 
         try:
-            employee = Empleados.objects.get(id_empleado=employee_id)
-        except Empleados.DoesNotExist:
-            return Response({"detail": "Empleado no encontrado."},
-                            status=status.HTTP_404_NOT_FOUND)
+            tipo_movimiento_salida = Tipos_Movimientos.objects.get(nombre_movimiento='MOV_STOCK_SALIDA')
+        except Tipos_Movimientos.DoesNotExist:
+            return Response({"detail": "Tipo de movimiento 'MOV_STOCK_SALIDA' no encontrado."},
+                            status=status.HTTP_400_BAD_REQUEST)
 
         with transaction.atomic():
             # Encontrar la entrada de stock de la cual decrementar (ej., lote más antiguo primero, o lote específico)
@@ -150,7 +148,7 @@ class StockDecrementAPIView(APIView):
                         cantidad_hstock=str(quantity_to_decrement), # Guardar como cadena de texto según el modelo
                         stock_hs=stock_entry,
                         empleado_hs=employee,
-                        tipo_movimiento_hs=Tipos_Movimientos.objects.get(nombre_movimiento='MOV_STOCK_SALIDA'),
+                        tipo_movimiento_hs=tipo_movimiento_salida,
                         stock_anterior_hstock=stock_entry.cantidad_actual_stock + remaining_to_decrement, # Antes de este decremento
                         stock_nuevo_hstock=stock_entry.cantidad_actual_stock, # Después de este decremento
                         observaciones_hstock=reason
@@ -163,8 +161,8 @@ class StockDecrementAPIView(APIView):
                         cantidad_hstock=str(stock_entry.cantidad_actual_stock),
                         stock_hs=stock_entry,
                         empleado_hs=employee,
-                        tipo_movimiento_hs=Tipos_Movimientos.objects.get(nombre_movimiento='SALIDA'),
-                        stock_anterior_hstock=0, # Este lote está completamente consumido
+                        tipo_movimiento_hs=tipo_movimiento_salida,
+                        stock_anterior_hstock=stock_entry.cantidad_actual_stock, # Antes de este decremento
                         stock_nuevo_hstock=0,
                         observaciones_hstock=reason
                     )
@@ -185,7 +183,7 @@ class StockAdjustmentAPIView(APIView):
         quantity_change = serializer.validated_data['quantity'] # Puede ser positivo o negativo
         movement_type_str = serializer.validated_data['movement_type'] # Debería ser 'ADJUSTMENT'
         reason = serializer.validated_data.get('reason', '')
-        employee_id = serializer.validated_data['employee_id']
+        employee = serializer.validated_data['employee']
 
         try:
             if product_id:
@@ -197,12 +195,6 @@ class StockAdjustmentAPIView(APIView):
                                 status=status.HTTP_404_NOT_FOUND)
         except Productos.DoesNotExist:
             return Response({"detail": "Producto no encontrado."},
-                            status=status.HTTP_404_NOT_FOUND)
-
-        try:
-            employee = Empleados.objects.get(id_empleado=employee_id)
-        except Empleados.DoesNotExist:
-            return Response({"detail": "Empleado no encontrado."},
                             status=status.HTTP_404_NOT_FOUND)
 
         try:
