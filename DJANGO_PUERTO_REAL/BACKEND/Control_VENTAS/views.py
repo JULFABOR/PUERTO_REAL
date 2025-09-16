@@ -22,7 +22,7 @@ from Auditoria.services import crear_registro
 # --- Vista de Template para el Dashboard de Ventas ---
 @method_decorator(login_required, name='dispatch')
 class VentasDashboardView(TemplateView):
-    template_name = 'Control_VENTAS/Venta.html'
+    template_name = 'HOME/Venta.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

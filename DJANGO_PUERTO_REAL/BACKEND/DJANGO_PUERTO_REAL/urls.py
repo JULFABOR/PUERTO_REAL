@@ -17,6 +17,8 @@ from Control_STOCK.urls import urlpatterns as stock_web_urls
 from Control_STOCK.urls import api_urlpatterns as stock_api_urls
 from Fidelizar_CLIENTES.urls import urlpatterns as fidelizar_web_urls
 from Fidelizar_CLIENTES.urls import api_urlpatterns as fidelizar_api_urls
+from Abrir_Cerrar_CAJA.urls import web_urlpatterns as caja_web_urls
+from Abrir_Cerrar_CAJA.urls import api_urlpatterns as caja_api_urls
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -31,6 +33,7 @@ urlpatterns = [
     path('compras/', include(compras_web_urls)),
     path('stock/', include(stock_web_urls)),
     path('fidelizacion/', include(fidelizar_web_urls)),
+    path('caja/', include(caja_web_urls)),
 
     # Rutas de API
     path('api/token-auth/', obtain_auth_token, name='api_token_auth'), # Para obtener tokens
@@ -38,7 +41,7 @@ urlpatterns = [
     path('api/compras/', include(compras_api_urls)),
     path('api/stock/', include(stock_api_urls)),
     path('api/fidelizacion/', include(fidelizar_api_urls)),
-    path('api/', include('Abrir_Cerrar_CAJA.urls')),
+    path('api/', include(caja_api_urls)),
     
     # Nueva ruta para la app de Auditoria
     path('auditoria/', include('Auditoria.urls')),

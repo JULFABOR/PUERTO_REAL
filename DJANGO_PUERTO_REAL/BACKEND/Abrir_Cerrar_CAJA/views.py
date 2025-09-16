@@ -24,7 +24,7 @@ def panel_caja(request):
 
     if caja:
         # Si la caja está abierta, simplemente mostramos el panel
-        return render(request, "Abrir_Cerrar_CAJA/Caja.html", {"caja_abierta": True, "caja": caja})
+        return render(request, "HOME/Caja.html", {"caja_abierta": True, "caja": caja})
 
     # Si la caja está cerrada, manejamos la apertura
     monto_sugerido = services._saldo_final_de_ayer()
@@ -39,7 +39,7 @@ def panel_caja(request):
         except Empleados.DoesNotExist:
             messages.error(request, "Tu usuario no está asociado a un empleado.")
             # Re-render the form with the error
-            return render(request, "Abrir_Cerrar_CAJA/Caja.html", {
+            return render(request, "HOME/Caja.html", {
                 "caja_abierta": False,
                 "form": form,
                 "monto_sugerido": monto_sugerido
@@ -52,14 +52,14 @@ def panel_caja(request):
         except ValueError as e:
             messages.error(request, str(e))
             # Re-render the form with the error
-            return render(request, "Abrir_Cerrar_CAJA/Caja.html", {
+            return render(request, "HOME/Caja.html", {
                 "caja_abierta": False,
                 "form": form,
                 "monto_sugerido": monto_sugerido
             })
 
     # Si es GET o el formulario no es válido, mostramos la vista de caja cerrada con el formulario
-    return render(request, "Abrir_Cerrar_CAJA/Caja.html", {
+    return render(request, "HOME/Caja.html", {
         "caja_abierta": False,
         "form": form,
         "monto_sugerido": monto_sugerido

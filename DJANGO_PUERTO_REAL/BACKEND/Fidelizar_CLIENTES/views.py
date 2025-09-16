@@ -33,7 +33,7 @@ def get_puntos_cliente(cliente):
 
 @method_decorator(login_required, name='dispatch')
 class FidelizacionDashboardView(TemplateView):
-    template_name = 'Fidelizar_CLIENTES/fidelizacion_dashboard.html'
+    template_name = 'HOME/FidelizacionCliente.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -43,7 +43,7 @@ class FidelizacionDashboardView(TemplateView):
 
 @method_decorator(login_required, name='dispatch')
 class ClientePerfilView(TemplateView):
-    template_name = 'Fidelizar_CLIENTES/Cliente-Perfil.html'
+    template_name = 'HOME/Cliente-Perfil.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -57,7 +57,7 @@ class ClientePerfilView(TemplateView):
 
 @method_decorator(login_required, name='dispatch')
 class ClienteListView(TemplateView):
-    template_name = 'Fidelizar_CLIENTES/Clientes.html'
+    template_name = 'HOME/Clientes.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
