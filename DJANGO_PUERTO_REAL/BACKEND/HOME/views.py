@@ -6,6 +6,8 @@ from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 from django.views.decorators.http import require_http_methods
 from django.views.generic import TemplateView
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
 
 
 from .forms import StaffLoginForm, ClienteLoginForm, ClienteRegistroForm
@@ -412,3 +414,10 @@ def abrir_caja_view(request):
 
     # Si es un GET, solo muestra el formulario
     return render(request, 'Abrir_Cerrar_CAJA/caja/abrir.html')
+
+@api_view(['GET'])
+def api_saludo(request):
+    """
+    Un endpoint de API de saludo para la integración con el frontend.
+    """
+    return Response({"mensaje": "¡Hola desde la API de Django!"})

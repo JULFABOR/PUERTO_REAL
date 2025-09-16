@@ -44,4 +44,7 @@ path("fn/reportes/", views.fn_reportes, name="fn_reportes"),
 
 # Gestión de Caja
 path("caja/abrir/", views.abrir_caja_view, name="abrir_caja"),
+
+# API Endpoints
+path("api/saludo/", views.api_saludo, name="api_saludo"),
 ]
