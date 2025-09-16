@@ -22,3 +22,6 @@ db.sqlite3
 Lib/
 Scripts/
 pyvenv.cfg
+
+# Archivo de variables de entorno
+.env.local
