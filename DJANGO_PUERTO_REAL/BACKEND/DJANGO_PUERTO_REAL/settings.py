@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework.authtoken', # Para autenticación por token
+    'corsheaders',
     'HOME',
     'Abrir_Cerrar_CAJA',
     'Control_COMPRAS',
@@ -56,6 +57,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -145,3 +147,7 @@ PESOS_POR_PUNTO = 110
 # Redirecciones de Login/Logout
 LOGIN_REDIRECT_URL = 'home:index_privado_staff'
 LOGOUT_REDIRECT_URL = 'home:index_publico'
+
+# Configuración de CORS
+# ADVERTENCIA: Esto permite todas las conexiones. Para producción, reemplázalo con la lista de orígenes permitidos.
+CORS_ALLOW_ALL_ORIGINS = True
