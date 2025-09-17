@@ -5,7 +5,8 @@ La lista `urlpatterns` enruta URLs a vistas. Para más información, consulta:
     https://docs.djangoproject.com/en/5.2/topics/http/urls/
 """
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
+from django.views.generic import TemplateView
 from rest_framework.authtoken.views import obtain_auth_token
 
 # Se importan las listas de URLs de las apps
@@ -51,4 +52,8 @@ urlpatterns = [
     # path('api/financial-report/', financial_report_view, name='financial_report'),
     # path('api/product-sales-trends/', product_sales_trends_report_view, name='product_sales_trends'),
     # path('api/expense-breakdown/', expense_breakdown_report_view, name='expense_breakdown'),
+
+    # Catch-all para servir el frontend de React
+    re_path(r'^.*
+, TemplateView.as_view(template_name='index.html')),
 ]
