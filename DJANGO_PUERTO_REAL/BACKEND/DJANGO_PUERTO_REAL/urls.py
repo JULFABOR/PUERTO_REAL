@@ -54,6 +54,5 @@ urlpatterns = [
     # path('api/expense-breakdown/', expense_breakdown_report_view, name='expense_breakdown'),
 
     # Catch-all para servir el frontend de React
-    re_path(r'^.*
-, TemplateView.as_view(template_name='index.html')),
+    re_path(r'^.*', TemplateView.as_view(template_name='index.html')),
 ]

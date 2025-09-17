@@ -102,12 +102,12 @@ def index_privado_staff(request):
             {"titulo": "Reportes", "desc": "Ingresos/Egresos, Top, Heatmap", "href": reverse("home:fn_reportes")},
             ],
     }
-    return render(request, "HOME/Home.html", ctx)
+    return render(request, "home/Home.html", ctx)
 
 
 @method_decorator(login_required, name='dispatch')
 class ConfiguracionView(TemplateView):
-    template_name = 'HOME/Configuracion.html'
+    template_name = 'home/Configuracion.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -116,7 +116,7 @@ class ConfiguracionView(TemplateView):
 
 @method_decorator(login_required, name='dispatch')
 class AnalisisView(TemplateView):
-    template_name = 'HOME/Analisis.html'
+    template_name = 'Analizar_INGRESOS_EGRESOS/Analisis.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -125,7 +125,7 @@ class AnalisisView(TemplateView):
 
 @method_decorator(login_required, name='dispatch')
 class CajaView(TemplateView):
-    template_name = 'HOME/Caja.html'
+    template_name = 'Abrir_Cerrar_CAJA/Caja.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -134,7 +134,7 @@ class CajaView(TemplateView):
 
 @method_decorator(login_required, name='dispatch')
 class ClientePerfilView(TemplateView):
-    template_name = 'HOME/Cliente-Perfil.html'
+    template_name = 'Fidelizar_CLIENTES/Cliente-Perfil.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -143,7 +143,7 @@ class ClientePerfilView(TemplateView):
 
 @method_decorator(login_required, name='dispatch')
 class ClientesView(TemplateView):
-    template_name = 'HOME/Clientes.html'
+    template_name = 'Fidelizar_CLIENTES/Clientes.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -152,7 +152,7 @@ class ClientesView(TemplateView):
 
 @method_decorator(login_required, name='dispatch')
 class ControlStockView(TemplateView):
-    template_name = 'HOME/Control-Stock.html'
+    template_name = 'home/Control-Stock.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -161,7 +161,7 @@ class ControlStockView(TemplateView):
 
 @method_decorator(login_required, name='dispatch')
 class ForgotPasswordView(TemplateView):
-    template_name = 'HOME/Forgot-Password.html'
+    template_name = 'home/Forgot-Password.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -170,7 +170,7 @@ class ForgotPasswordView(TemplateView):
 
 @method_decorator(login_required, name='dispatch')
 class LoginRegisterView(TemplateView):
-    template_name = 'HOME/Login-register.html'
+    template_name = 'home/Login-register.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -179,7 +179,7 @@ class LoginRegisterView(TemplateView):
 
 @method_decorator(login_required, name='dispatch')
 class ProveedoresView(TemplateView):
-    template_name = 'HOME/Proveedores.html'
+    template_name = 'Control_COMPRAS/Proveedores.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -188,7 +188,7 @@ class ProveedoresView(TemplateView):
 
 @method_decorator(login_required, name='dispatch')
 class StockView(TemplateView):
-    template_name = 'HOME/Stock.html'
+    template_name = 'Control_STOCK/Stock.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -197,7 +197,7 @@ class StockView(TemplateView):
 
 @method_decorator(login_required, name='dispatch')
 class VentaView(TemplateView):
-    template_name = 'HOME/Venta.html'
+    template_name = 'Control_VENTAS/Venta.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -290,7 +290,7 @@ def home_inicio(request):
         "egresos": egresos,
         "ventas": ventas_tabla,
     }
-    return render(request, "home/home_inicio.html", ctx)
+    return render(request, "home/Home.html", ctx)
 
 
 
