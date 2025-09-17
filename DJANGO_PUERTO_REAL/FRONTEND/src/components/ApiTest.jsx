@@ -1,15 +1,14 @@
 import { useState, useEffect } from 'react';
 
 function ApiTest() {
-  const [message, setMessage] = useState('');
+  const [data, setData] = useState(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
     // El proxy de Vite está configurado para /api.
-    // La URL de Django es /api/saludo/ dentro de la app HOME.
-    // El archivo urls.py principal probablemente incluye las urls de HOME bajo "home/".
-    // Por lo tanto, la URL final es /api/home/api/saludo/
-    fetch('/api/home/api/saludo/')
+    // La URL de Django es /caja/estado/ dentro de la app Abrir_Cerrar_CAJA.
+    // Asumiendo que las urls de la app se incluyen bajo "abrircerrarcaja/"
+    fetch('/api/abrircerrarcaja/caja/estado/')
       .then(response => {
         if (!response.ok) {
           throw new Error('La respuesta de la red no fue exitosa. Status: ' + response.status);
@@ -17,11 +16,11 @@ function ApiTest() {
         return response.json();
       })
       .then(data => {
-        setMessage(data.mensaje);
+        setData(data);
       })
       .catch(err => {
         console.error("Error al obtener datos de la API:", err);
-        setError('Error al cargar el mensaje de la API. Revisa la consola del navegador (F12) para más detalles.');
+        setError('Error al cargar los datos de la API. Revisa la consola del navegador (F12) para más detalles.');
       });
   }, []);
 
@@ -31,7 +30,10 @@ function ApiTest() {
       {error ? (
         <p style={{ color: 'red' }}>{error}</p>
       ) : (
-        <p>Mensaje del Backend: <strong>{message || 'Cargando...'}</strong></p>
+        <div>
+          <p>Datos del Backend:</p>
+          <pre>{JSON.stringify(data, null, 2) || 'Cargando...'}</pre>
+        </div>
       )}
     </div>
   );
