@@ -166,14 +166,17 @@
     <!-- Script para Lógica del POS -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // --- DATOS DE EJEMPLO ---
+            // --- DATOS DESDE LA BASE DE DATOS ---
             const products = [
-                { id: 1, name: 'Malbec Reserva', price: 8500, image: 'https://placehold.co/200x200/121212/FFC700?text=Vino', category: 'Vino Tinto' },
-                { id: 2, name: 'Sauvignon Blanc', price: 6200, image: 'https://placehold.co/200x200/121212/FFC700?text=Vino', category: 'Vino Blanco' },
-                { id: 3, name: 'Whisky Single Malt', price: 25000, image: 'https://placehold.co/200x200/121212/FFC700?text=Whisky', category: 'Destilado' },
-                { id: 4, name: 'Espumante Extra Brut', price: 9800, image: 'https://placehold.co/200x200/121212/FFC700?text=Espumante', category: 'Espumante' },
-                { id: 5, name: 'Gin Artesanal', price: 12500, image: 'https://placehold.co/200x200/121212/FFC700?text=Gin', category: 'Destilado' },
-                { id: 6, name: 'Cabernet Sauvignon', price: 8700, image: 'https://placehold.co/200x200/121212/FFC700?text=Vino', category: 'Vino Tinto' },
+                {% for producto in productos %}
+                {
+                    id: {{ producto.id_prod }},
+                    name: '{{ producto.nombre_prod|escapejs }}',
+                    price: {{ producto.precio_prod }},
+                    image: '{{ producto.img_prod.url|default:"https://placehold.co/200x200/121212/FFC700?text=IMG" }}',
+                    category: '{{ producto.categoria_prod.nombre_cat|escapejs|default:"Sin Categoria" }}'
+                },
+                {% endfor %}
             ];
 
             let cart = [];
