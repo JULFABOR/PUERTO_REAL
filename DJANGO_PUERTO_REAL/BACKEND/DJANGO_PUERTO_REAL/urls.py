@@ -30,9 +30,9 @@ urlpatterns = [
     path('analisis/', include('Analizar_INGRESOS_EGRESOS.urls')),
 
     # Rutas de las páginas web de las apps
-    path('ventas/', include(ventas_web_urls)),
+    path('ventas/', include((ventas_web_urls, 'ventas'), namespace='ventas')),
     path('compras/', include(compras_web_urls)),
-    path('stock/', include(stock_web_urls)),
+    path('stock/', include((stock_web_urls, 'stock'), namespace='stock')),
     path('fidelizacion/', include(fidelizar_web_urls)),
     path('caja/', include(caja_web_urls)),
 
@@ -54,5 +54,5 @@ urlpatterns = [
     # path('api/expense-breakdown/', expense_breakdown_report_view, name='expense_breakdown'),
 
     # Catch-all para servir el frontend de React
-    re_path(r'^.*', TemplateView.as_view(template_name='index.html')),
+    # re_path(r'^.*', TemplateView.as_view(template_name='index.html')),
 ]

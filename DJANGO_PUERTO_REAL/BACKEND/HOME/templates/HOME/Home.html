@@ -42,7 +42,7 @@
                 <span class="self-center text-2xl font-bold whitespace-nowrap text-pr-yellow">PUERTO REAL</span>
             </a>
             <div class="flex items-center md:order-2 space-x-3 rtl:space-x-reverse">
-                 <!-- Botón para toggling del Sidebar -->
+                <!-- Botón para toggling del Sidebar -->
                 <button id="sidebar-toggle" type="button" class="p-2 text-sm text-gray-400 rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-600">
                     <span class="sr-only">Toggle sidebar</span>
                     <i class="fa-solid fa-bars text-xl"></i>
@@ -70,22 +70,22 @@
     <div class="flex mt-16">
         <!-- Sidebar -->
         <aside id="sidebar" class="fixed top-16 left-0 z-40 w-64 h-[calc(100vh-4rem)] bg-pr-dark p-4 space-y-6 shrink-0 transition-transform -translate-x-full md:translate-x-0">
-             <div>
+            <div>
                 <h3 class="font-bold text-white text-lg mb-4">Gestión de Tienda</h3>
                 <ul class="space-y-2">
-                    <li><a href="pos.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-cash-register w-5 text-center text-lg"></i> Ventas (POS)</a></li>
-                    <li><a href="inventory.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-boxes-stacked w-5 text-center text-lg"></i> Inventario</a></li>
-                    <li><a href="catalog.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-book-open w-5 text-center text-lg"></i> Catálogo</a></li>
+                    <li><a  href="{% url 'ventas:venta' %}" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-cash-register w-5 text-center text-lg"></i> Ventas (POS)</a></li>
+                    <li><a href="{% url 'stock:control' %}" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-boxes-stacked w-5 text-center text-lg"></i> Inventario</a></li>
+                    <li><a href="{% url 'stock:catalogo' %}" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-book-open w-5 text-center text-lg"></i> Catálogo</a></li>
                     <li><a href="clients.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-users w-5 text-center text-lg"></i> Clientes</a></li>
                     <li><a href="suppliers.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-truck-field w-5 text-center text-lg"></i> Proveedores</a></li>
-                    <li><a href="cash-control.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-money-bill-wave w-5 text-center text-lg"></i> Control de Caja</a></li>
+                    <li><a href="Caja.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-money-bill-wave w-5 text-center text-lg"></i> Control de Caja</a></li>
                 </ul>
             </div>
             <div>
-                 <h3 class="font-bold text-white text-lg mb-4">Análisis</h3>
-                 <ul class="space-y-2">
+                <h3 class="font-bold text-white text-lg mb-4">Análisis</h3>
+                <ul class="space-y-2">
                     <li><a href="reports.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-chart-pie w-5 text-center text-lg"></i> Reportes de Venta</a></li>
-                 </ul>
+                </ul>
             </div>
         </aside>
 
@@ -100,42 +100,42 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
 
                 <!-- Card: Nueva Venta (POS) -->
-                <a href="pos.html" class="block bg-pr-dark p-6 rounded-lg shadow-lg hover:shadow-pr-yellow/20 hover:-translate-y-1 transition-all duration-300">
+                <a href="{% url 'ventas:venta' %}" class="block bg-pr-dark p-6 rounded-lg shadow-lg hover:shadow-pr-yellow/20 hover:-translate-y-1 transition-all duration-300">
                     <i class="fa-solid fa-cash-register text-pr-yellow text-4xl mb-4"></i>
                     <h3 class="font-bold text-xl text-white mb-2">Nueva Venta (POS)</h3>
                     <p class="text-pr-gray text-sm">Inicia el punto de venta para registrar transacciones.</p>
                 </a>
 
                 <!-- Card: Revisar Inventario -->
-                <a href="inventory.html" class="block bg-pr-dark p-6 rounded-lg shadow-lg hover:shadow-pr-yellow/20 hover:-translate-y-1 transition-all duration-300">
+                <a href="{% url 'stock:control' %}" class="block bg-pr-dark p-6 rounded-lg shadow-lg hover:shadow-pr-yellow/20 hover:-translate-y-1 transition-all duration-300">
                     <i class="fa-solid fa-box-open text-pr-yellow text-4xl mb-4"></i>
                     <h3 class="font-bold text-xl text-white mb-2">Revisar Inventario</h3>
                     <p class="text-pr-gray text-sm">Consulta el stock actual de todos tus productos.</p>
                 </a>
 
                 <!-- Card: Agregar Nuevo Producto -->
-                <a href="catalog.html" class="block bg-pr-dark p-6 rounded-lg shadow-lg hover:shadow-pr-yellow/20 hover:-translate-y-1 transition-all duration-300">
+                <a href="{% url 'stock:catalogo' %}" class="block bg-pr-dark p-6 rounded-lg shadow-lg hover:shadow-pr-yellow/20 hover:-translate-y-1 transition-all duration-300">
                     <i class="fa-solid fa-plus-circle text-pr-yellow text-4xl mb-4"></i>
                     <h3 class="font-bold text-xl text-white mb-2">Agregar Nuevo Producto</h3>
                     <p class="text-pr-gray text-sm">Da de alta nuevas bebidas y productos en tu catálogo.</p>
                 </a>
                 
                 <!-- Card: Control de Caja -->
-                <a href="cash-control.html" class="block bg-pr-dark p-6 rounded-lg shadow-lg hover:shadow-pr-yellow/20 hover:-translate-y-1 transition-all duration-300">
+                <a href="Caja.html" class="block bg-pr-dark p-6 rounded-lg shadow-lg hover:shadow-pr-yellow/20 hover:-translate-y-1 transition-all duration-300">
                     <i class="fa-solid fa-money-bill-wave text-pr-yellow text-4xl mb-4"></i>
                     <h3 class="font-bold text-xl text-white mb-2">Control de Caja</h3>
                     <p class="text-pr-gray text-sm">Realiza arqueos, aperturas y cierres de caja diarios.</p>
                 </a>
                 
                 <!-- Card: Gestión de Clientes -->
-                <a href="clients.html" class="block bg-pr-dark p-6 rounded-lg shadow-lg hover:shadow-pr-yellow/20 hover:-translate-y-1 transition-all duration-300">
+                <a href="Clientes.html" class="block bg-pr-dark p-6 rounded-lg shadow-lg hover:shadow-pr-yellow/20 hover:-translate-y-1 transition-all duration-300">
                     <i class="fa-solid fa-address-book text-pr-yellow text-4xl mb-4"></i>
                     <h3 class="font-bold text-xl text-white mb-2">Gestión de Clientes</h3>
                     <p class="text-pr-gray text-sm">Consulta y administra tu base de datos de clientes.</p>
                 </a>
                 
                 <!-- Card: Reporte del Día -->
-                <a href="reports.html" class="block bg-pr-dark p-6 rounded-lg shadow-lg hover:shadow-pr-yellow/20 hover:-translate-y-1 transition-all duration-300">
+                <a href="Analisis.html" class="block bg-pr-dark p-6 rounded-lg shadow-lg hover:shadow-pr-yellow/20 hover:-translate-y-1 transition-all duration-300">
                     <i class="fa-solid fa-chart-bar text-pr-yellow text-4xl mb-4"></i>
                     <h3 class="font-bold text-xl text-white mb-2">Reporte del Día</h3>
                     <p class="text-pr-gray text-sm">Genera un resumen de las ventas y movimientos de hoy.</p>

@@ -19,10 +19,17 @@ from HOME.models import (
 from .serializers import VentaSerializer
 from Auditoria.services import crear_registro
 
+# En Control_VENTAS/views.py
+
+from django.views.generic import TemplateView
+
+class VentaView(TemplateView):
+    template_name = "Control_VENTAS/Venta.html"
+
 # --- Vista de Template para el Dashboard de Ventas ---
 @method_decorator(login_required, name='dispatch')
 class VentasDashboardView(TemplateView):
-    template_name = 'HOME/Venta.html'
+    template_name = 'ventas_dashboard.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

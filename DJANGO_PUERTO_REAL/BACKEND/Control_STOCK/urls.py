@@ -5,14 +5,25 @@ from .views import (
     StockDecrementAPIView, 
     StockAdjustmentAPIView, 
     ProductoViewSet,
-    StockDashboardView
+    StockDashboardView,
+    ControlStockView,
+    CatalogoProductosView,
+    ProductoCreateView,
+    ProductoUpdateView,
+    ProductoDeleteView
 )
+
+app_name = 'stock'
 
 # --- URLs de Páginas Web ---
 urlpatterns = [
-    path('', StockDashboardView.as_view(), name='stock_dashboard'),
+    path('dashboard/', StockDashboardView.as_view(), name='stock_dashboard'),
+    path('control/', ControlStockView.as_view(), name='control'),
+    path('catalogo/', CatalogoProductosView.as_view(), name='catalogo'),
+    path('producto/nuevo/', ProductoCreateView.as_view(), name='producto_create'),
+    path('producto/<int:pk>/editar/', ProductoUpdateView.as_view(), name='producto_update'),
+    path('producto/<int:pk>/eliminar/', ProductoDeleteView.as_view(), name='producto_delete'),
 ]
-
 
 # --- URLs de API ---
 router = DefaultRouter()
