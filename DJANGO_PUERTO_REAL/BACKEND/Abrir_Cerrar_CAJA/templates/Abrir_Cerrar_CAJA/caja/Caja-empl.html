@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PUERTO REAL - Control de Caja</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Flowbite CSS CDN -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.css" rel="stylesheet" />
+    <!-- Google Fonts: Poppins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- jsPDF CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script>
+        // Configuración de colores y fuentes para Tailwind CSS
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'pr-yellow': '#FFC700',      // Amarillo principal
+                        'pr-dark': '#121212',         // Negro suave para tarjetas
+                        'pr-dark-gray': '#1F2937',  // Gris oscuro para el fondo
+                        'pr-gray': '#6B7280',         // Gris para texto secundario
+                    },
+                    fontFamily: {
+                        'sans': ['Poppins', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-pr-dark-gray font-sans text-gray-300">
+
+    <!-- Barra de Navegación -->
+    <nav class="bg-pr-dark border-b border-pr-gray/20 fixed w-full z-20 top-0 start-0">
+        <div class="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
+            <a href="home.html" class="flex items-center space-x-3 rtl:space-x-reverse">
+                <span class="self-center text-2xl font-bold whitespace-nowrap text-pr-yellow">PUERTO REAL</span>
+            </a>
+            <div class="flex items-center md:order-2 space-x-3 rtl:space-x-reverse">
+                 <!-- Botón para toggling del Sidebar -->
+                <button id="sidebar-toggle" type="button" class="p-2 text-sm text-gray-400 rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-600">
+                    <span class="sr-only">Toggle sidebar</span>
+                    <i class="fa-solid fa-bars text-xl"></i>
+                </button>
+                <!-- Dropdown de Usuario -->
+                <button type="button" class="flex text-sm bg-gray-800 rounded-full focus:ring-4 focus:ring-pr-yellow" id="user-menu-button" aria-expanded="false" data-dropdown-toggle="user-dropdown" data-dropdown-placement="bottom">
+                    <span class="sr-only">Abrir menú de usuario</span>
+                    <img class="w-8 h-8 rounded-full" src="https://placehold.co/40x40/FFC700/121212?text=G" alt="foto de usuario">
+                </button>
+                <div class="z-50 hidden my-4 text-base list-none bg-pr-dark divide-y divide-gray-600 rounded-lg shadow" id="user-dropdown">
+                    <div class="px-4 py-3">
+                        <span class="block text-sm text-white">Gerente de Tienda</span>
+                        <span class="block text-sm text-gray-400 truncate">gerente@puertoreal.com</span>
+                    </div>
+                    <ul class="py-2" aria-labelledby="user-menu-button">
+                        <li><a href="settings.html" class="block px-4 py-2 text-sm text-gray-300 hover:bg-pr-dark-gray">Configuración</a></li>
+                        <li><a href="index.html" class="block px-4 py-2 text-sm text-gray-300 hover:bg-pr-dark-gray">Cerrar Sesión</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Contenido Principal con Sidebar -->
+    <div class="flex mt-16">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="fixed top-16 left-0 z-40 w-64 h-[calc(100vh-4rem)] bg-pr-dark p-4 space-y-6 shrink-0 transition-transform -translate-x-full md:translate-x-0">
+            <div>
+               <h3 class="font-bold text-white text-lg mb-4">Gestión de Tienda</h3>
+               <ul class="space-y-2">
+                   <li><a href="pos.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-cash-register w-5 text-center text-lg"></i> Ventas (POS)</a></li>
+                   <li><a href="Control-Stock.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-boxes-stacked w-5 text-center text-lg"></i> Control Stock</a></li>
+                   <li><a href="Stock.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-book-open w-5 text-center text-lg"></i> Stock</a></li>
+                   <li><a href="Customers.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-users w-5 text-center text-lg"></i> Clientes</a></li>
+                   <li><a href="Suppliers.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-truck-field w-5 text-center text-lg"></i> Proveedores</a></li>
+                   <li><a href="Caja.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-money-bill-wave w-5 text-center text-lg"></i> Control de Caja</a></li>
+               </ul>
+           </div>
+       </aside>
+
+        <!-- Backdrop para sidebar móvil -->
+        <div id="sidebar-backdrop" class="bg-gray-900/50 fixed inset-0 z-30 hidden"></div>
+
+        <!-- Contenido principal -->
+        <main id="main-content" class="flex-1 p-6 lg:p-8 transition-all duration-300 md:ml-64">
+            
+            <!-- Estado: Caja Cerrada (Visible por defecto) -->
+            <div id="cash-closed-view" class="">
+                <div class="flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-center">
+                    <i class="fa-solid fa-cash-register text-pr-gray text-6xl mb-6"></i>
+                    <h1 class="text-3xl font-bold text-white mb-4">La caja está cerrada</h1>
+                    <p class="text-pr-gray mb-8 max-w-md">Para comenzar a registrar ventas y otros movimientos, primero debes realizar la apertura de caja con el saldo inicial.</p>
+                    <button id="open-cash-button" class="text-pr-dark bg-pr-yellow hover:bg-yellow-400 font-bold rounded-lg text-lg px-8 py-4 text-center flex items-center justify-center gap-3 mx-auto">
+                        <i class="fa-solid fa-door-open"></i>
+                        <span>Abrir Caja</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Estado: Caja Abierta (Oculto por defecto) -->
+            <div id="cash-open-view" class="hidden">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+                    <div>
+                        <h1 class="text-3xl font-bold text-white mb-2">Control de Caja</h1>
+                        <p class="text-pr-gray">Fecha: <span class="font-semibold text-white" id="current-date"></span></p>
+                    </div>
+                </div>
+                
+                <!-- Resumen de Efectivo -->
+                <h2 class="text-2xl font-bold text-white mb-4">Resumen de Efectivo</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-pr-dark p-4 rounded-lg shadow-lg"><p class="text-sm text-pr-gray">Saldo Inicial</p><p class="text-2xl font-bold text-white" id="initial-balance-display">$0.00</p></div>
+                    <div class="bg-pr-dark p-4 rounded-lg shadow-lg"><p class="text-sm text-pr-gray">Ingresos en Efectivo</p><p class="text-2xl font-bold text-green-500" id="total-cash-in-display">+$0.00</p></div>
+                    <div class="bg-pr-dark p-4 rounded-lg shadow-lg"><p class="text-sm text-pr-gray">Egresos en Efectivo</p><p class="text-2xl font-bold text-red-500" id="total-cash-out-display">-$0.00</p></div>
+                    <div class="bg-pr-dark p-4 rounded-lg shadow-lg border-2 border-pr-yellow"><p class="text-sm text-pr-gray">Saldo Teórico (Efectivo)</p><p class="text-2xl font-bold text-pr-yellow" id="theoretical-balance-display">$0.00</p></div>
+                </div>
+
+                <!-- Desglose de Movimientos -->
+                <h2 class="text-2xl font-bold text-white mb-4">Desglose de Movimientos del Día</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-8">
+                    <div class="bg-pr-dark p-4 rounded-lg shadow-lg"><p class="text-sm text-pr-gray">Ventas Efectivo</p><p class="text-2xl font-bold text-green-500" id="cash-sales-display">+$0.00</p></div>
+                    <div class="bg-pr-dark p-4 rounded-lg shadow-lg"><p class="text-sm text-pr-gray">Otros Ingresos (Efectivo)</p><p class="text-2xl font-bold text-green-400" id="other-income-display">+$0.00</p></div>
+                    <div class="bg-pr-dark p-4 rounded-lg shadow-lg"><p class="text-sm text-pr-gray">Ventas con Tarjeta</p><p class="text-2xl font-bold text-blue-500" id="card-sales-display">+$0.00</p></div>
+                    <div class="bg-pr-dark p-4 rounded-lg shadow-lg"><p class="text-sm text-pr-gray">Ventas con QR</p><p class="text-2xl font-bold text-cyan-400" id="qr-sales-display">+$0.00</p></div>
+                     <div class="bg-pr-dark p-4 rounded-lg shadow-lg"><p class="text-sm text-pr-gray">Ventas Transferencia</p><p class="text-2xl font-bold text-purple-400" id="transfer-sales-display">+$0.00</p></div>
+                </div>
+
+                <!-- Acciones Rápidas -->
+                <div class="flex flex-col sm:flex-row gap-4 mb-6">
+                     <button data-modal-target="ingreso-modal" data-modal-toggle="ingreso-modal" class="w-full sm:w-auto text-pr-dark bg-pr-yellow hover:bg-yellow-400 font-bold rounded-lg text-sm px-5 py-2.5 text-center flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>Registrar Ingreso</span>
+                    </button>
+                     <button data-modal-target="retiro-modal" data-modal-toggle="retiro-modal" class="w-full sm:w-auto text-white bg-pr-gray hover:bg-gray-600 font-bold rounded-lg text-sm px-5 py-2.5 text-center flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-minus"></i>
+                        <span>Registrar Retiro</span>
+                    </button>
+                </div>
+
+                <!-- Tabla de Movimientos de Efectivo -->
+                <h2 class="text-2xl font-bold text-white mb-4">Últimos Movimientos en Efectivo</h2>
+                <div class="relative overflow-x-auto shadow-md rounded-lg">
+                    <table class="w-full text-sm text-left text-gray-400">
+                        <thead class="text-xs text-white uppercase bg-pr-dark">
+                            <tr>
+                                <th scope="col" class="px-6 py-3">Hora</th><th scope="col" class="px-6 py-3">Tipo</th><th scope="col" class="px-6 py-3 hidden sm:table-cell">Descripción</th><th scope="col" class="px-6 py-3 text-right">Monto</th>
+                            </tr>
+                        </thead>
+                        <tbody id="movements-table-body"></tbody>
+                    </table>
+                </div>
+
+                <!-- Cierre de Caja (Arqueo) -->
+                <div class="mt-12 bg-pr-dark p-6 rounded-lg shadow-lg">
+                    <h2 class="text-2xl font-bold text-white mb-4">Cierre y Arqueo de Caja</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+                        <div>
+                            <label for="real-balance-input" class="block mb-2 text-sm font-medium text-gray-300">Saldo Real Contado (Efectivo)</label>
+                            <input type="number" id="real-balance-input" class="p-3 text-sm text-white border border-gray-600 rounded-lg bg-pr-dark-gray focus:ring-pr-yellow focus:border-pr-yellow w-full" placeholder="Ingrese monto contado...">
+                        </div>
+                        <div class="text-center">
+                            <p class="text-sm text-pr-gray">Diferencia</p>
+                            <p class="text-2xl font-bold text-white" id="difference-display">$0.00</p>
+                        </div>
+                        <button id="close-cash-button" class="w-full text-white bg-red-600 hover:bg-red-700 font-bold rounded-lg text-sm px-5 py-3 text-center flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-door-closed"></i>
+                            <span>Confirmar y Cerrar Caja</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal para Abrir Caja -->
+    <div id="open-cash-modal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+        <div class="relative p-4 w-full max-w-md max-h-full">
+            <div class="relative rounded-lg shadow bg-pr-dark">
+                <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t border-gray-600"><h3 class="text-xl font-semibold text-white">Abrir Caja</h3><button type="button" class="end-2.5 text-gray-400 bg-transparent rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center hover:bg-gray-600 hover:text-white" data-modal-hide="open-cash-modal"><svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/></svg><span class="sr-only">Cerrar</span></button></div>
+                <div class="p-4 md:p-5">
+                    <form class="space-y-4" id="open-cash-form">
+                        <div>
+                            <label for="initial-balance-input" class="block mb-2 text-sm font-medium text-white">Saldo Inicial en Efectivo</label>
+                            <input type="number" name="initial-balance-input" id="initial-balance-input" class="border text-sm rounded-lg block w-full p-2.5 bg-pr-dark-gray border-gray-500 placeholder-gray-400 text-white focus:ring-pr-yellow focus:border-pr-yellow" placeholder="$0.00" required />
+                        </div>
+                        <button type="submit" class="w-full text-pr-dark bg-pr-yellow hover:bg-yellow-400 focus:ring-4 focus:outline-none focus:ring-yellow-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center">Confirmar Apertura</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal para Registrar Ingreso -->
+    <div id="ingreso-modal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+        <div class="relative p-4 w-full max-w-md max-h-full">
+            <div class="relative rounded-lg shadow bg-pr-dark">
+                <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t border-gray-600"><h3 class="text-xl font-semibold text-white">Registrar Ingreso de Dinero</h3><button type="button" class="end-2.5 text-gray-400 bg-transparent rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center hover:bg-gray-600 hover:text-white" data-modal-hide="ingreso-modal"><svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/></svg><span class="sr-only">Cerrar</span></button></div>
+                <div class="p-4 md:p-5"><form class="space-y-4" action="#"><div><label for="ingreso-monto" class="block mb-2 text-sm font-medium text-white">Monto</label><input type="number" name="ingreso-monto" id="ingreso-monto" class="border text-sm rounded-lg block w-full p-2.5 bg-pr-dark-gray border-gray-500 placeholder-gray-400 text-white focus:ring-pr-yellow focus:border-pr-yellow" placeholder="$0.00" required /></div><div><label for="ingreso-descripcion" class="block mb-2 text-sm font-medium text-white">Descripción</label><textarea id="ingreso-descripcion" rows="4" class="block p-2.5 w-full text-sm rounded-lg border bg-pr-dark-gray border-gray-600 placeholder-gray-400 text-white focus:ring-pr-yellow focus:border-pr-yellow" placeholder="Escriba el motivo del ingreso..."></textarea></div><button type="submit" class="w-full text-pr-dark bg-pr-yellow hover:bg-yellow-400 focus:ring-4 focus:outline-none focus:ring-yellow-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center">Confirmar Ingreso</button></form></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Registrar Retiro -->
+    <div id="retiro-modal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+        <div class="relative p-4 w-full max-w-md max-h-full">
+            <div class="relative rounded-lg shadow bg-pr-dark">
+                <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t border-gray-600"><h3 class="text-xl font-semibold text-white">Registrar Retiro de Dinero</h3><button type="button" class="end-2.5 text-gray-400 bg-transparent rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center hover:bg-gray-600 hover:text-white" data-modal-hide="retiro-modal"><svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/></svg><span class="sr-only">Cerrar</span></button></div>
+                <div class="p-4 md:p-5"><form class="space-y-4" action="#"><div><label for="retiro-monto" class="block mb-2 text-sm font-medium text-white">Monto</label><input type="number" name="retiro-monto" id="retiro-monto" class="border text-sm rounded-lg block w-full p-2.5 bg-pr-dark-gray border-gray-500 placeholder-gray-400 text-white focus:ring-pr-yellow focus:border-pr-yellow" placeholder="$0.00" required /></div><div><label for="retiro-descripcion" class="block mb-2 text-sm font-medium text-white">Descripción</label><textarea id="retiro-descripcion" rows="4" class="block p-2.5 w-full text-sm rounded-lg border bg-pr-dark-gray border-gray-600 placeholder-gray-400 text-white focus:ring-pr-yellow focus:border-pr-yellow" placeholder="Escriba el motivo del retiro..."></textarea></div><button type="submit" class="w-full text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:outline-none focus:ring-red-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center">Confirmar Retiro</button></form></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Flowbite JS CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.js"></script>
+    
+    <!-- Script para Lógica de la Página -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // --- ELEMENTOS DEL DOM ---
+            const sidebarToggle = document.getElementById('sidebar-toggle');
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('main-content');
+            const backdrop = document.getElementById('sidebar-backdrop');
+            
+            const cashClosedView = document.getElementById('cash-closed-view');
+            const cashOpenView = document.getElementById('cash-open-view');
+            const openCashForm = document.getElementById('open-cash-form');
+            const openCashButton = document.getElementById('open-cash-button');
+            const openCashModalEl = document.getElementById('open-cash-modal');
+            const openCashModal = new Modal(openCashModalEl);
+
+            const realBalanceInput = document.getElementById('real-balance-input');
+            const differenceDisplay = document.getElementById('difference-display');
+            const movementsTableBody = document.getElementById('movements-table-body');
+            const closeCashButton = document.getElementById('close-cash-button');
+
+            // --- LÓGICA DEL SIDEBAR ---
+            const toggleSidebar = () => {
+                const isDesktop = window.innerWidth >= 768;
+                if (isDesktop) {
+                    sidebar.classList.toggle('md:hidden');
+                    mainContent.classList.toggle('md:ml-64');
+                } else {
+                    sidebar.classList.toggle('-translate-x-full');
+                    backdrop.classList.toggle('hidden');
+                }
+            };
+
+            if (sidebarToggle) sidebarToggle.addEventListener('click', (e) => { e.stopPropagation(); toggleSidebar(); });
+            if (backdrop) backdrop.addEventListener('click', () => { if (window.innerWidth < 768) { toggleSidebar(); } });
+
+            // --- LÓGICA DE CONTROL DE CAJA ---
+            const formatCurrency = (value, sign = '') => `${sign}${value.toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })}`;
+            
+            const demoData = {
+                cashSales: 85200, cardSales: 75300, qrSales: 5000, transferSales: 48200, otherIncome: 5000, cashOutflows: 20000
+            };
+
+            const updateDashboard = (initialBalance) => {
+                const totalCashIn = demoData.cashSales + demoData.otherIncome;
+                const theoreticalBalance = initialBalance + totalCashIn - demoData.cashOutflows;
+
+                document.getElementById('initial-balance-display').textContent = formatCurrency(initialBalance);
+                document.getElementById('total-cash-in-display').textContent = formatCurrency(totalCashIn, '+');
+                document.getElementById('total-cash-out-display').textContent = formatCurrency(demoData.cashOutflows, '-');
+                document.getElementById('theoretical-balance-display').textContent = formatCurrency(theoreticalBalance);
+                
+                document.getElementById('cash-sales-display').textContent = formatCurrency(demoData.cashSales, '+');
+                document.getElementById('other-income-display').textContent = formatCurrency(demoData.otherIncome, '+');
+                document.getElementById('card-sales-display').textContent = formatCurrency(demoData.cardSales, '+');
+                document.getElementById('qr-sales-display').textContent = formatCurrency(demoData.qrSales, '+');
+                document.getElementById('transfer-sales-display').textContent = formatCurrency(demoData.transferSales, '+');
+
+                calculateDifference();
+            };
+
+            const resetDashboard = (initialBalance = 0) => {
+                const zero = formatCurrency(0);
+                const plusZero = formatCurrency(0, '+');
+                const minusZero = formatCurrency(0, '-');
+
+                document.getElementById('initial-balance-display').textContent = formatCurrency(initialBalance);
+                document.getElementById('total-cash-in-display').textContent = plusZero;
+                document.getElementById('total-cash-out-display').textContent = minusZero;
+                document.getElementById('theoretical-balance-display').textContent = formatCurrency(initialBalance);
+                document.getElementById('cash-sales-display').textContent = plusZero;
+                document.getElementById('other-income-display').textContent = plusZero;
+                document.getElementById('card-sales-display').textContent = plusZero;
+                document.getElementById('qr-sales-display').textContent = plusZero;
+                document.getElementById('transfer-sales-display').textContent = plusZero;
+                movementsTableBody.innerHTML = '';
+                realBalanceInput.value = '';
+                calculateDifference();
+            };
+
+            const calculateDifference = () => {
+                const theoreticalBalanceText = document.getElementById('theoretical-balance-display').textContent.replace(/[$.]/g, '').replace(',', '.');
+                const theoreticalBalance = parseFloat(theoreticalBalanceText);
+                const realBalance = parseFloat(realBalanceInput.value) || 0;
+                const difference = realBalance - theoreticalBalance;
+                
+                differenceDisplay.textContent = formatCurrency(difference);
+                differenceDisplay.className = 'text-2xl font-bold';
+                if (difference < 0) differenceDisplay.classList.add('text-red-500');
+                else if (difference > 0) differenceDisplay.classList.add('text-green-500');
+                else differenceDisplay.classList.add('text-white');
+            };
+
+            if (realBalanceInput) realBalanceInput.addEventListener('input', calculateDifference);
+            
+            if (openCashButton) openCashButton.addEventListener('click', () => openCashModal.show());
+
+            openCashForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const initialBalanceInput = document.getElementById('initial-balance-input');
+                const initialBalance = parseFloat(initialBalanceInput.value) || 0;
+
+                resetDashboard(initialBalance);
+                // Para la demo, poblamos con datos después de abrir
+                setTimeout(() => updateDashboard(initialBalance), 500);
+
+                const now = new Date();
+                document.getElementById('current-date').textContent = now.toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' });
+                const time = now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit'});
+                const newRow = `
+                    <tr class="border-b bg-pr-dark border-gray-700 hover:bg-pr-dark-gray">
+                        <td class="px-6 py-4">${time}</td>
+                        <td class="px-6 py-4"><span class="bg-blue-900 text-blue-300 text-xs font-medium me-2 px-2.5 py-0.5 rounded">APERTURA</span></td>
+                        <td class="px-6 py-4 hidden sm:table-cell">Saldo inicial de caja</td>
+                        <td class="px-6 py-4 text-right font-medium text-white">${formatCurrency(initialBalance)}</td>
+                    </tr>`;
+                movementsTableBody.innerHTML = newRow;
+
+                cashClosedView.classList.add('hidden');
+                cashOpenView.classList.remove('hidden');
+                openCashModal.hide();
+                initialBalanceInput.value = '';
+            });
+
+            // --- LÓGICA DE CIERRE Y PDF ---
+            const generatePDFReport = () => {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                const today = new Date().toLocaleDateString('es-AR');
+                let y = 20; // Posición vertical inicial
+
+                doc.setFontSize(22);
+                doc.text("Reporte de Caja - PUERTO REAL", 105, y, { align: 'center' });
+                y += 10;
+                doc.setFontSize(14);
+                doc.text(`Fecha: ${today}`, 105, y, { align: 'center' });
+                y += 15;
+
+                doc.setFontSize(16);
+                doc.text("Resumen de Efectivo", 14, y);
+                y += 8;
+                doc.setFontSize(12);
+                doc.text(`- Saldo Inicial: ${document.getElementById('initial-balance-display').textContent}`, 14, y);
+                y += 7;
+                doc.text(`- Total Ingresos: ${document.getElementById('total-cash-in-display').textContent}`, 14, y);
+                y += 7;
+                doc.text(`- Total Egresos: ${document.getElementById('total-cash-out-display').textContent}`, 14, y);
+                y += 7;
+                doc.text(`- Saldo Teórico: ${document.getElementById('theoretical-balance-display').textContent}`, 14, y);
+                y += 7;
+                doc.text(`- Saldo Real Contado: ${formatCurrency(parseFloat(realBalanceInput.value) || 0)}`, 14, y);
+                y += 7;
+                doc.text(`- Diferencia: ${document.getElementById('difference-display').textContent}`, 14, y);
+                y += 15;
+
+                doc.setFontSize(16);
+                doc.text("Desglose de Movimientos", 14, y);
+                y += 8;
+                doc.setFontSize(12);
+                doc.text(`- Ventas en Efectivo: ${document.getElementById('cash-sales-display').textContent}`, 14, y);
+                y += 7;
+                doc.text(`- Otros Ingresos: ${document.getElementById('other-income-display').textContent}`, 14, y);
+                y += 7;
+                doc.text(`- Ventas con Tarjeta: ${document.getElementById('card-sales-display').textContent}`, 14, y);
+                y += 7;
+                doc.text(`- Ventas con QR: ${document.getElementById('qr-sales-display').textContent}`, 14, y);
+                y += 7;
+                doc.text(`- Ventas por Transferencia: ${document.getElementById('transfer-sales-display').textContent}`, 14, y);
+
+                doc.save(`reporte-caja-${new Date().toISOString().slice(0,10)}.pdf`);
+            };
+
+            if(closeCashButton) {
+                closeCashButton.addEventListener('click', () => {
+                    generatePDFReport();
+                    
+                    // Resetear la vista a "caja cerrada"
+                    cashOpenView.classList.add('hidden');
+                    cashClosedView.classList.remove('hidden');
+                    resetDashboard();
+                });
+            }
+        });
+    </script>
+</body>
+</html>
+

@@ -1,14 +1,46 @@
-{% extends 'base.html' %}
-{% load static %}
-
-{% block title %}PUERTO REAL - Control de Caja{% endblock %}
-
-{% block body %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PUERTO REAL - Control de Caja</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Flowbite CSS CDN -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.css" rel="stylesheet" />
+    <!-- Google Fonts: Poppins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- jsPDF CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script>
+        // Configuración de colores y fuentes para Tailwind CSS
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'pr-yellow': '#FFC700',      // Amarillo principal
+                        'pr-dark': '#121212',         // Negro suave para tarjetas
+                        'pr-dark-gray': '#1F2937',  // Gris oscuro para el fondo
+                        'pr-gray': '#6B7280',         // Gris para texto secundario
+                    },
+                    fontFamily: {
+                        'sans': ['Poppins', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-pr-dark-gray font-sans text-gray-300">
 
     <!-- Barra de Navegación -->
     <nav class="bg-pr-dark border-b border-pr-gray/20 fixed w-full z-20 top-0 start-0">
         <div class="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
-            <a href="{% url 'HOME:home' %}" class="flex items-center space-x-3 rtl:space-x-reverse">
+            <a href="home.html" class="flex items-center space-x-3 rtl:space-x-reverse">
                 <span class="self-center text-2xl font-bold whitespace-nowrap text-pr-yellow">PUERTO REAL</span>
             </a>
             <div class="flex items-center md:order-2 space-x-3 rtl:space-x-reverse">
@@ -40,24 +72,23 @@
     <div class="flex mt-16">
         <!-- Sidebar -->
         <aside id="sidebar" class="fixed top-16 left-0 z-40 w-64 h-[calc(100vh-4rem)] bg-pr-dark p-4 space-y-6 shrink-0 transition-transform -translate-x-full md:translate-x-0">
-             <div>
-                <h3 class="font-bold text-white text-lg mb-4">Gestión de Tienda</h3>
-                <ul class="space-y-2">
-                    <li><a href="pos.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-cash-register w-5 text-center text-lg"></i> Ventas (POS)</a></li>
-                    <li><a href="inventory.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-boxes-stacked w-5 text-center text-lg"></i> Inventario</a></li>
-                    <li><a href="catalog.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-book-open w-5 text-center text-lg"></i> Catálogo</a></li>
-                    <li><a href="clients.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-users w-5 text-center text-lg"></i> Clientes</a></li>
-                    <li><a href="suppliers.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-truck-field w-5 text-center text-lg"></i> Proveedores</a></li>
-                    <li><a href="cash-control.html" class="flex items-center gap-3 text-pr-yellow bg-pr-dark-gray py-2 px-3 rounded-lg transition-colors"><i class="fa-solid fa-money-bill-wave w-5 text-center text-lg"></i> Control de Caja</a></li>
-                </ul>
-            </div>
             <div>
-                 <h3 class="font-bold text-white text-lg mb-4">Análisis</h3>
-                 <ul class="space-y-2">
-                    <li><a href="reports.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-chart-pie w-5 text-center text-lg"></i> Reportes de Venta</a></li>
-                 </ul>
-            </div>
-        </aside>
+               <h3 class="font-bold text-white text-lg mb-4">Gestión de Tienda</h3>
+               <ul class="space-y-2">
+                   <li><a href="Control-Stock.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-boxes-stacked w-5 text-center text-lg"></i> Control Stock</a></li>
+                   <li><a href="Stock.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-book-open w-5 text-center text-lg"></i> Stock</a></li>
+                   <li><a href="Customers.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-users w-5 text-center text-lg"></i> Clientes</a></li>
+                   <li><a href="Suppliers.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-truck-field w-5 text-center text-lg"></i> Proveedores</a></li>
+                   <li><a href="Caja.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-money-bill-wave w-5 text-center text-lg"></i> Control de Caja</a></li>
+               </ul>
+           </div>
+           <div>
+                <h3 class="font-bold text-white text-lg mb-4">Análisis</h3>
+                <ul class="space-y-2">
+                   <li><a href="Analysis.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-chart-pie w-5 text-center text-lg"></i> Reportes de Venta</a></li>
+                </ul>
+           </div>
+       </aside>
 
         <!-- Backdrop para sidebar móvil -->
         <div id="sidebar-backdrop" class="bg-gray-900/50 fixed inset-0 z-30 hidden"></div>
@@ -378,4 +409,6 @@
             }
         });
     </script>
-{% endblock %}
+</body>
+</html>
+

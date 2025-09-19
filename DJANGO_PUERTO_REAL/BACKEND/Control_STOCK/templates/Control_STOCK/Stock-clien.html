@@ -58,7 +58,6 @@
                         <span class="block text-sm text-gray-400 truncate">gerente@puertoreal.com</span>
                     </div>
                     <ul class="py-2" aria-labelledby="user-menu-button">
-                        <li><a href="settings.html" class="block px-4 py-2 text-sm text-gray-300 hover:bg-pr-dark-gray">Configuración</a></li>
                         <li><a href="index.html" class="block px-4 py-2 text-sm text-gray-300 hover:bg-pr-dark-gray">Cerrar Sesión</a></li>
                     </ul>
                 </div>
@@ -73,19 +72,11 @@
             <div>
                <h3 class="font-bold text-white text-lg mb-4">Gestión de Tienda</h3>
                <ul class="space-y-2">
-                   <li><a href="Control-Stock.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-boxes-stacked w-5 text-center text-lg"></i> Control Stock</a></li>
                    <li><a href="Stock.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-book-open w-5 text-center text-lg"></i> Stock</a></li>
-                   <li><a href="Customers.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-users w-5 text-center text-lg"></i> Clientes</a></li>
-                   <li><a href="Suppliers.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-truck-field w-5 text-center text-lg"></i> Proveedores</a></li>
-                   <li><a href="Caja.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-money-bill-wave w-5 text-center text-lg"></i> Control de Caja</a></li>
+                   <li><a href="Customers-Perfil.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-users w-5 text-center text-lg"></i> Perfil</a></li>
                </ul>
            </div>
-           <div>
-                <h3 class="font-bold text-white text-lg mb-4">Análisis</h3>
-                <ul class="space-y-2">
-                   <li><a href="Analysis.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-chart-pie w-5 text-center text-lg"></i> Reportes de Venta</a></li>
-                </ul>
-           </div>
+
        </aside>
 
         <!-- Backdrop para sidebar móvil -->
@@ -95,10 +86,6 @@
         <main id="main-content" class="flex-1 p-6 lg:p-8 transition-all duration-300 md:ml-64">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
                 <h1 class="text-3xl font-bold text-white mb-4 sm:mb-0">Catálogo de Productos</h1>
-                <button data-modal-target="new-product-modal" data-modal-toggle="new-product-modal" class="w-full sm:w-auto text-pr-dark bg-pr-yellow hover:bg-yellow-400 font-bold rounded-lg text-sm px-5 py-2.5 text-center flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-plus"></i>
-                    <span>Agregar Nuevo Producto</span>
-                </button>
             </div>
             
             <!-- Filtros y Búsqueda -->
@@ -126,15 +113,12 @@
                                     <p class="text-sm text-pr-gray mb-1">Vino Tinto</p>
                                     <h3 class="text-lg font-bold text-white mb-2">Malbec Reserva</h3>
                                 </div>
-                                <span class="bg-green-900 text-green-300 text-xs font-medium px-2.5 py-0.5 rounded">En Stock</span>
-                            </div>
+                            </div>  
                         </div>
                         <div>
                             <p class="text-xl font-semibold text-pr-yellow mb-4">$8,500.00</p>
-                            <div class="flex justify-end items-center gap-4">
-                                 <button data-modal-target="edit-product-modal" data-modal-toggle="edit-product-modal" class="text-sm text-pr-yellow hover:underline">Editar</button>
-                                 <button class="text-red-500 hover:text-red-400"><i class="fa-solid fa-trash"></i></button>
-                            </div>
+                            <span class="bg-green-900 text-green-300 text-xs font-medium px-2.5 py-0.5 rounded">En Stock</span>
+
                         </div>
                     </div>
                 </div>
@@ -149,15 +133,11 @@
                                     <p class="text-sm text-pr-gray mb-1">Destilado</p>
                                     <h3 class="text-lg font-bold text-white mb-2">Whisky Single Malt</h3>
                                 </div>
-                                <span class="bg-red-900 text-red-300 text-xs font-medium px-2.5 py-0.5 rounded">Stock Bajo</span>
                             </div>
                         </div>
                         <div>
                             <p class="text-xl font-semibold text-pr-yellow mb-4">$25,000.00</p>
-                            <div class="flex justify-end items-center gap-4">
-                                 <button data-modal-target="edit-product-modal" data-modal-toggle="edit-product-modal" class="text-sm text-pr-yellow hover:underline">Editar</button>
-                                 <button class="text-red-500 hover:text-red-400"><i class="fa-solid fa-trash"></i></button>
-                            </div>
+                            <span class="bg-red-900 text-red-300 text-xs font-medium px-2.5 py-0.5 rounded">Stock Bajo</span>
                         </div>
                     </div>
                 </div>
@@ -172,15 +152,11 @@
                                     <p class="text-sm text-pr-gray mb-1">Destilado</p>
                                     <h3 class="text-lg font-bold text-white mb-2">Gin Artesanal</h3>
                                 </div>
-                                <span class="bg-yellow-900 text-yellow-300 text-xs font-medium px-2.5 py-0.5 rounded">Stock Medio</span>
                             </div>
                         </div>
                         <div>
                             <p class="text-xl font-semibold text-pr-yellow mb-4">$12,500.00</p>
-                            <div class="flex justify-end items-center gap-4">
-                                 <button data-modal-target="edit-product-modal" data-modal-toggle="edit-product-modal" class="text-sm text-pr-yellow hover:underline">Editar</button>
-                                 <button class="text-red-500 hover:text-red-400"><i class="fa-solid fa-trash"></i></button>
-                            </div>
+                            <span class="bg-yellow-900 text-yellow-300 text-xs font-medium px-2.5 py-0.5 rounded">Stock Medio</span>
                         </div>
                     </div>
                 </div>
@@ -195,15 +171,11 @@
                                     <p class="text-sm text-pr-gray mb-1">Espumante</p>
                                     <h3 class="text-lg font-bold text-white mb-2">Espumante Extra Brut</h3>
                                 </div>
-                                <span class="bg-green-900 text-green-300 text-xs font-medium px-2.5 py-0.5 rounded">En Stock</span>
                             </div>
                         </div>
                         <div>
                             <p class="text-xl font-semibold text-pr-yellow mb-4">$9,800.00</p>
-                            <div class="flex justify-end items-center gap-4">
-                                 <button data-modal-target="edit-product-modal" data-modal-toggle="edit-product-modal" class="text-sm text-pr-yellow hover:underline">Editar</button>
-                                 <button class="text-red-500 hover:text-red-400"><i class="fa-solid fa-trash"></i></button>
-                            </div>
+                            <span class="bg-green-900 text-green-300 text-xs font-medium px-2.5 py-0.5 rounded">En Stock</span>
                         </div>
                     </div>
                 </div>

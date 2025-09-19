@@ -35,8 +35,8 @@ class CajasSerializer(serializers.ModelSerializer):
     class Meta:
         model = Cajas
         fields = ('id_caja', 'total_gastos_caja', 'monto_apertura_caja', 
-                  'monto_cierre_caja', 'monto_teorico_caja', 'diferencia_caja', 
-                  'observaciones_caja', 'estado_caja')
+                'monto_cierre_caja', 'monto_teorico_caja', 'diferencia_caja', 
+                'observaciones_caja', 'estado_caja')
 
 class HistorialCajaSerializer(serializers.ModelSerializer):
     caja_hc = CajasSerializer(read_only=True)
@@ -47,9 +47,9 @@ class HistorialCajaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Historial_Caja
         fields = ('id_historial_caja', 'cantidad_movida_hcaja', 'caja_hc', 
-                  'empleado_hc', 'tipo_event_caja', 'fecha_movimiento_hcaja', 
-                  'saldo_anterior_hcaja', 'nuevo_saldo_hcaja', 'descripcion_hcaja', 
-                  'destino_movimiento')
+                'empleado_hc', 'tipo_event_caja', 'fecha_movimiento_hcaja', 
+                'saldo_anterior_hcaja', 'nuevo_saldo_hcaja', 'descripcion_hcaja', 
+                'destino_movimiento')
 
 class FondoPagosSerializer(serializers.ModelSerializer):
     estado_fp = EstadoSerializer(read_only=True)
@@ -66,7 +66,7 @@ class MovimientoFondoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Movimiento_Fondo
         fields = ('id_mov_fp', 'fondo_mov_fp', 'fecha_mov_fp', 
-                  'tipo_mov_fp', 'monto_mov_fp', 'motivo_mov_fp', 'empleado_mov_fp')
+                'tipo_mov_fp', 'monto_mov_fp', 'motivo_mov_fp', 'empleado_mov_fp')
 
 class AperturaCajaInputSerializer(serializers.Serializer):
     monto_inicial = serializers.DecimalField(max_digits=10, decimal_places=2)

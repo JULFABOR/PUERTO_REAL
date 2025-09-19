@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PUERTO REAL - Configuración</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Flowbite CSS CDN -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.css" rel="stylesheet" />
+    <!-- Google Fonts: Poppins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script>
+        // Configuración de colores y fuentes para Tailwind CSS
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'pr-yellow': '#FFC700',      // Amarillo principal
+                        'pr-dark': '#121212',         // Negro suave para tarjetas
+                        'pr-dark-gray': '#1F2937',  // Gris oscuro para el fondo
+                        'pr-gray': '#6B7280',         // Gris para texto secundario
+                    },
+                    fontFamily: {
+                        'sans': ['Poppins', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-pr-dark-gray font-sans text-gray-300">
+
+    <!-- Barra de Navegación -->
+    <nav class="bg-pr-dark border-b border-pr-gray/20 fixed w-full z-20 top-0 start-0">
+        <div class="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
+            <a href="home.html" class="flex items-center space-x-3 rtl:space-x-reverse">
+                <span class="self-center text-2xl font-bold whitespace-nowrap text-pr-yellow">PUERTO REAL</span>
+            </a>
+            <div class="flex items-center md:order-2 space-x-3 rtl:space-x-reverse">
+                 <!-- Botón para toggling del Sidebar -->
+                <button id="sidebar-toggle" type="button" class="p-2 text-sm text-gray-400 rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-600">
+                    <span class="sr-only">Toggle sidebar</span>
+                    <i class="fa-solid fa-bars text-xl"></i>
+                </button>
+                <!-- Dropdown de Usuario -->
+                <button type="button" class="flex text-sm bg-gray-800 rounded-full focus:ring-4 focus:ring-pr-yellow" id="user-menu-button" aria-expanded="false" data-dropdown-toggle="user-dropdown" data-dropdown-placement="bottom">
+                    <span class="sr-only">Abrir menú de usuario</span>
+                    <img class="w-8 h-8 rounded-full" src="https://placehold.co/40x40/FFC700/121212?text=G" alt="foto de usuario">
+                </button>
+                <div class="z-50 hidden my-4 text-base list-none bg-pr-dark divide-y divide-gray-600 rounded-lg shadow" id="user-dropdown">
+                    <div class="px-4 py-3">
+                        <span class="block text-sm text-white">Gerente de Tienda</span>
+                        <span class="block text-sm text-gray-400 truncate">gerente@puertoreal.com</span>
+                    </div>
+                    <ul class="py-2" aria-labelledby="user-menu-button">
+                        <li><a href="settings.html" class="block px-4 py-2 text-sm text-gray-300 hover:bg-pr-dark-gray">Configuración</a></li>
+                        <li><a href="index.html" class="block px-4 py-2 text-sm text-gray-300 hover:bg-pr-dark-gray">Cerrar Sesión</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Contenido Principal con Sidebar -->
+    <div class="flex mt-16">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="fixed top-16 left-0 z-40 w-64 h-[calc(100vh-4rem)] bg-pr-dark p-4 space-y-6 shrink-0 transition-transform -translate-x-full md:translate-x-0">
+            <div>
+               <h3 class="font-bold text-white text-lg mb-4">Gestión de Tienda</h3>
+               <ul class="space-y-2">
+                   <li><a href="pos.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-cash-register w-5 text-center text-lg"></i> Ventas (POS)</a></li>
+                   <li><a href="Control-Stock.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-boxes-stacked w-5 text-center text-lg"></i> Control Stock</a></li>
+                   <li><a href="Stock.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-book-open w-5 text-center text-lg"></i> Stock</a></li>
+                   <li><a href="Customers.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-users w-5 text-center text-lg"></i> Clientes</a></li>
+                   <li><a href="Suppliers.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-truck-field w-5 text-center text-lg"></i> Proveedores</a></li>
+                   <li><a href="Caja.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-money-bill-wave w-5 text-center text-lg"></i> Control de Caja</a></li>
+               </ul>
+           </div>
+           <div>
+                <h3 class="font-bold text-white text-lg mb-4">Análisis</h3>
+                <ul class="space-y-2">
+                   <li><a href="Analysis.html" class="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><i class="fa-solid fa-chart-pie w-5 text-center text-lg"></i> Reportes de Venta</a></li>
+                </ul>
+           </div>
+       </aside>
+
+        <!-- Backdrop para sidebar móvil -->
+        <div id="sidebar-backdrop" class="bg-gray-900/50 fixed inset-0 z-30 hidden"></div>
+
+        <!-- Contenido principal -->
+        <main id="main-content" class="flex-1 p-6 lg:p-8 transition-all duration-300 md:ml-64">
+            <h1 class="text-3xl font-bold text-white mb-6">Configuración</h1>
+
+            <div class="mb-4 border-b border-gray-700">
+                <ul class="flex flex-wrap -mb-px text-sm font-medium text-center" id="settings-tab" data-tabs-toggle="#settings-tab-content" role="tablist">
+                    <li class="me-2" role="presentation">
+                        <button class="inline-block p-4 border-b-2 rounded-t-lg" id="profile-tab" data-tabs-target="#profile" type="button" role="tab" aria-controls="profile" aria-selected="false">Mi Perfil</button>
+                    </li>
+                    <li class="me-2" role="presentation">
+                        <button class="inline-block p-4 border-b-2 rounded-t-lg hover:text-gray-300 hover:border-gray-600" id="store-tab" data-tabs-target="#store" type="button" role="tab" aria-controls="store" aria-selected="false">Tienda</button>
+                    </li>
+                    <li class="me-2" role="presentation">
+                        <button class="inline-block p-4 border-b-2 rounded-t-lg hover:text-gray-300 hover:border-gray-600" id="points-tab" data-tabs-target="#points" type="button" role="tab" aria-controls="points" aria-selected="false">Puntos</button>
+                    </li>
+                </ul>
+            </div>
+            <div id="settings-tab-content">
+                <!-- Pestaña Mi Perfil -->
+                <div class="hidden p-4 rounded-lg bg-pr-dark" id="profile" role="tabpanel" aria-labelledby="profile-tab">
+                    <h2 class="text-xl font-bold text-white mb-4">Información Personal</h2>
+                    <form class="space-y-6 max-w-lg">
+                        <div>
+                            <label for="name" class="block mb-2 text-sm font-medium text-white">Nombre Completo</label>
+                            <input type="text" id="name" class="border text-sm rounded-lg block w-full p-2.5 bg-pr-dark-gray border-gray-600 text-white" value="Gerente de Tienda" required>
+                        </div>
+                        <div>
+                            <label for="email" class="block mb-2 text-sm font-medium text-white">Email</label>
+                            <input type="email" id="email" class="border text-sm rounded-lg block w-full p-2.5 bg-pr-dark-gray border-gray-600 text-white" value="gerente@puertoreal.com" required>
+                        </div>
+                         <div>
+                            <label for="password" class="block mb-2 text-sm font-medium text-white">Nueva Contraseña</label>
+                            <input type="password" id="password" class="border text-sm rounded-lg block w-full p-2.5 bg-pr-dark-gray border-gray-600 text-white" placeholder="••••••••">
+                        </div>
+                        <div>
+                            <label for="confirm-password" class="block mb-2 text-sm font-medium text-white">Confirmar Nueva Contraseña</label>
+                            <input type="password" id="confirm-password" class="border text-sm rounded-lg block w-full p-2.5 bg-pr-dark-gray border-gray-600 text-white" placeholder="••••••••">
+                        </div>
+                        <button type="submit" class="text-pr-dark bg-pr-yellow hover:bg-yellow-400 font-bold rounded-lg text-sm px-5 py-2.5 text-center">Guardar Cambios</button>
+                    </form>
+                </div>
+                <!-- Pestaña Tienda -->
+                <div class="hidden p-4 rounded-lg bg-pr-dark" id="store" role="tabpanel" aria-labelledby="store-tab">
+                    <h2 class="text-xl font-bold text-white mb-4">Información de la Tienda</h2>
+                     <form class="space-y-6 max-w-lg">
+                        <div>
+                            <label for="store-name" class="block mb-2 text-sm font-medium text-white">Nombre de la Tienda</label>
+                            <input type="text" id="store-name" class="border text-sm rounded-lg block w-full p-2.5 bg-pr-dark-gray border-gray-600 text-white" value="PUERTO REAL Vinería" required>
+                        </div>
+                        <div>
+                            <label for="store-address" class="block mb-2 text-sm font-medium text-white">Dirección</label>
+                            <input type="text" id="store-address" class="border text-sm rounded-lg block w-full p-2.5 bg-pr-dark-gray border-gray-600 text-white" value="Av. Siempre Viva 742" required>
+                        </div>
+                        <div>
+                            <label for="store-phone" class="block mb-2 text-sm font-medium text-white">Teléfono</label>
+                            <input type="tel" id="store-phone" class="border text-sm rounded-lg block w-full p-2.5 bg-pr-dark-gray border-gray-600 text-white" value="11-1234-5678">
+                        </div>
+                        <button type="submit" class="text-pr-dark bg-pr-yellow hover:bg-yellow-400 font-bold rounded-lg text-sm px-5 py-2.5 text-center">Guardar Cambios</button>
+                    </form>
+                </div>
+                <!-- Pestaña Puntos -->
+                <div class="hidden p-4 rounded-lg bg-pr-dark" id="points" role="tabpanel" aria-labelledby="points-tab">
+                   <h2 class="text-xl font-bold text-white mb-4">Configuración del Sistema de Puntos</h2>
+                   <form class="space-y-6 max-w-lg">
+                        <div>
+                            <label for="points-rule" class="block mb-2 text-sm font-medium text-white">Regla de Acumulación</label>
+                            <div class="flex items-center gap-4">
+                                <span>Por cada</span>
+                                <input type="number" id="points-currency" class="border text-sm rounded-lg block w-24 p-2.5 bg-pr-dark-gray border-gray-600 text-white" value="100">
+                                <span>pesos en compras, el cliente gana</span>
+                                 <input type="number" id="points-reward" class="border text-sm rounded-lg block w-24 p-2.5 bg-pr-dark-gray border-gray-600 text-white" value="1">
+                                <span>punto(s).</span>
+                            </div>
+                        </div>
+                        <button type="submit" class="text-pr-dark bg-pr-yellow hover:bg-yellow-400 font-bold rounded-lg text-sm px-5 py-2.5 text-center">Guardar Regla</button>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Flowbite JS CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.js"></script>
+    
+    <!-- Script para Sidebar Responsive -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebarToggle = document.getElementById('sidebar-toggle');
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('main-content');
+            const backdrop = document.getElementById('sidebar-backdrop');
+
+            const toggleSidebar = () => {
+                const isDesktop = window.innerWidth >= 768;
+                if (isDesktop) {
+                    sidebar.classList.toggle('md:hidden');
+                    mainContent.classList.toggle('md:ml-64');
+                } else {
+                    sidebar.classList.toggle('-translate-x-full');
+                    backdrop.classList.toggle('hidden');
+                }
+            };
+
+            if (sidebarToggle) sidebarToggle.addEventListener('click', (e) => { e.stopPropagation(); toggleSidebar(); });
+            if (backdrop) backdrop.addEventListener('click', () => { if (window.innerWidth < 768) { toggleSidebar(); } });
+        });
+    </script>
+</body>
+</html>
+
