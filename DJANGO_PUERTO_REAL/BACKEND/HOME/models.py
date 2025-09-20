@@ -63,7 +63,7 @@ class Clientes(models.Model):
     telefono_cliente = models.CharField(max_length=50)
     DELETE_Cli = models.BooleanField(default=False)
     def __str__(self):
-        return self.user.get_full_name()
+        return self.user_cliente.get_full_name()
 class Empleados(models.Model):
     user_empleado = models.OneToOneField(User, on_delete=models.CASCADE, related_name='empleado')
     id_empleado = models.BigAutoField(primary_key=True)
@@ -73,7 +73,7 @@ class Empleados(models.Model):
     fecha_baja_empleado = models.DateTimeField(null=True, blank=True)
     DELETE_Emple = models.BooleanField(default=False)
     def __str__(self):
-        return self.user.get_full_name()
+        return self.user_empleado.get_full_name()
 class Tipos_Movimientos(models.Model):
     id_tipo_movimiento = models.AutoField(primary_key=True)
     nombre_movimiento = models.CharField(max_length=50)

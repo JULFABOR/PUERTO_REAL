@@ -1,8 +1,8 @@
 from django.urls import path
-from .views import audit_log_view
+from .views import get_audit_logs
 
 app_name = 'Auditoria'
 
 urlpatterns = [
-    path('log/', audit_log_view, name='audit_log'),
-]
+    path('api/logs/', get_audit_logs, name='api_audit_logs'),
+    ]

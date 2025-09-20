@@ -10,6 +10,7 @@ from django.db import transaction
 from django.shortcuts import render, redirect
 from django.utils import timezone
 
+
 from .forms import AperturaCajaForm, RetiroEfectivoForm, RendirFondoForm
 from HOME.models import Cajas, Historial_Caja, Tipo_Evento, Estados, Fondo_Pagos, Movimiento_Fondo, Empleados
 
