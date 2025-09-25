@@ -28,7 +28,7 @@ const JefeHome = () => {
                     <p className="text-pr-gray text-sm">Gestiona y da de alta nuevos productos en tu catálogo.</p>
                 </Link>
 
-                <Link to="/jefe/clientes" className="block bg-pr-dark p-6 rounded-lg shadow-lg hover:shadow-pr-yellow/20 hover:-translate-y-1 transition-all duration-300">
+                <Link to="/jefe/customers" className="block bg-pr-dark p-6 rounded-lg shadow-lg hover:shadow-pr-yellow/20 hover:-translate-y-1 transition-all duration-300">
                     <FontAwesomeIcon icon={faAddressBook} className="text-pr-yellow text-4xl mb-4" />
                     <h3 className="font-bold text-xl text-white mb-2">Gestión de Clientes</h3>
                     <p className="text-pr-gray text-sm">Consulta y administra tu base de datos de clientes.</p>

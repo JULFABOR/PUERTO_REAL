@@ -79,8 +79,8 @@ const JefeLayout = () => {
                         <ul className="space-y-2">
                             <li><Link to="/jefe/control-stock" className="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><FontAwesomeIcon icon={faBoxesStacked} className="w-5 text-center text-lg" /> Control Stock</Link></li>
                             <li><Link to="/jefe/stock" className="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><FontAwesomeIcon icon={faBookOpen} className="w-5 text-center text-lg" /> Stock</Link></li>
-                            <li><Link to="/jefe/clientes" className="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><FontAwesomeIcon icon={faUsers} className="w-5 text-center text-lg" /> Clientes</Link></li>
-                            <li><Link to="/jefe/proveedores" className="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><FontAwesomeIcon icon={faTruckField} className="w-5 text-center text-lg" /> Proveedores</Link></li>
+                            <li><Link to="/jefe/customers" className="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><FontAwesomeIcon icon={faUsers} className="w-5 text-center text-lg" /> Clientes</Link></li>
+                            <li><Link to="/jefe/suppliers" className="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><FontAwesomeIcon icon={faTruckField} className="w-5 text-center text-lg" /> Proveedores</Link></li>
                             <li><Link to="/jefe/caja" className="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><FontAwesomeIcon icon={faMoneyBillWave} className="w-5 text-center text-lg" /> Control de Caja</Link></li>
                         </ul>
                     </div>

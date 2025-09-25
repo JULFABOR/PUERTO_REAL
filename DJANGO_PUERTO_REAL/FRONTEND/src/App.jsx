@@ -11,6 +11,13 @@ import ClienteLayout from './components/cliente/ClienteLayout';
 // Pages
 import EmpleadoHome from './pages/empleado/EmpleadoHome';
 import JefeHome from './pages/jefe/JefeHome';
+import JefeAnalysis from './pages/jefe/JefeAnalysis';
+import JefeCaja from './pages/jefe/JefeCaja';
+import JefeControlStock from './pages/jefe/JefeControlStock';
+import JefeCustomers from './pages/jefe/JefeCustomers';
+import JefeStock from './pages/jefe/JefeStock';
+import JefeSuppliers from './pages/jefe/JefeSuppliers';
+import JefeSettings from './pages/jefe/JefeSettings';
 import ClienteHome from './pages/cliente/ClienteHome';
 
 // NOTE: The old HomePage and ControlStockPage are currently not used in this new structure.
@@ -57,6 +64,13 @@ function App() {
           }
         >
           <Route path="home" element={<JefeHome />} />
+          <Route path="analysis" element={<JefeAnalysis />} />
+          <Route path="caja" element={<JefeCaja />} />
+          <Route path="control-stock" element={<JefeControlStock />} />
+          <Route path="customers" element={<JefeCustomers />} />
+          <Route path="stock" element={<JefeStock />} />
+          <Route path="suppliers" element={<JefeSuppliers />} />
+          <Route path="settings" element={<JefeSettings />} />
           {/* Add other jefe pages here */}
         </Route>
 
