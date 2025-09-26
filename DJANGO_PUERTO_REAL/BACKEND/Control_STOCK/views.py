@@ -12,7 +12,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 from HOME.models import Productos, Stocks, Categorias_Productos, Historial_Stock, Tipos_Movimientos, Empleados, Estados
-from .serializers import StockSerializer, StockUpdateSerializer, StockAdjustmentSerializer, ProductoSerializer, HistorialStockSerializer
+from .serializers import StockSerializer, StockUpdateSerializer, StockAdjustmentSerializer, ProductoSerializer, HistorialStockSerializer, CategoriaProductoSerializer
 from .forms import ProductoForm
 from Auditoria.services import crear_registro
 
@@ -80,6 +80,13 @@ class ProductoDeleteView(DeleteView):
     success_url = reverse_lazy('stock:catalogo')
 
 
+
+class CategoriaProductoViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    API endpoint que permite ver las categorías de productos.
+    """
+    queryset = Categorias_Productos.objects.all()
+    serializer_class = CategoriaProductoSerializer
 
 class ProductoViewSet(viewsets.ModelViewSet):
     """

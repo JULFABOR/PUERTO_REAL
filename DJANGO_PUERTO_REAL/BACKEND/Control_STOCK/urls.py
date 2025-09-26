@@ -10,7 +10,8 @@ from .views import (
     CatalogoProductosView,
     ProductoCreateView,
     ProductoUpdateView,
-    ProductoDeleteView
+    ProductoDeleteView,
+    CategoriaProductoViewSet
 )
 
 app_name = 'stock'
@@ -28,6 +29,7 @@ urlpatterns = [
 # --- URLs de API ---
 router = DefaultRouter()
 router.register(r'productos', ProductoViewSet, basename='producto')
+router.register(r'categorias', CategoriaProductoViewSet, basename='categoria')
 
 api_urlpatterns = [
     path('', include(router.urls)),

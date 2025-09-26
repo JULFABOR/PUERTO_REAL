@@ -130,6 +130,8 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+# Configuración de Email para desarrollo (imprime en consola)
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 # Internacionalización
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
