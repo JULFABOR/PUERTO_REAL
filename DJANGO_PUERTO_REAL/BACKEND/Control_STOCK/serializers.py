@@ -11,6 +11,7 @@ class CategoriaProductoSerializer(serializers.ModelSerializer):
 class ProductoSerializer(serializers.ModelSerializer):
     categoria_producto = CategoriaProductoSerializer(read_only=True)
     is_low_stock = serializers.SerializerMethodField()
+    total_stock = serializers.SerializerMethodField()
 
     class Meta:
         model = Productos
@@ -18,13 +19,16 @@ class ProductoSerializer(serializers.ModelSerializer):
             'id_producto', 'nombre_producto', 'descripcion_producto',
             'precio_unitario_venta_producto',
             'categoria_producto', 'low_stock_threshold', 'barcode',
-            'is_low_stock'
+            'is_low_stock', 'total_stock'
         ]
 
     def get_is_low_stock(self, obj):
         # Calculate current total stock for the product
         total_stock = Stocks.objects.filter(producto_en_stock=obj).aggregate(total=serializers.Sum('cantidad_actual_stock'))['total'] or 0
         return total_stock <= obj.low_stock_threshold
+
+    def get_total_stock(self, obj):
+        return Stocks.objects.filter(producto_en_stock=obj).aggregate(total=serializers.Sum('cantidad_actual_stock'))['total'] or 0
 
 class StockSerializer(serializers.ModelSerializer):
     producto_en_stock = ProductoSerializer(read_only=True)

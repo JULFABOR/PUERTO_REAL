@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import apiClient from '@/api/apiClient';
 
 function ApiTest() {
   const [username, setUsername] = useState('');
@@ -8,71 +9,69 @@ function ApiTest() {
   const [error, setError] = useState('');
   const [loginError, setLoginError] = useState('');
 
-  // Function to handle login
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoginError('');
     setError('');
 
     try {
-      const response = await fetch('/auth/api/login/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, password }),
-      });
+        // La llamada a la API ahora es una sola línea
+        const result = await apiClient('/auth/api/login/', {
+            method: 'POST',
+            body: JSON.stringify({ username, password }),
+        });
 
-      if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.non_field_errors ? errData.non_field_errors[0] : 'Error de inicio de sesión');
-      }
-
-      const result = await response.json();
-      localStorage.setItem('authToken', result.token);
-      setToken(result.token);
-      setUsername('');
-      setPassword('');
+        // La lógica de éxito sigue igual
+        localStorage.setItem('authToken', result.token);
+        setToken(result.token);
+        setUsername('');
+        setPassword('');
     } catch (err) {
-      console.error("Error al iniciar sesión:", err);
-      setLoginError(err.message);
+        // apiClient ya lanza el error, así que el catch funciona igual
+        console.error("Error al iniciar sesión:", err);
+        setLoginError(err.message || 'Error de inicio de sesión');
     }
-  };
+};
 
   // Effect to fetch data after login or on token change
-  useEffect(() => {
+useEffect(() => {
     if (token) {
-      const fetchData = async () => {
-        setError('');
-        try {
-          const response = await fetch('/api/caja/estado/', {
-            headers: {
-              'Authorization': `Token ${token}`,
-            },
-          });
-
-          if (!response.ok) {
-            const errData = await response.json();
-            throw new Error(errData.detail ? errData.detail : 'La respuesta de la red no fue exitosa. Status: ' + response.status);
-          }
-
-          const result = await response.json();
-          setData(result);
-        } catch (err) {
-          console.error("Error al obtener datos de la API:", err);
-          setError(err.message);
-          // If token is invalid, clear it
-          if (err.message.includes('Credenciales de autenticación no se proveyeron') || err.message.includes('Token inválido')) {
-            localStorage.removeItem('authToken');
-            setToken('');
-          }
-        }
-      };
-      fetchData();
+        const fetchData = async () => {
+            setError('');
+            try {
+                // The API call is now a single, clean line.
+                // apiClient handles the base URL and Authorization header automatically.
+                const result = await apiClient('/api/caja/estado/');
+                setData(result);
+            } catch (err) {
+                console.error("Error al obtener datos de la API:", err);
+                setError(err.message);
+                
+                // This error handling logic still works perfectly
+                // because apiClient throws an error with a meaningful message.
+                if (err.message.includes('Credenciales de autenticación no se proveyeron') || err.message.includes('Token inválido')) {
+                    localStorage.removeItem('authToken');
+                    setToken('');
+                }
+            }
+        };
+        fetchData();
     }
-  }, [token]);
+}, [token]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      // Llama al endpoint de logout del backend para invalidar el token
+      await apiClient('/auth/api/logout/', {
+        method: 'POST',
+      });
+    } catch (err) {
+      // Si el servidor falla, la sesión local se cerrará de todos modos.
+      // El error se registra en la consola para depuración.
+      console.error("Error al cerrar sesión en el servidor:", err);
+    }
+    
+    // Limpia el estado local y el token del navegador
     localStorage.removeItem('authToken');
     setToken('');
     setData(null);
