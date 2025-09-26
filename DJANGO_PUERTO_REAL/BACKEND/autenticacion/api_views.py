@@ -21,14 +21,16 @@ class CustomAuthToken(ObtainAuthToken):
 
         # --- LÓGICA MEJORADA PARA OBTENER EL ROL ---
         rol = None
+        # Priorizamos el grupo, que es más explícito
         if user.groups.exists():
             rol = user.groups.first().name
+        # Si no hay grupo, usamos la lógica de fallback
+        elif user.is_superuser or user.is_staff:
+            rol = 'JEFE'
         elif hasattr(user, 'empleado'):
             rol = 'EMPLEADO'
         elif hasattr(user, 'cliente'):
             rol = 'CLIENTE'
-        elif user.is_superuser or user.is_staff:
-            rol = 'JEFE'
         
         # También obtenemos el id del empleado si existe
         employee_id = user.empleado.id_empleado if hasattr(user, 'empleado') else None

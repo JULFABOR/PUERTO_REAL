@@ -24,7 +24,7 @@ const getUserData = () => {
 };
 
 const EmpleadoLayout = () => {
-    const [isSidebarOpen, setSidebarOpen] = useState(false); // Hidden by default on mobile
+    const [isSidebarOpen, setSidebarOpen] = useState(false);
     const [userData, setUserData] = useState(null);
     const navigate = useNavigate();
 
