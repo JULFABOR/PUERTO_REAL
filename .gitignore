@@ -5,6 +5,7 @@ venv/
 ENV/
 env/
 .venv/
+.env
 
 # Ignorar archivos compilados de Python
 __pycache__/

@@ -10,6 +10,8 @@ import ClienteLayout from './components/cliente/ClienteLayout';
 
 // Pages
 import EmpleadoHome from './pages/empleado/EmpleadoHome';
+import POSPage from './pages/empleado/POSPage';
+import ControlStockPage from './pages/empleado/ControlStockPage';
 import JefeHome from './pages/jefe/JefeHome';
 import ClienteHome from './pages/cliente/ClienteHome';
 
@@ -43,6 +45,8 @@ function App() {
           }
         >
           <Route path="home" element={<EmpleadoHome />} />
+          <Route path="pos" element={<POSPage />} />
+          <Route path="control-stock" element={<ControlStockPage />} />
           {/* Add other employee pages here, e.g.: */}
           {/* <Route path="pos" element={<PosPage />} /> */}
         </Route>
