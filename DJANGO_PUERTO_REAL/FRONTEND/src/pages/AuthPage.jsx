@@ -172,7 +172,7 @@ const AuthPage = () => {
                                 </form>
                             )}
                             {activeTab === 'register' && (
-                                 <form className="space-y-4" onSubmit={handleRegisterSubmit}>
+                                <form className="space-y-4" onSubmit={handleRegisterSubmit}>
                                     {/* Aquí va tu formulario de registro completo */}
                                     <p className="text-white">Formulario de registro...</p>
                                     <button type="submit" className="w-full text-pr-dark bg-pr-yellow hover:bg-yellow-400 font-bold rounded-lg text-sm px-5 py-2.5 text-center">Registrar</button>

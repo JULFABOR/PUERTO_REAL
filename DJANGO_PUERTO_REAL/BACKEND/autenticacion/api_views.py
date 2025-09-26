@@ -19,14 +19,20 @@ class CustomAuthToken(ObtainAuthToken):
         user = serializer.validated_data['user']
         token, created = Token.objects.get_or_create(user=user)
 
-        # --- LÓGICA AÑADIDA ---
-        # Obtenemos el primer grupo al que pertenece el usuario.
-        # Esto será su "rol".
-        rol = user.groups.first().name if user.groups.exists() else None
+        # --- LÓGICA MEJORADA PARA OBTENER EL ROL ---
+        rol = None
+        if user.groups.exists():
+            rol = user.groups.first().name
+        elif hasattr(user, 'empleado'):
+            rol = 'EMPLEADO'
+        elif hasattr(user, 'cliente'):
+            rol = 'CLIENTE'
+        elif user.is_superuser or user.is_staff:
+            rol = 'JEFE'
         
         # También obtenemos el id del empleado si existe
         employee_id = user.empleado.id_empleado if hasattr(user, 'empleado') else None
-        # --- FIN DE LA LÓGICA AÑADIDA ---
+        # --- FIN DE LA LÓGICA MEJORADA ---
 
         return Response({
             'token': token.key,
