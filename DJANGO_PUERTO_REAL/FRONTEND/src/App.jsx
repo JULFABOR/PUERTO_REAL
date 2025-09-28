@@ -10,8 +10,12 @@ import ClienteLayout from './components/cliente/ClienteLayout';
 
 // Pages
 import EmpleadoHome from './pages/empleado/EmpleadoHome';
-import POSPage from './pages/empleado/POSPage';
-import ControlStockPage from './pages/empleado/ControlStockPage';
+import VentasPOS from './pages/empleado/pos/VentasPOS';
+import ControlStock from './pages/empleado/control-stock/ControlStock';
+import Stock from './pages/empleado/stock/Stock';
+import Clientes from './pages/empleado/clientes/Clientes';
+import Proveedores from './pages/empleado/proveedores/Proveedores';
+import Caja from './pages/empleado/caja/Caja';
 import JefeHome from './pages/jefe/JefeHome';
 import JefeAnalysis from './pages/jefe/JefeAnalysis';
 import JefeCaja from './pages/jefe/JefeCaja';
@@ -52,10 +56,12 @@ function App() {
           }
         >
           <Route path="home" element={<EmpleadoHome />} />
-          <Route path="pos" element={<POSPage />} />
-          <Route path="control-stock" element={<ControlStockPage />} />
-          {/* Add other employee pages here, e.g.: */}
-          {/* <Route path="pos" element={<PosPage />} /> */}
+          <Route path="pos" element={<VentasPOS />} />
+          <Route path="control-stock" element={<ControlStock />} />
+          <Route path="stock" element={<Stock />} />
+          <Route path="clientes" element={<Clientes />} />
+          <Route path="proveedores" element={<Proveedores />} />
+          <Route path="caja" element={<Caja />} />
         </Route>
 
         {/* Jefe Routes */}

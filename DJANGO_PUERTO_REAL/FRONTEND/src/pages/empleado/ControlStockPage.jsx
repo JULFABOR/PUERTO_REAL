@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSearch } from '@fortawesome/free-solid-svg-icons';
+import apiClient from '../../api/apiClient'; // Import the apiClient
 
 const ControlStockPage = () => {
     const [products, setProducts] = useState([]);
@@ -10,31 +11,8 @@ const ControlStockPage = () => {
     useEffect(() => {
         const fetchProducts = async () => {
             setLoading(true);
-            const token = localStorage.getItem('authToken');
-
-            if (!token) {
-                setError('No se encontró el token de autenticación. Por favor, inicie sesión de nuevo.');
-                setLoading(false);
-                return;
-            }
-
             try {
-                const response = await fetch('/api/stock/productos/', {
-                    headers: {
-                        'Authorization': `Token ${token}`,
-                        'Content-Type': 'application/json',
-                    },
-                });
-
-                if (!response.ok) {
-                    // Si el token es inválido o ha expirado, el servidor devolverá 401
-                    if (response.status === 401) {
-                        throw new Error('Su sesión ha expirado. Por favor, inicie sesión de nuevo.');
-                    }
-                    throw new Error('Error al obtener los productos del servidor.');
-                }
-
-                const data = await response.json();
+                const data = await apiClient('/api/stock/productos/');
                 setProducts(data);
             } catch (err) {
                 setError(err.message);
@@ -44,7 +22,7 @@ const ControlStockPage = () => {
         };
 
         fetchProducts();
-    }, []); // El array vacío significa que este efecto se ejecuta una vez al montar el componente
+    }, []); // The empty array means this effect runs once on component mount
 
     return (
         <div>
