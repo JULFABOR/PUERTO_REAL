@@ -13,7 +13,7 @@ from rest_framework.authtoken.views import obtain_auth_token
 from Control_VENTAS.urls import urlpatterns as ventas_web_urls
 from Control_VENTAS.urls import api_urlpatterns as ventas_api_urls
 from Control_COMPRAS.urls import urlpatterns as compras_web_urls
-from Control_COMPRAS.urls import api_urlpatterns as compras_api_urls
+from autenticacion.Control_COMPRAS.urls import api_urlpatterns as compras_api_urls
 from Control_STOCK.urls import urlpatterns as stock_web_urls
 from Control_STOCK.urls import api_urlpatterns as stock_api_urls
 from Fidelizar_CLIENTES.urls import urlpatterns as fidelizar_web_urls
@@ -39,7 +39,7 @@ urlpatterns = [
     # Rutas de API
     path('api/token-auth/', obtain_auth_token, name='api_token_auth'), # Para obtener tokens
     path('api/ventas/', include(ventas_api_urls)),
-    path('api/compras/', include(compras_api_urls)),
+    # path('api/compras/', include(compras_api_urls)),
     path('api/stock/', include(stock_api_urls)),
     path('api/fidelizacion/', include(fidelizar_api_urls)),
     path('api/', include(caja_api_urls)),

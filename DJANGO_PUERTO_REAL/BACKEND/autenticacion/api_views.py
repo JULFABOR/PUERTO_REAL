@@ -19,21 +19,25 @@ class CustomAuthToken(ObtainAuthToken):
         user = serializer.validated_data['user']
         token, created = Token.objects.get_or_create(user=user)
 
-        # --- LÓGICA MEJORADA PARA OBTENER EL ROL ---
+        # --- LÓGICA CORREGIDA PARA OBTENER EL ROL ---
         rol = None
-        # Priorizamos el grupo, que es más explícito
-        if user.groups.exists():
-            rol = user.groups.first().name
-        # Si no hay grupo, usamos la lógica de fallback
-        elif user.is_superuser or user.is_staff:
-            rol = 'JEFE'
-        elif hasattr(user, 'empleado'):
-            rol = 'EMPLEADO'
-        elif hasattr(user, 'cliente'):
-            rol = 'CLIENTE'
+        if hasattr(user, 'perfil') and user.perfil.rol:
+            rol = user.perfil.rol
         
-        # También obtenemos el id del empleado si existe
-        employee_id = user.empleado.id_empleado if hasattr(user, 'empleado') else None
+        # Si no hay perfil o rol, se puede asignar un rol por defecto o manejar el error
+        else:
+            # Opción 1: Asignar un rol por defecto (por ejemplo, CLIENTE)
+            # rol = 'CLIENTE' 
+            
+            # Opción 2: O simplemente dejarlo como None y que el frontend decida
+            pass
+
+        # El ID de empleado ahora se puede obtener de forma más segura
+        # Asumiendo que el modelo Empleado está vinculado al User de alguna manera
+        # Por ejemplo, si Empleado tiene un OneToOneField con User:
+        employee_id = None
+        if hasattr(user, 'empleado'):
+             employee_id = user.empleado.id_empleado # --- FIN DE LA LÓGICA MEJORADA ---
         # --- FIN DE LA LÓGICA MEJORADA ---
 
         return Response({

@@ -26,7 +26,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
         return <Navigate to="/" />;
     }
 
-    if (allowedRoles && !allowedRoles.includes(userData.rol)) {
+    if (allowedRoles && !allowedRoles.some(role => role.toLowerCase() === (userData.rol || '').toLowerCase())) {
         console.log("Redirecting because role is not allowed.");
         return <Navigate to="/home" />;
     }
