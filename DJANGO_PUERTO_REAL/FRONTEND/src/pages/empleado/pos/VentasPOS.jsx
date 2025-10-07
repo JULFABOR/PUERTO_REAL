@@ -16,7 +16,7 @@ const QrModal = ({ ventaData, onNuevaVenta }) => {
                 <p className="text-pr-gray mb-6">El cliente puede escanear este QR para sumar sus puntos.</p>
                 
                 <div className="flex justify-center mb-6 p-4 bg-gray-100 rounded-lg">
-                    <QRCode 
+                    <QRCodeSVG 
                         value={ventaData.qr_token} 
                         size={256} 
                         bgColor="#ffffff" 
@@ -84,15 +84,15 @@ const VentasPOS = () => {
     }, [busqueda, productos]);
 
     const totalCarrito = useMemo(() => {
-        return carrito.reduce((total, item) => total + item.precio_venta * item.cantidad, 0);
+        return carrito.reduce((total, item) => total + parseFloat(item.precio_unitario_venta_producto) * item.cantidad, 0);
     }, [carrito]);
 
     const agregarAlCarrito = (producto) => {
         setCarrito(prev => {
-            const itemExistente = prev.find(item => item.id === producto.id);
+            const itemExistente = prev.find(item => item.id_producto === producto.id_producto);
             if (itemExistente) {
                 return prev.map(item =>
-                    item.id === producto.id ? { ...item, cantidad: item.cantidad + 1 } : item
+                    item.id_producto === producto.id_producto ? { ...item, cantidad: item.cantidad + 1 } : item
                 );
             } else {
                 return [...prev, { ...producto, cantidad: 1 }];
@@ -106,13 +106,13 @@ const VentasPOS = () => {
         const cantidad = parseInt(nuevaCantidad, 10);
         setCarrito(prev =>
             prev.map(item =>
-                item.id === productoId ? { ...item, cantidad: cantidad > 0 ? cantidad : 1 } : item
+                item.id_producto === productoId ? { ...item, cantidad: cantidad > 0 ? cantidad : 1 } : item
             )
         );
     };
 
     const eliminarDelCarrito = (productoId) => {
-        setCarrito(prev => prev.filter(item => item.id !== productoId));
+        setCarrito(prev => prev.filter(item => item.id_producto !== productoId));
     };
 
     const finalizarVenta = async () => {
@@ -124,26 +124,44 @@ const VentasPOS = () => {
         setLoading(true);
         setError(null);
 
-        const datosVenta = {
-            detalles: carrito.map(item => ({
-                producto: item.id,
-                cantidad: item.cantidad,
-                precio_unitario: item.precio_venta,
-            })),
-            total_venta: totalCarrito,
-            // El cliente es nulo, la asignación de puntos es posterior vía QR
-            cliente_venta: null, 
-            // Asumiendo que el empleado y la caja se asignan en el backend a partir del usuario autenticado
-        };
-
         try {
+            // 1. Get user data from localStorage
+            const userDataString = localStorage.getItem('userData');
+            if (!userDataString) {
+                throw new Error("No se encontraron datos de usuario. Por favor, inicie sesión de nuevo.");
+            }
+            const userData = JSON.parse(userDataString);
+            if (!userData.employee_id) {
+                throw new Error("El usuario no tiene un ID de empleado asociado.");
+            }
+
+            // 2. Get active caja status
+            const cajaEstado = await apiClient('/api/caja/estado/');
+            if (!cajaEstado || !cajaEstado.id_caja) {
+                throw new Error("No hay una caja abierta. Por favor, abra una caja para poder registrar ventas.");
+            }
+
+            const datosVenta = {
+                detalles: carrito.map(item => ({
+                    producto_det_vent: item.id_producto,
+                    cantidad_det_vent: item.cantidad,
+                    precio_unitario_det_vent: item.precio_unitario_venta_producto,
+                })),
+                total_venta: totalCarrito,
+                cliente_venta: null,
+                empleado_venta: userData.employee_id,
+                caja_venta: cajaEstado.id_caja,
+            };
+
             const response = await apiClient('/api/ventas/ventas/', {
                 method: 'POST',
                 body: JSON.stringify(datosVenta),
             });
-            setVentaFinalizadaData(response); // Guardar datos de la venta para el modal QR
+            setVentaFinalizadaData(response);
         } catch (err) {
-            setError('Error al finalizar la venta. Verifique la consola.');
+            // The error from the try block could be a string I threw or an error from apiClient
+            const errorMessage = err.message || 'Error al finalizar la venta. Verifique la consola.';
+            setError(errorMessage);
             console.error(err);
         } finally {
             setLoading(false);
@@ -180,12 +198,12 @@ const VentasPOS = () => {
                                 {productosFiltrados.length > 0 ? (
                                     productosFiltrados.map(p => (
                                         <div
-                                            key={p.id}
+                                            key={p.id_producto}
                                             onClick={() => agregarAlCarrito(p)}
                                             className="p-4 cursor-pointer hover:bg-pr-dark-gray flex justify-between items-center transition-colors"
                                         >
                                             <span>{p.nombre_producto}</span>
-                                            <span className="font-bold text-pr-yellow">${parseFloat(p.precio_venta).toFixed(2)}</span>
+                                            <span className="font-bold text-pr-yellow">${parseFloat(p.precio_unitario_venta_producto).toFixed(2)}</span>
                                         </div>
                                     ))
                                 ) : (
@@ -203,20 +221,20 @@ const VentasPOS = () => {
                                 <div className="text-center py-10 text-pr-gray">El carrito está vacío</div>
                             ) : (
                                 carrito.map(item => (
-                                    <div key={item.id} className="flex items-center gap-4 mb-4 bg-pr-dark-gray p-3 rounded-lg">
+                                    <div key={item.id_producto} className="flex items-center gap-4 mb-4 bg-pr-dark-gray p-3 rounded-lg">
                                         <div className="flex-grow">
                                             <p className="font-semibold">{item.nombre_producto}</p>
-                                            <p className="text-sm text-pr-gray">@ ${parseFloat(item.precio_venta).toFixed(2)}</p>
+                                            <p className="text-sm text-pr-gray">@ ${parseFloat(item.precio_unitario_venta_producto).toFixed(2)}</p>
                                         </div>
                                         <input
                                             type="number"
                                             value={item.cantidad}
-                                            onChange={(e) => actualizarCantidad(item.id, e.target.value)}
+                                            onChange={(e) => actualizarCantidad(item.id_producto, e.target.value)}
                                             className="w-20 text-center bg-pr-dark border border-pr-gray rounded-md p-2"
                                             min="1"
                                         />
-                                        <p className="font-bold w-24 text-right">${(item.precio_venta * item.cantidad).toFixed(2)}</p>
-                                        <button onClick={() => eliminarDelCarrito(item.id)} className="text-red-500 hover:text-red-400 font-bold p-2">
+                                        <p className="font-bold w-24 text-right">${(parseFloat(item.precio_unitario_venta_producto) * item.cantidad).toFixed(2)}</p>
+                                        <button onClick={() => eliminarDelCarrito(item.id_producto)} className="text-red-500 hover:text-red-400 font-bold p-2">
                                             X
                                         </button>
                                     </div>

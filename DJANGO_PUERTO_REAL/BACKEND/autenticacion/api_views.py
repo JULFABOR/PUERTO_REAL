@@ -19,33 +19,26 @@ class CustomAuthToken(ObtainAuthToken):
         user = serializer.validated_data['user']
         token, created = Token.objects.get_or_create(user=user)
 
-        # --- LÓGICA CORREGIDA PARA OBTENER EL ROL ---
         rol = None
-        if hasattr(user, 'perfil') and user.perfil.rol:
-            rol = user.perfil.rol
-        
-        # Si no hay perfil o rol, se puede asignar un rol por defecto o manejar el error
-        else:
-            # Opción 1: Asignar un rol por defecto (por ejemplo, CLIENTE)
-            # rol = 'CLIENTE' 
-            
-            # Opción 2: O simplemente dejarlo como None y que el frontend decida
-            pass
-
-        # El ID de empleado ahora se puede obtener de forma más segura
-        # Asumiendo que el modelo Empleado está vinculado al User de alguna manera
-        # Por ejemplo, si Empleado tiene un OneToOneField con User:
         employee_id = None
+        cliente_id = None
+
         if hasattr(user, 'empleado'):
-             employee_id = user.empleado.id_empleado # --- FIN DE LA LÓGICA MEJORADA ---
-        # --- FIN DE LA LÓGICA MEJORADA ---
+            rol = 'empleado'
+            employee_id = user.empleado.id_empleado
+        elif hasattr(user, 'cliente'):
+            rol = 'cliente'
+            cliente_id = user.cliente.id_cliente
+        elif user.is_superuser:
+            rol = 'jefe'
 
         return Response({
             'token': token.key,
             'user_id': user.pk,
             'email': user.email,
-            'rol': rol,  # <-- AÑADIDO: Enviamos el rol en la respuesta
-            'employee_id': employee_id # <-- AÑADIDO: Enviamos el ID del empleado
+            'rol': rol,
+            'employee_id': employee_id,
+            'cliente_id': cliente_id,
         })
 
 # --- Vista de Logout ---
