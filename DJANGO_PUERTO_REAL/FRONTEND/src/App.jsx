@@ -11,7 +11,6 @@ import ClienteLayout from './components/cliente/ClienteLayout';
 // Pages
 import EmpleadoHome from './pages/empleado/EmpleadoHome';
 import VentasPOS from './pages/empleado/pos/VentasPOS';
-import ControlStock from './pages/empleado/control-stock/ControlStock';
 import Stock from './pages/empleado/stock/Stock';
 import Clientes from './pages/empleado/clientes/Clientes';
 import Proveedores from './pages/empleado/proveedores/Proveedores';
@@ -25,9 +24,6 @@ import JefeStock from './pages/jefe/JefeStock';
 import JefeSuppliers from './pages/jefe/JefeSuppliers';
 import JefeSettings from './pages/jefe/JefeSettings';
 import ClienteHome from './pages/cliente/ClienteHome';
-
-// NOTE: The old HomePage and ControlStockPage are currently not used in this new structure.
-// They will be replaced by role-specific pages.
 
 function App() {
   return (
@@ -46,7 +42,7 @@ function App() {
           }
         />
 
-        {/* Employee Routes */}
+        {/* Empleados Routes */}
         <Route 
           path="/empleado" 
           element={
@@ -57,7 +53,6 @@ function App() {
         >
           <Route path="home" element={<EmpleadoHome />} />
           <Route path="pos" element={<VentasPOS />} />
-          <Route path="control-stock" element={<ControlStock />} />
           <Route path="stock" element={<Stock />} />
           <Route path="clientes" element={<Clientes />} />
           <Route path="proveedores" element={<Proveedores />} />
@@ -76,12 +71,11 @@ function App() {
           <Route path="home" element={<JefeHome />} />
           <Route path="analysis" element={<JefeAnalysis />} />
           <Route path="caja" element={<JefeCaja />} />
-          <Route path="control-stock" element={<JefeControlStock />} />
+
           <Route path="customers" element={<JefeCustomers />} />
           <Route path="stock" element={<JefeStock />} />
           <Route path="suppliers" element={<JefeSuppliers />} />
           <Route path="settings" element={<JefeSettings />} />
-          {/* Add other jefe pages here */}
         </Route>
 
         {/* Cliente Routes */}
@@ -94,7 +88,6 @@ function App() {
           }
         >
           <Route path="home" element={<ClienteHome />} />
-          {/* Add other cliente pages here */}
         </Route>
 
       </Routes>

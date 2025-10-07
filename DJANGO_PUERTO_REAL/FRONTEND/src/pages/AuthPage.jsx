@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { initFlowbite } from 'flowbite';
+
 import apiClient from '@/api/apiClient'; // <-- Usando el alias de ruta '@'
 
 const AuthPage = () => {

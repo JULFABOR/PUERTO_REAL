@@ -21,7 +21,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
-load_dotenv(os.path.join(BASE_DIR.parent.parent, '.env'))
+load_dotenv(os.path.join(BASE_DIR.parent, '.env'))
 
 # Configuración de desarrollo de inicio rápido - no apta para producción
 # Consulta https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -49,13 +49,12 @@ INSTALLED_APPS = [
     'corsheaders',
     'HOME',
     'Abrir_Cerrar_CAJA',
-    # 'Control_COMPRAS.apps.ControlComprasConfig',
+    'Control_COMPRAS',
     'Control_VENTAS',
     'Control_STOCK',
     'Fidelizar_CLIENTES',
     'Analizar_INGRESOS_EGRESOS',
     'Auditoria',
-    'autenticacion.Control_COMPRAS',
     'autenticacion',
 ]
 

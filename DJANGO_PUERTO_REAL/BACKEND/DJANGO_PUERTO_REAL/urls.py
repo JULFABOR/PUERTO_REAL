@@ -13,7 +13,7 @@ from rest_framework.authtoken.views import obtain_auth_token
 from Control_VENTAS.urls import urlpatterns as ventas_web_urls
 from Control_VENTAS.urls import api_urlpatterns as ventas_api_urls
 from Control_COMPRAS.urls import urlpatterns as compras_web_urls
-from autenticacion.Control_COMPRAS.urls import api_urlpatterns as compras_api_urls
+from Control_COMPRAS.urls import api_urlpatterns as compras_api_urls
 from Control_STOCK.urls import urlpatterns as stock_web_urls
 from Control_STOCK.urls import api_urlpatterns as stock_api_urls
 from Fidelizar_CLIENTES.urls import urlpatterns as fidelizar_web_urls

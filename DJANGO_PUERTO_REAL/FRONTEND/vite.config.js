@@ -15,5 +15,8 @@ export default defineConfig({
       '/api': 'http://127.0.0.1:8000', // ...se redirige a Django.
       '/auth': 'http://127.0.0.1:8000',
     }
+  },
+  optimizeDeps: {
+    include: ['qrcode.react'],
   }
 });

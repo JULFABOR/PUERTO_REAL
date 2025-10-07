@@ -19,15 +19,24 @@ const apiClient = async (url, options = {}) => {
     const fullUrl = `${baseUrl}${url}`;
 
     try {
-        const response = await fetch(fullUrl, {
+        const fetchOptions = {
             ...options,
             headers,
-        });
+        };
+
+        // For GET requests, disable caching to ensure fresh data
+        if (!options.method || options.method.toUpperCase() === 'GET') {
+            fetchOptions.cache = 'no-cache';
+        }
+
+        const response = await fetch(fullUrl, fetchOptions);
 
         if (!response.ok) {
-            // Try to parse error response from the backend
             const errorData = await response.json().catch(() => ({ message: response.statusText }));
-            throw new Error(errorData.detail || errorData.message || 'An error occurred');
+            const error = new Error('API request failed');
+            error.response = response;
+            error.data = errorData;
+            throw error;
         }
 
         // If response has no content, return null, otherwise parse JSON

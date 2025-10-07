@@ -1,34 +1,59 @@
 from rest_framework import serializers
-from HOME.models import Productos, Stocks, Categorias_Productos, Historial_Stock, Tipos_Movimientos, Empleados
+from HOME.models import Productos, Stocks, Categorias_Productos, Historial_Stock, Tipos_Movimientos, Empleados, Estados
 from django.utils import timezone
 from datetime import timedelta
+
+class EstadoProductoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Estados
+        fields = ['id_estado', 'nombre_estado']
+
+from rest_framework import serializers
+from HOME.models import Productos, Stocks, Categorias_Productos, Historial_Stock, Tipos_Movimientos, Empleados, Estados
+from django.utils import timezone
+from datetime import timedelta
+
+class EstadoProductoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Estados
+        fields = ['id_estado', 'nombre_estado']
 
 class CategoriaProductoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Categorias_Productos
         fields = ['id_categoria', 'nombre_categoria']
 
+class ProductoWriteSerializer(serializers.ModelSerializer):
+    stock_adquirido = serializers.IntegerField(write_only=True)
+    stock_actual = serializers.IntegerField(write_only=True)
+
+    class Meta:
+        model = Productos
+        fields = [
+            'nombre_producto',
+            'descripcion_producto',
+            'precio_unitario_compra_producto',
+            'precio_unitario_venta_producto',
+            'categoria_producto',
+            'estado_producto',
+            'low_stock_threshold',
+            'barcode',
+            'fecha_vencimiento_producto',
+            'stock_adquirido',
+            'stock_actual'
+        ]
+
 class ProductoSerializer(serializers.ModelSerializer):
     categoria_producto = CategoriaProductoSerializer(read_only=True)
-    is_low_stock = serializers.SerializerMethodField()
-    total_stock = serializers.SerializerMethodField()
+    total_stock = serializers.IntegerField(read_only=True, default=0)
 
     class Meta:
         model = Productos
         fields = [
             'id_producto', 'nombre_producto', 'descripcion_producto',
-            'precio_unitario_venta_producto',
-            'categoria_producto', 'low_stock_threshold', 'barcode',
-            'is_low_stock', 'total_stock'
+            'precio_unitario_compra_producto', 'precio_unitario_venta_producto',
+            'categoria_producto', 'estado_producto', 'low_stock_threshold', 'barcode', 'total_stock',
         ]
-
-    def get_is_low_stock(self, obj):
-        # Calculate current total stock for the product
-        total_stock = Stocks.objects.filter(producto_en_stock=obj).aggregate(total=serializers.Sum('cantidad_actual_stock'))['total'] or 0
-        return total_stock <= obj.low_stock_threshold
-
-    def get_total_stock(self, obj):
-        return Stocks.objects.filter(producto_en_stock=obj).aggregate(total=serializers.Sum('cantidad_actual_stock'))['total'] or 0
 
 class StockSerializer(serializers.ModelSerializer):
     producto_en_stock = ProductoSerializer(read_only=True)
