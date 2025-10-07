@@ -10,6 +10,7 @@ from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from django.conf import settings
+from .serializers import UserRegisterSerializer
 
 # --- Tu vista de Login que ya tenías ---
 class CustomAuthToken(ObtainAuthToken):
@@ -47,6 +48,26 @@ class LogoutView(APIView):
         # request.auth es el token object gracias a TokenAuthentication
         request.auth.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+# --- VISTA PARA REGISTRAR UN NUEVO USUARIO ---
+class RegisterView(APIView):
+    permission_classes = [] # No se necesita estar autenticado para registrarse
+
+    def post(self, request):
+        serializer = UserRegisterSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
+            # Opcional: podrías generar un token y loguear al usuario directamente
+            token, created = Token.objects.get_or_create(user=user)
+            return Response({
+                'message': 'Usuario registrado con éxito.',
+                'token': token.key,
+                'user_id': user.pk,
+                'email': user.email,
+                'rol': None, # Un nuevo usuario no tiene rol por defecto
+                'employee_id': None
+            }, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 # --- Serializadores para el reseteo de contraseña ---
 class PasswordResetRequestSerializer(serializers.Serializer):
