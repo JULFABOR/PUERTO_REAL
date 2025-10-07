@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { initFlowbite } from 'flowbite';
-import apiClient from '@/api/apiClient'; // <-- Usando el alias de ruta '@'
+import { useAuth } from '@/hooks/useAuth'; // <-- Import and use the hook
+import apiClient from '@/api/apiClient';
 
 const AuthPage = () => {
     const [activeTab, setActiveTab] = useState('login');
-    const navigate = useNavigate();
+    const { login } = useAuth(); // <-- Get login function from context
 
     useEffect(() => {
         initFlowbite();
@@ -21,6 +21,8 @@ const AuthPage = () => {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
+    const [registerError, setRegisterError] = useState('');
+    const [registerSuccess, setRegisterSuccess] = useState('');
 
     // --- Estados para el modal de reseteo de contraseña ---
     const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
@@ -28,45 +30,63 @@ const AuthPage = () => {
     const [resetMessage, setResetMessage] = useState('');
 
 
-    // --- Lógica de Envío ---
+    // --- Lógica de Envío (Refactored) ---
     const handleLoginSubmit = async (e) => {
         e.preventDefault();
         setLoginError('');
-
-        try {
-            // Se usa únicamente el apiClient para hacer la llamada a la API
-            const data = await apiClient('/auth/api/login/', {
-                method: 'POST',
-                body: JSON.stringify({
-                    username: loginUsername,
-                    password: loginPassword,
-                }),
-            });
-            
-            localStorage.setItem('authToken', data.token);
-            localStorage.setItem('userData', JSON.stringify({ 
-                email: data.email, 
-                userId: data.user_id, 
-                rol: data.rol,
-                employee_id: data.employee_id
-            }));
-            navigate('/home');
-
-        } catch (error) {
-            console.error('Error de login:', error);
-            setLoginError('Nombre de usuario o contraseña incorrectos.');
+        const result = await login(loginUsername, loginPassword); // Call the hook's login
+        if (!result.success) {
+            setLoginError(result.error);
         }
+        // Navigation is now handled inside AuthContext
     };
 
-    const handleRegisterSubmit = (e) => {
+    const handleRegisterSubmit = async (e) => {
         e.preventDefault();
+        setRegisterError('');
+        setRegisterSuccess('');
+
         if (registerPassword !== confirmPassword) {
-            alert("Las contraseñas no coinciden.");
+            setRegisterError("Las contraseñas no coinciden.");
             return;
         }
-        // TODO: Implementar la lógica de registro llamando al apiClient
-        console.log('Register Submitted', { email: registerEmail, password: registerPassword, firstName, lastName });
-        setActiveTab('login');
+
+        try {
+            const response = await apiClient('/auth/api/register/', {
+                method: 'POST',
+                body: JSON.stringify({
+                    first_name: firstName,
+                    last_name: lastName,
+                    email: registerEmail,
+                    password: registerPassword,
+                    password2: confirmPassword
+                }),
+            });
+
+            if (response.token) {
+                setRegisterSuccess('¡Registro exitoso! Serás redirigido al login.');
+                setTimeout(() => {
+                    setActiveTab('login');
+                    // Limpiar campos de registro
+                    setFirstName('');
+                    setLastName('');
+                    setRegisterEmail('');
+                    setRegisterPassword('');
+                    setConfirmPassword('');
+                    setRegisterSuccess('');
+                }, 3000);
+            } else {
+                 // Esto es en caso de que la respuesta no sea la esperada pero no lanzó un error http
+                const errorData = response.data || { detail: 'Ocurrió un error desconocido.' };
+                const errorMessage = Object.values(errorData).flat().join(' ');
+                setRegisterError(errorMessage);
+            }
+        } catch (error) {
+            // El apiClient debería procesar el error y devolverlo en un formato consistente
+            const errorData = error.response?.data || { detail: 'No se pudo conectar con el servidor.' };
+            const errorMessage = Object.values(errorData).flat().join(' ');
+            setRegisterError(errorMessage);
+        }
     };
 
     const handleForgotPasswordSubmit = async (e) => {
