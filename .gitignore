@@ -5,6 +5,7 @@ venv/
 ENV/
 env/
 .venv/
+.env
 
 # Ignorar archivos compilados de Python
 __pycache__/
@@ -22,3 +23,6 @@ db.sqlite3
 Lib/
 Scripts/
 pyvenv.cfg
+
+# Archivo de variables de entorno
+.env.local

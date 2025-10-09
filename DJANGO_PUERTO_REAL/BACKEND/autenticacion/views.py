@@ -1,0 +1,1 @@
+#ya no es necesario utiñlizar las vistas basadas en clases de Django REST Framework para el registro y login
