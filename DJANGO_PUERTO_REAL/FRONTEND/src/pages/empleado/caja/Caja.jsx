@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../../../api/apiClient';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faStore, faWallet, faHistory, faPlusCircle, faMinusCircle } from '@fortawesome/free-solid-svg-icons';
+import { faStore, faHistory } from '@fortawesome/free-solid-svg-icons';
 
 const Caja = () => {
     const [cajaEstado, setCajaEstado] = useState(null);

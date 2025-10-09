@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFileExport, faCalendarDays } from '@fortawesome/free-solid-svg-icons';
 import Chart from 'react-apexcharts';
@@ -6,7 +6,7 @@ import jsPDF from 'jspdf';
 
 const JefeAnalysis = () => {
     // TODO: Fetch data from API
-    const [salesBarChart, setSalesBarChart] = useState({
+    const [salesBarChart] = useState({
         options: {
             chart: { type: 'bar', height: 350, toolbar: { show: false } },
             plotOptions: { bar: { borderRadius: 4, horizontal: false, columnWidth: '50%' } },
@@ -23,7 +23,7 @@ const JefeAnalysis = () => {
     });
 
     // TODO: Fetch data from API
-    const [categoryDonutChart, setCategoryDonutChart] = useState({
+    const [categoryDonutChart] = useState({
         options: {
             chart: { type: 'donut', height: 250 },
             labels: [],

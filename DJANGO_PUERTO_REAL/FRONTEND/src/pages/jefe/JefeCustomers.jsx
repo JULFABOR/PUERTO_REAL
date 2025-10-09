@@ -8,7 +8,7 @@ const JefeCustomers = () => {
     const [showConditionsModal, setShowConditionsModal] = useState(false);
 
     // TODO: Fetch data from API
-    const [customers, setCustomers] = useState([]);
+    const [customers] = useState([]);
 
     return (
         <>
@@ -200,7 +200,7 @@ const JefeCustomers = () => {
                                 <h4 className="text-lg font-bold text-pr-yellow">Promo: 10% de Descuento</h4>
                                 <ul className="list-disc list-inside text-gray-400 space-y-2">
                                     <li>Válido únicamente para la próxima compra.</li>
-                                    <li>Aplica solo a vinos de la categoría "Selección Especial".</li>
+                                    <li>Aplica solo a vinos de la categoría &quot;Selección Especial&quot;.</li>
                                     <li>No acumulable con otras promociones.</li>
                                     <li>El descuento se aplica sobre el precio de lista.</li>
                                     <li>Promoción válida hasta el 31/12/2025.</li>

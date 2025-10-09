@@ -9,7 +9,6 @@ import {
     faTruckField, 
     faMoneyBillWave,
     faChartPie,
-    faHome
 } from '@fortawesome/free-solid-svg-icons';
 import { initFlowbite } from 'flowbite';
 

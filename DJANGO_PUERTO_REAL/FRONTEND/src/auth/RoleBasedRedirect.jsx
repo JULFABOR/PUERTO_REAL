@@ -13,9 +13,11 @@ const getUserData = () => {
 
 const RoleBasedRedirect = () => {
     const userData = getUserData();
+    console.log("User data from localStorage:", userData);
     const role = userData?.rol;
+    console.log("User role:", role);
 
-    if (role === 'JEFE' || role === 'Gerente de Tienda') {
+    if (role === 'JEFE') {
         return <Navigate to="/jefe/home" />;
     } else if (role === 'EMPLEADO') {
         return <Navigate to="/empleado/home" />;

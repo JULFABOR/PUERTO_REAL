@@ -1,4 +1,5 @@
 import React, { createContext, useState, useEffect, useCallback } from 'react';
+import PropTypes from 'prop-types';
 import apiClient from '@/api/apiClient';
 import { useNavigate } from 'react-router-dom';
 
@@ -73,6 +74,10 @@ export const AuthProvider = ({ children }) => {
             {!loading && children}
         </AuthContext.Provider>
     );
+};
+
+AuthProvider.propTypes = {
+    children: PropTypes.node.isRequired,
 };
 
 export default AuthContext;

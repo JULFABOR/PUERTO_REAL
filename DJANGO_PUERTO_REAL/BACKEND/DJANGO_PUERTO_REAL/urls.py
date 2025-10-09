@@ -39,7 +39,7 @@ urlpatterns = [
     # Rutas de API
     path('api/token-auth/', obtain_auth_token, name='api_token_auth'), # Para obtener tokens
     path('api/ventas/', include(ventas_api_urls)),
-    path('api/compras/', include(compras_api_urls)),
+    # path('api/compras/', include(compras_api_urls)),
     path('api/stock/', include(stock_api_urls)),
     path('api/fidelizacion/', include(fidelizar_api_urls)),
     path('api/', include(caja_api_urls)),

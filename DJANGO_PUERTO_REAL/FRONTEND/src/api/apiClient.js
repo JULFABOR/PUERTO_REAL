@@ -18,15 +18,25 @@ const apiClient = async (url, options = {}) => {
     // El parámetro 'url' debe ser una ruta relativa como '/api/users' o '/auth/api/login/'.
 
     try {
-        const response = await fetch(url, { // <-- Ahora usa 'url' directamente
+        const fetchOptions = {
             ...options,
             headers,
-        });
+        };
+
+        // For GET requests, disable caching to ensure fresh data
+        if (!options.method || options.method.toUpperCase() === 'GET') {
+            fetchOptions.cache = 'no-cache';
+        }
+
+        const response = await fetch(url, fetchOptions);
 
         if (!response.ok) {
             // Intenta parsear la respuesta de error del backend
             const errorData = await response.json().catch(() => ({ message: response.statusText }));
-            throw new Error(errorData.detail || errorData.message || 'An error occurred');
+            const error = new Error('API request failed');
+            error.response = response;
+            error.data = errorData;
+            throw error;
         }
 
         // Si la respuesta no tiene contenido, devuelve null, de lo contrario, parsea el JSON

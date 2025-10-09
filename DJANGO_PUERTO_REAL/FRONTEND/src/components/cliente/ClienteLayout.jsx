@@ -5,7 +5,6 @@ import {
     faBars, 
     faBookOpen, 
     faUser,
-    faHome
 } from '@fortawesome/free-solid-svg-icons';
 import { initFlowbite } from 'flowbite';
 

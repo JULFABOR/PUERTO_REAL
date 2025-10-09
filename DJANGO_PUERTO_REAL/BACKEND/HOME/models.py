@@ -43,7 +43,7 @@ class Categorias_Productos (models.Model):
 class Productos(models.Model):
     id_producto = models.BigAutoField(primary_key=True)
     fecha_registro_producto = models.DateTimeField(auto_now_add=True)
-    descripcion_producto = models.CharField(max_length=500)
+    descripcion_producto = models.CharField(max_length=500, blank=True, null=True)
     nombre_producto = models.CharField(max_length=200)
     precio_unitario_compra_producto = models.DecimalField(max_digits=8, decimal_places=2)
     precio_unitario_venta_producto = models.DecimalField(max_digits=8, decimal_places=2)
@@ -52,7 +52,7 @@ class Productos(models.Model):
     categoria_producto = models.ForeignKey(Categorias_Productos, on_delete=models.CASCADE)
     estado_producto = models.ForeignKey(Estados, on_delete=models.CASCADE)
     low_stock_threshold = models.IntegerField(default=0) # Added field
-    barcode = models.CharField(max_length=100, unique=True, blank=True, null=True) # New field for barcode
+    barcode = models.CharField(max_length=100, unique=True, blank=True, null=True, default=None) # New field for barcode
     DELETE_Prod = models.BooleanField(default=False)
     def __str__(self):
         return self.nombre_producto

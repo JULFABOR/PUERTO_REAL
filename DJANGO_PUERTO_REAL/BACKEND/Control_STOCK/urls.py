@@ -11,7 +11,8 @@ from .views import (
     ProductoCreateView,
     ProductoUpdateView,
     ProductoDeleteView,
-    CategoriaProductoViewSet
+    CategoriaProductoViewSet,
+    EstadoProductoViewSet
 )
 
 app_name = 'stock'
@@ -30,6 +31,7 @@ urlpatterns = [
 router = DefaultRouter()
 router.register(r'productos', ProductoViewSet, basename='producto')
 router.register(r'categorias', CategoriaProductoViewSet, basename='categoria')
+router.register(r'estados-producto', EstadoProductoViewSet, basename='estados-producto')
 
 api_urlpatterns = [
     path('', include(router.urls)),

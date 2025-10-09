@@ -12,7 +12,11 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 from HOME.models import Productos, Stocks, Categorias_Productos, Historial_Stock, Tipos_Movimientos, Empleados, Estados
-from .serializers import StockSerializer, StockUpdateSerializer, StockAdjustmentSerializer, ProductoSerializer, HistorialStockSerializer, CategoriaProductoSerializer
+from .serializers import (
+    StockSerializer, StockUpdateSerializer, StockAdjustmentSerializer, 
+    ProductoSerializer, ProductoWriteSerializer, HistorialStockSerializer, 
+    CategoriaProductoSerializer, EstadoProductoSerializer
+)
 from .forms import ProductoForm
 from Auditoria.services import crear_registro
 
@@ -81,7 +85,14 @@ class ProductoDeleteView(DeleteView):
 
 
 
-class CategoriaProductoViewSet(viewsets.ReadOnlyModelViewSet):
+class EstadoProductoViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    API endpoint que permite ver los estados de los productos.
+    """
+    queryset = Estados.objects.all()
+    serializer_class = EstadoProductoSerializer
+
+class CategoriaProductoViewSet(viewsets.ModelViewSet):
     """
     API endpoint que permite ver las categorías de productos.
     """
@@ -92,9 +103,68 @@ class ProductoViewSet(viewsets.ModelViewSet):
     """
     API endpoint que permite ver, crear, editar y eliminar productos.
     """
-    queryset = Productos.objects.filter(DELETE_Prod=False).order_by('-id_producto')
-    serializer_class = ProductoSerializer
-    # Los permisos y la autenticación se manejan globalmente por la config en settings.py
+    queryset = Productos.objects.filter(DELETE_Prod=False).annotate(total_stock=Sum('stocks__cantidad_actual_stock')).order_by('-id_producto')
+    
+    def get_serializer_class(self):
+        if self.action in ['create', 'update', 'partial_update']:
+            return ProductoWriteSerializer
+        return ProductoSerializer
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+
+        stock_actual = serializer.validated_data.pop('stock_actual', None)
+        serializer.validated_data.pop('stock_adquirido', None)
+
+        try:
+            with transaction.atomic():
+                self.perform_update(serializer)
+
+                if stock_actual is not None:
+                    stock_instance, created = Stocks.objects.get_or_create(
+                        producto_en_stock=instance,
+                        defaults={'cantidad_actual_stock': stock_actual, 'lote_stock': 0}
+                    )
+                    if not created:
+                        stock_instance.cantidad_actual_stock = stock_actual
+                        stock_instance.save()
+
+        except Exception as e:
+            return Response({"detail": f"Error al actualizar: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        instance = self.get_queryset().get(pk=instance.pk)
+        read_serializer = ProductoSerializer(instance)
+        return Response(read_serializer.data)
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        stock_adquirido = serializer.validated_data.pop('stock_adquirido', 0)
+        stock_actual = serializer.validated_data.pop('stock_actual', 0)
+
+        try:
+            with transaction.atomic():
+                producto = serializer.save()
+
+                Stocks.objects.create(
+                    producto_en_stock=producto,
+                    cantidad_actual_stock=stock_actual,
+                    lote_stock=0,  # Asumiendo un lote inicial o único
+                    observaciones_stock=f"Stock inicial de {stock_adquirido} unidades."
+                )
+            
+            read_serializer = ProductoSerializer(producto)
+            headers = self.get_success_headers(read_serializer.data)
+            return Response(read_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+        except Exception as e:
+            print(f"Error creating product or stock: {e}")
+            return Response({"detail": f"Error al crear el producto: {str(e)}"},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class StockListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]

@@ -20,7 +20,7 @@ class CustomAuthToken(ObtainAuthToken):
         user = serializer.validated_data['user']
         token, created = Token.objects.get_or_create(user=user)
 
-        # --- LÓGICA MEJORADA PARA OBTENER EL ROL ---
+        # --- LÓGICA CORREGIDA PARA OBTENER EL ROL ---
         rol = None
         if user.groups.exists():
             rol = user.groups.first().name

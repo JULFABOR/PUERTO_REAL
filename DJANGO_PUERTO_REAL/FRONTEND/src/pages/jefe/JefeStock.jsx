@@ -5,7 +5,7 @@ import apiClient from '@/api/apiClient';
 
 const JefeStock = () => {
     const [showNewProductModal, setShowNewProductModal] = useState(false);
-    const [showEditProductModal, setShowEditProductModal] = useState(false);
+    const [, setShowEditProductModal] = useState(false);
     const [products, setProducts] = useState([]);
     const [categories, setCategories] = useState([]);
     const [suppliers, setSuppliers] = useState([]);

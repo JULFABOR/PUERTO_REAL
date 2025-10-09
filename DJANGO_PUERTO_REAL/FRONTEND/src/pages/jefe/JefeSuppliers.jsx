@@ -7,7 +7,7 @@ const JefeSuppliers = () => {
     const [showEditSupplierModal, setShowEditSupplierModal] = useState(false);
 
     // TODO: Fetch data from API
-    const [suppliers, setSuppliers] = useState([]);
+    const [suppliers, ] = useState([]);
 
     return (
         <>

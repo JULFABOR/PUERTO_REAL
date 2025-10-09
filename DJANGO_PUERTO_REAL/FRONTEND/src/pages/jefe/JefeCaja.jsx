@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCashRegister, faDoorOpen, faFileExport, faPlus, faMinus, faDoorClosed } from '@fortawesome/free-solid-svg-icons';
+import { faCashRegister, faDoorOpen, faPlus, faMinus, faDoorClosed } from '@fortawesome/free-solid-svg-icons';
 import jsPDF from 'jspdf';
 
 const JefeCaja = () => {
@@ -12,7 +12,7 @@ const JefeCaja = () => {
     // TODO: Fetch data from API
     const [initialBalance, setInitialBalance] = useState(0);
     const [movements, setMovements] = useState([]);
-    const [cashData, setCashData] = useState({
+    const [cashData] = useState({
         cashSales: 0, cardSales: 0, qrSales: 0, transferSales: 0, otherIncome: 0, cashOutflows: 0
     });
 

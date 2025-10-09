@@ -6,13 +6,14 @@ import {
     faBoxOpen, 
     faPlusCircle, 
     faAddressBook, 
-    faMoneyBillWave 
+    faMoneyBillWave,
+    faTruck
 } from '@fortawesome/free-solid-svg-icons';
 
 const EmpleadoHome = () => {
     return (
         <>
-            <h1 className="text-3xl font-bold text-white mb-6">Panel de Control (Empleado)</h1>
+            <h1 className="text-3xl font-bold text-white mb-6">Panel de Control </h1>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
 
@@ -39,6 +40,13 @@ const EmpleadoHome = () => {
                     <h3 className="font-bold text-xl text-white mb-2">Gestión de Clientes</h3>
                     <p className="text-pr-gray text-sm">Consulta y administra tu base de datos de clientes.</p>
                 </Link>
+
+                <Link to="/empleado/proveedores" className="block bg-pr-dark p-6 rounded-lg shadow-lg hover:shadow-pr-yellow/20 hover:-translate-y-1 transition-all duration-300">
+                    <FontAwesomeIcon icon={faTruck} className="text-pr-yellow text-4xl mb-4" />
+                    <h3 className="font-bold text-xl text-white mb-2">Gestión de Proveedores</h3>
+                    <p className="text-pr-gray text-sm">Administra la información y el catálogo de tus proveedores.</p>
+                </Link>
+
 
                 <Link to="/empleado/caja" className="block bg-pr-dark p-6 rounded-lg shadow-lg hover:shadow-pr-yellow/20 hover:-translate-y-1 transition-all duration-300">
                     <FontAwesomeIcon icon={faMoneyBillWave} className="text-pr-yellow text-4xl mb-4" />

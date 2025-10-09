@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import apiClient from '../../../api/apiClient';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSearch, faPlus, faUser } from '@fortawesome/free-solid-svg-icons';
+import { faSearch, faPlus } from '@fortawesome/free-solid-svg-icons';
 
 const Clientes = () => {
     const [clients, setClients] = useState([]);
