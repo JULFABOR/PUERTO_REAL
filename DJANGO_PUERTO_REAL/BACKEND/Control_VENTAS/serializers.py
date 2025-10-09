@@ -93,9 +93,9 @@ class VentaSerializer(serializers.ModelSerializer):
             pass
 
         try:
-            tipo_movimiento_venta = Tipos_Movimientos.objects.get(nombre_movimiento='VENTA')
+            tipo_movimiento_venta = Tipos_Movimientos.objects.get(nombre_movimiento='MOV_STOCK_SALIDA')
         except Tipos_Movimientos.DoesNotExist:
-            raise serializers.ValidationError("Tipo de movimiento 'VENTA' no encontrado.")
+            raise serializers.ValidationError("Tipo de movimiento 'MOV_STOCK_SALIDA' no encontrado.")
 
         for detalle in venta.detalles.all():
             stock = Stocks.objects.get(producto_en_stock=detalle.producto_det_vent)

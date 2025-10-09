@@ -18,11 +18,11 @@ const RoleBasedRedirect = () => {
     console.log("User role:", role);
 
     if (role === 'JEFE' || role === 'Gerente de Tienda') {
-        return <Navigate to="/jefe/home" />;
+        return <Navigate to="/jefe" />;
     } else if (role === 'EMPLEADO') {
-        return <Navigate to="/empleado/home" />;
+        return <Navigate to="/empleado" />;
     } else if (role === 'CLIENTE') {
-        return <Navigate to="/cliente/home" />;
+        return <Navigate to="/cliente" />;
     }
 
     // Fallback if role not found, redirect to login

@@ -47,7 +47,7 @@ const EmpleadoLayout = () => {
         <div className="bg-pr-dark-gray font-sans text-gray-300 min-h-screen">
             <nav className="bg-pr-dark border-b border-pr-gray/20 fixed w-full z-20 top-0 start-0">
                 <div className="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
-                    <Link to="/empleado/home" className="flex items-center space-x-3 rtl:space-x-reverse">
+                    <Link to="/empleado" className="flex items-center space-x-3 rtl:space-x-reverse">
                         <span className="self-center text-2xl font-bold whitespace-nowrap text-pr-yellow">PUERTO REAL</span>
                     </Link>
                     <div className="flex items-center md:order-2 space-x-3 rtl:space-x-reverse">
@@ -78,7 +78,7 @@ const EmpleadoLayout = () => {
                         <h3 className="font-bold text-white text-lg mb-4">Menú Empleado</h3>
                         <ul className="space-y-2">
                             <li><Link to="/empleado/pos" className="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><FontAwesomeIcon icon={faCashRegister} className="w-5 text-center text-lg" /> Ventas (POS)</Link></li>
-                            <li><Link to="/empleado/control-stock" className="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><FontAwesomeIcon icon={faBoxesStacked} className="w-5 text-center text-lg" /> Control Stock</Link></li>
+                            <li><Link to="/empleado/stock" className="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><FontAwesomeIcon icon={faBoxesStacked} className="w-5 text-center text-lg" /> Control Stock</Link></li>
                             <li><Link to="/empleado/stock" className="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><FontAwesomeIcon icon={faBookOpen} className="w-5 text-center text-lg" /> Stock</Link></li>
                             <li><Link to="/empleado/clientes" className="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><FontAwesomeIcon icon={faUsers} className="w-5 text-center text-lg" /> Clientes</Link></li>
                             <li><Link to="/empleado/proveedores" className="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><FontAwesomeIcon icon={faTruckField} className="w-5 text-center text-lg" /> Proveedores</Link></li>

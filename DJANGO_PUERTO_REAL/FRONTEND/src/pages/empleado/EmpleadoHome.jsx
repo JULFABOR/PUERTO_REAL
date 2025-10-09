@@ -23,7 +23,7 @@ const EmpleadoHome = () => {
                     <p className="text-pr-gray text-sm">Inicia el punto de venta para registrar transacciones.</p>
                 </Link>
 
-                <Link to="/empleado/control-stock" className="block bg-pr-dark p-6 rounded-lg shadow-lg hover:shadow-pr-yellow/20 hover:-translate-y-1 transition-all duration-300">
+                <Link to="/empleado/stock" className="block bg-pr-dark p-6 rounded-lg shadow-lg hover:shadow-pr-yellow/20 hover:-translate-y-1 transition-all duration-300">
                     <FontAwesomeIcon icon={faBoxOpen} className="text-pr-yellow text-4xl mb-4" />
                     <h3 className="font-bold text-xl text-white mb-2">Control Stock</h3>
                     <p className="text-pr-gray text-sm">Consulta el stock actual de todos tus productos.</p>
