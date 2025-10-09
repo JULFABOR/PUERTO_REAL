@@ -1,14 +1,16 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import AuthPage from './pages/AuthPage';
-import ProtectedRoute from './components/ProtectedRoute';
-import RoleBasedRedirect from './components/RoleBasedRedirect';
+import ResetPasswordPage from './pages/ResetPasswordPage';
+import ProtectedRoute from './auth/ProtectedRoute';
+import RoleBasedRedirect from './auth/RoleBasedRedirect';
 
 // Layouts
 import EmpleadoLayout from './components/empleado/EmpleadoLayout';
 import JefeLayout from './components/jefe/JefeLayout';
 import ClienteLayout from './components/cliente/ClienteLayout';
 
-// Pages
+// Page Components
+import ClienteHome from './pages/cliente/ClienteHome';
 import EmpleadoHome from './pages/empleado/EmpleadoHome';
 import VentasPOS from './pages/empleado/pos/VentasPOS';
 import ControlStock from './pages/empleado/control-stock/ControlStock';
@@ -24,17 +26,16 @@ import JefeCustomers from './pages/jefe/JefeCustomers';
 import JefeStock from './pages/jefe/JefeStock';
 import JefeSuppliers from './pages/jefe/JefeSuppliers';
 import JefeSettings from './pages/jefe/JefeSettings';
-import ClienteHome from './pages/cliente/ClienteHome';
 
-// NOTE: The old HomePage and ControlStockPage are currently not used in this new structure.
-// They will be replaced by role-specific pages.
+
+// ... (rest of the file)
 
 function App() {
   return (
-    <BrowserRouter>
       <Routes>
-        {/* Public Route */}
+        {/* Public Routes */}
         <Route path="/" element={<AuthPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
 
         {/* Authenticated Redirector */}
         <Route 
@@ -98,7 +99,6 @@ function App() {
         </Route>
 
       </Routes>
-    </BrowserRouter>
   );
 }
 

@@ -1,4 +1,3 @@
-
 const getAuthToken = () => localStorage.getItem('authToken');
 
 const apiClient = async (url, options = {}) => {
@@ -10,27 +9,27 @@ const apiClient = async (url, options = {}) => {
     };
 
     if (token) {
-    // Cambia la palabra 'Bearer' por 'Token'
-    headers['Authorization'] = `Token ${token}`;
+        // Cambia la palabra 'Bearer' por 'Token'
+        headers['Authorization'] = `Token ${token}`;
     }
 
-    // In a Vite project, VITE_API_BASE_URL can be set in the .env file
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
-    const fullUrl = `${baseUrl}${url}`;
+    // La lógica de 'baseUrl' y 'fullUrl' se elimina.
+    // Ahora confiamos en el proxy de Vite configurado en vite.config.js.
+    // El parámetro 'url' debe ser una ruta relativa como '/api/users' o '/auth/api/login/'.
 
     try {
-        const response = await fetch(fullUrl, {
+        const response = await fetch(url, { // <-- Ahora usa 'url' directamente
             ...options,
             headers,
         });
 
         if (!response.ok) {
-            // Try to parse error response from the backend
+            // Intenta parsear la respuesta de error del backend
             const errorData = await response.json().catch(() => ({ message: response.statusText }));
             throw new Error(errorData.detail || errorData.message || 'An error occurred');
         }
 
-        // If response has no content, return null, otherwise parse JSON
+        // Si la respuesta no tiene contenido, devuelve null, de lo contrario, parsea el JSON
         if (response.status === 204 /* No Content */) {
             return null;
         }
@@ -38,7 +37,7 @@ const apiClient = async (url, options = {}) => {
 
     } catch (error) {
         console.error('API Client Error:', error);
-        // Re-throw the error so component can handle it
+        // Re-lanza el error para que el componente pueda manejarlo
         throw error;
     }
 };
