@@ -1,3 +1,4 @@
+
 arabic-reshaper==3.0.0
 asgiref==3.8.1
 asn1crypto==1.5.1
@@ -40,5 +41,5 @@ pandas
 matplotlib
 seaborn
 django-cors-headers==4.8.0
-django-filter==23.2
-jazzmin==2.4.3
+django-filter==25.2
+django-jazzmin==3.0.1
