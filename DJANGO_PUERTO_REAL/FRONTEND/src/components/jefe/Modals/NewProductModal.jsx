@@ -1,0 +1,81 @@
+import React, { useState } from 'react';
+import { toast } from 'react-hot-toast';
+import apiClient from '@/api/apiClient';
+
+const initialNewProductState = {
+    nombre_producto: '',
+    barcode: '',
+    precio_unitario_venta_producto: '',
+    precio_unitario_compra_producto: '',
+    categoria_producto_id: '',
+};
+
+const NewProductModal = ({ isOpen, onClose, onSuccess, categories }) => {
+    const [newProduct, setNewProduct] = useState(initialNewProductState);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const handleChange = (e) => {
+        setNewProduct(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    };
+
+    const handleCreateProduct = async (e) => {
+        e.preventDefault();
+        if (!newProduct.categoria_producto_id) return toast.error("Debes seleccionar una categoría.");
+        setIsSubmitting(true);
+        const productDataToSend = {
+            nombre_producto: newProduct.nombre_producto,
+            barcode: newProduct.barcode,
+            precio_unitario_venta_producto: newProduct.precio_unitario_venta_producto,
+            precio_unitario_compra_producto: newProduct.precio_unitario_compra_producto,
+            categoria_producto: parseInt(newProduct.categoria_producto_id, 10),
+            estado_producto: 1,
+            stock_adquirido: 0,
+            stock_actual: 0
+        };
+        try {
+            await apiClient('/api/stock/productos/', { method: 'POST', body: JSON.stringify(productDataToSend) });
+            toast.success('¡Producto creado con éxito!');
+            setNewProduct(initialNewProductState);
+            onSuccess();
+            onClose();
+        } catch (error) {
+            toast.error('No se pudo crear el producto.');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed top-0 right-0 left-0 z-50 flex justify-center items-center w-full h-full bg-black bg-opacity-60">
+            <div className="relative p-4 w-full max-w-lg">
+                <div className="relative rounded-lg shadow bg-pr-dark">
+                    <div className="flex items-center justify-between p-4 md:p-5 border-b rounded-t border-gray-600">
+                        <h3 className="text-xl font-semibold text-white">Crear Nuevo Producto</h3>
+                        <button type="button" onClick={onClose} className="end-2.5 text-gray-400 bg-transparent rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center hover:bg-gray-600 hover:text-white">
+                            <svg className="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/></svg>
+                        </button>
+                    </div>
+                    <div className="p-4 md:p-5">
+                        <form className="space-y-4" onSubmit={handleCreateProduct}>
+                            <input name="nombre_producto" value={newProduct.nombre_producto} onChange={handleChange} placeholder="Nombre del Producto" className="border text-sm rounded-lg block w-full p-2.5 bg-pr-dark-gray border-gray-500 text-white" required />
+                            <input name="barcode" value={newProduct.barcode} onChange={handleChange} placeholder="SKU / Código de Barras" className="border text-sm rounded-lg block w-full p-2.5 bg-pr-dark-gray border-gray-500 text-white" required />
+                            <select name="categoria_producto_id" value={newProduct.categoria_producto_id} onChange={handleChange} className="border text-sm rounded-lg block w-full p-2.5 bg-pr-dark-gray border-gray-500 text-white" required>
+                                <option value="">Seleccione una categoría</option>
+                                {categories.map(cat => <option key={cat.id_categoria} value={cat.id_categoria}>{cat.nombre_categoria}</option>)}
+                            </select>
+                            <div className="grid grid-cols-2 gap-4">
+                                <input type="number" step="0.01" name="precio_unitario_venta_producto" value={newProduct.precio_unitario_venta_producto} onChange={handleChange} placeholder="Precio Venta" className="border text-sm rounded-lg block w-full p-2.5 bg-pr-dark-gray border-gray-500 text-white" required />
+                                <input type="number" step="0.01" name="precio_unitario_compra_producto" value={newProduct.precio_unitario_compra_producto} onChange={handleChange} placeholder="Precio Compra" className="border text-sm rounded-lg block w-full p-2.5 bg-pr-dark-gray border-gray-500 text-white" required />
+                            </div>
+                            <button type="submit" disabled={isSubmitting} className="w-full text-pr-dark bg-pr-yellow hover:bg-yellow-400 font-bold rounded-lg text-sm px-5 py-2.5 text-center disabled:bg-yellow-700">{isSubmitting ? 'Creando...' : 'Crear Producto'}</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default NewProductModal;

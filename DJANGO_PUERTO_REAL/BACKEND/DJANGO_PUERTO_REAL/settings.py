@@ -38,29 +38,30 @@ ALLOWED_HOSTS = []
 # Definición de la aplicación
 
 INSTALLED_APPS = [
-    'jazzmin',  # <--- Añade jazzmin aquí, al principio
-    'django.contrib.admin',
-    'django.contrib.auth',
+    'jazzmin', 
+    'django.contrib.admin',  
+    'django.contrib.auth',  
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'rest_framework',
+    'django.contrib.staticfiles', 
+    'rest_framework', # Para construir APIs RESTful
+    'django_filters', # Para filtrado avanzado
     'rest_framework.authtoken', # Para autenticación por token
-    'corsheaders',
-    'HOME',
-    'Abrir_Cerrar_CAJA',
-    'Control_COMPRAS',
+    'corsheaders', # Para manejar CORS 
+    'HOME', # Aplicación principal
+    'Abrir_Cerrar_CAJA', 
+    'Control_COMPRAS', 
     'Control_VENTAS',
     'Control_STOCK',
-    'Fidelizar_CLIENTES',
-    'Analizar_INGRESOS_EGRESOS',
-    'Auditoria',
-    'autenticacion',
+    'Fidelizar_CLIENTES',  
+    'Analizar_INGRESOS_EGRESOS', 
+    'Auditoria', 
+    'autenticacion', 
 ]
 
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
+    'DEFAULT_AUTHENTICATION_CLASSES': [ 
         'rest_framework.authentication.TokenAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [

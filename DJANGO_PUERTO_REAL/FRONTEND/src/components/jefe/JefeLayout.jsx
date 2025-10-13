@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, Outlet, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
@@ -11,6 +11,7 @@ import {
     faChartPie,
 } from '@fortawesome/free-solid-svg-icons';
 import { initFlowbite } from 'flowbite';
+import { Toaster } from 'react-hot-toast'; // <-- 1. IMPORTAR EL TOASTER
 
 const getUserData = () => {
     try {
@@ -23,7 +24,7 @@ const getUserData = () => {
 };
 
 const JefeLayout = () => {
-    const [isSidebarOpen, setSidebarOpen] = useState(false); // Hidden by default on mobile
+    const [isSidebarOpen, setSidebarOpen] = useState(false);
     const [userData, setUserData] = useState(null);
     const navigate = useNavigate();
 
@@ -45,6 +46,7 @@ const JefeLayout = () => {
     return (
         <div className="bg-pr-dark-gray font-sans text-gray-300 min-h-screen">
             <nav className="bg-pr-dark border-b border-pr-gray/20 fixed w-full z-20 top-0 start-0">
+                {/* ... tu código de la barra de navegación no cambia ... */}
                 <div className="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
                     <Link to="/jefe/home" className="flex items-center space-x-3 rtl:space-x-reverse">
                         <span className="self-center text-2xl font-bold whitespace-nowrap text-pr-yellow">PUERTO REAL</span>
@@ -73,6 +75,7 @@ const JefeLayout = () => {
 
             <div className="flex mt-16">
                 <aside id="sidebar-jefe" className={`fixed top-16 left-0 z-40 w-64 h-[calc(100vh-4rem)] bg-pr-dark p-4 space-y-6 shrink-0 transition-transform md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+                    {/* ... tu código del menú lateral no cambia ... */}
                     <div>
                         <h3 className="font-bold text-white text-lg mb-4">Gestión de Tienda</h3>
                         <ul className="space-y-2">
@@ -97,6 +100,19 @@ const JefeLayout = () => {
                     <Outlet />
                 </main>
             </div>
+
+            {/* --- 2. AÑADIR EL COMPONENTE TOASTER AQUÍ --- */}
+            {/* Se encargará de mostrar todas las notificaciones de la aplicación */}
+            <Toaster 
+                position="top-right"
+                toastOptions={{
+                    style: {
+                        background: '#1F2937', // bg-gray-800
+                        color: '#D1D5DB', // text-gray-300
+                        border: '1px solid #4B5563', // border-gray-600
+                    },
+                }}
+            />
         </div>
     );
 };

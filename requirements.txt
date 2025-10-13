@@ -40,3 +40,5 @@ pandas
 matplotlib
 seaborn
 django-cors-headers==4.8.0
+django-filter==23.2
+jazzmin==2.4.3

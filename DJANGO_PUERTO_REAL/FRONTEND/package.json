@@ -20,6 +20,7 @@
     "react": "^19.1.1",
     "react-apexcharts": "^1.7.0",
     "react-dom": "^19.1.1",
+    "react-hot-toast": "^2.6.0",
     "react-router-dom": "^6.23.1"
   },
   "devDependencies": {

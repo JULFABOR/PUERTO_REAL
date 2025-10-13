@@ -75,7 +75,7 @@ function App() {
           <Route path="home" element={<JefeHome />} />
           <Route path="analysis" element={<JefeAnalysis />} />
           <Route path="caja" element={<JefeCaja />} />
-
+          <Route path="control-stock" element={<JefeControlStock />} />
           <Route path="customers" element={<JefeCustomers />} />
           <Route path="stock" element={<JefeStock />} />
           <Route path="suppliers" element={<JefeSuppliers />} />

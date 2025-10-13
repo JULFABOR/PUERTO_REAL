@@ -11,6 +11,11 @@ from django.urls import reverse_lazy
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
+
+# --- IMPORTACIONES PARA FILTRADO ---
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters
+
 from HOME.models import Productos, Stocks, Categorias_Productos, Historial_Stock, Tipos_Movimientos, Empleados, Estados
 from .serializers import (
     StockSerializer, StockUpdateSerializer, StockAdjustmentSerializer, 
@@ -99,7 +104,12 @@ class CategoriaProductoViewSet(viewsets.ModelViewSet):
     queryset = Categorias_Productos.objects.all()
     serializer_class = CategoriaProductoSerializer
 
+
 class ProductoViewSet(viewsets.ModelViewSet):
+    
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['categoria_producto']  # Permite filtrar por: /productos/?categoria_producto=2
+    search_fields = ['nombre_producto', 'barcode'] # Permite buscar por: /productos/?search=coca
     """
     API endpoint que permite ver, crear, editar y eliminar productos.
     """
