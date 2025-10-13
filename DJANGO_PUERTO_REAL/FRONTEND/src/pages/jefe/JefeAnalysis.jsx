@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFileExport, faCalendarDays } from '@fortawesome/free-solid-svg-icons';
 import Chart from 'react-apexcharts';
-import jsPDF from 'jspdf';
+// La línea "import jsPDF from 'jspdf';" ha sido eliminada.
 
 const JefeAnalysis = () => {
     // TODO: Fetch data from API
@@ -37,23 +37,9 @@ const JefeAnalysis = () => {
     });
 
     const exportToPDF = () => {
-        const doc = new jsPDF();
-        const today = new Date().toLocaleDateString('es-AR');
-
-        doc.setFontSize(20);
-        doc.text("Reporte de Ventas - PUERTO REAL", 105, 20, { align: 'center' });
-        doc.setFontSize(12);
-        doc.text(`Periodo: 01/09/2025 - 07/09/2025`, 105, 28, { align: 'center' });
-
-        doc.setFontSize(14);
-        doc.text("Indicadores Principales", 14, 45);
-        doc.setFontSize(10);
-        doc.text("- Ventas Totales: $0.00", 14, 52);
-        doc.text("- Ganancia Bruta: $0.00", 14, 59);
-        doc.text("- Nº Transacciones: 0", 105, 52);
-        doc.text("- Ticket Promedio: $0.00", 105, 59);
-
-        doc.save(`reporte-ventas-${today}.pdf`);
+      // Esta URL debe apuntar a tu vista de Django que genera el reporte de análisis.
+      const pdfUrl = 'http://127.0.0.1:8000/api/reporte/analisis-pdf/';
+      window.open(pdfUrl, '_blank');
     };
 
     return (
@@ -121,7 +107,7 @@ const JefeAnalysis = () => {
                             <tr>
                                 <th scope="col" className="px-6 py-3">Producto</th>
                                 <th scope="col" className="px-6 py-3 text-center">Uds. Vendidas</th>
-.                               <th scope="col" className="px-6 py-3 text-right hidden sm:table-cell">Ingresos</th>
+                                <th scope="col" className="px-6 py-3 text-right hidden sm:table-cell">Ingresos</th>
                                 <th scope="col" className="px-6 py-3 text-right hidden md:table-cell">Costo Total</th>
                                 <th scope="col" className="px-6 py-3 text-right">Ganancia Bruta</th>
                                 <th scope="col" className="px-6 py-3 text-right hidden lg:table-cell">Margen</th>
