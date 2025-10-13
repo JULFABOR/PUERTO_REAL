@@ -38,6 +38,7 @@ ALLOWED_HOSTS = []
 # Definición de la aplicación
 
 INSTALLED_APPS = [
+    'jazzmin',  # <--- Añade jazzmin aquí, al principio
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -163,6 +164,8 @@ STATIC_URL = 'static/'
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR.parent, 'FRONTEND', 'dist', 'assets')
 ]
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
 
 # Tipo de campo de clave primaria predeterminado
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -179,3 +182,25 @@ LOGOUT_REDIRECT_URL = 'home:index_publico'
 # Configuración de CORS
 # ADVERTENCIA: Esto permite todas las conexiones. Para producción, reemplázalo con la lista de orígenes permitidos.
 CORS_ALLOW_ALL_ORIGINS = True
+
+JAZZMIN_SETTINGS = {
+    # Título de la ventana (se verá en la pestaña del navegador)
+    "site_title": "Puerto Real Admin",
+
+    # Título en la pantalla de login
+    "site_header": "Puerto Real",
+
+    # Título en la barra de navegación
+    "site_brand": "Puerto Real",
+
+    # Texto de bienvenida en la esquina superior derecha
+    "welcome_sign": "Bienvenido a Puerto Real",
+
+    # Copyright en el pie de página
+    "copyright": "Puerto Real Ltd.",
+
+    # Tema
+    # Puedes encontrar más temas en la documentación de Jazzmin
+    "theme": "darkly",
+    
+}
