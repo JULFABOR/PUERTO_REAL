@@ -5,10 +5,10 @@ import { toast } from 'react-hot-toast';
 import apiClient from '@/api/apiClient';
 
 // Importar todos los componentes de los modales
-import NewProductModal from '../../components/jefe/Modals/NewProductModal';
-import EditProductModal from '../../components/jefe/Modals/EditProductModal';
-import CategoryManagerModal from '../../components/jefe/Modals/CategoryManagerModal';
-import ConfirmDeleteModal from '../../components/jefe/Modals/ConfirmDeleteModal';
+import NewProductModal from '../../components/Modals/NewProductModal';
+import EditProductModal from '../../components/Modals/EditProductModal';
+import CategoryManagerModal from '../../components/Modals/CategoryManagerModal';
+import ConfirmDeleteModal from '../../components/Modals/ConfirmDeleteModal';
 
 const JefeStock = () => {
     // --- ESTADOS ---

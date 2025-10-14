@@ -13,6 +13,7 @@ import ClienteLayout from './components/cliente/ClienteLayout';
 import ClienteHome from './pages/cliente/ClienteHome';
 import EmpleadoHome from './pages/empleado/EmpleadoHome';
 import VentasPOS from './pages/empleado/pos/VentasPOS';
+import EmpleadoControlStock from './pages/empleado/control-stock/EmpleadoControlStock';
 import Stock from './pages/empleado/stock/Stock';
 import Clientes from './pages/empleado/clientes/Clientes';
 import Proveedores from './pages/empleado/proveedores/Proveedores';
@@ -40,7 +41,7 @@ function App() {
         <Route 
           path="/home" 
           element={
-            <ProtectedRoute allowedRoles={['JEFE', 'Gerente de Tienda', 'EMPLEADO', 'CLIENTE']}>
+            <ProtectedRoute allowedRoles={['JEFE', 'EMPLEADO', 'CLIENTE']}>
               <RoleBasedRedirect />
             </ProtectedRoute>
           }
@@ -50,13 +51,14 @@ function App() {
         <Route 
           path="/empleado" 
           element={
-            <ProtectedRoute allowedRoles={['EMPLEADO']}>
+            <ProtectedRoute allowedRoles={['Empleado']}>
               <EmpleadoLayout />
             </ProtectedRoute>
           }
         >
           <Route path="home" element={<EmpleadoHome />} />
           <Route path="pos" element={<VentasPOS />} />
+           <Route path="control-stock" element={<EmpleadoControlStock />} /> {/* <-- AÑADE ESTA LÍNEA */}
           <Route path="stock" element={<Stock />} />
           <Route path="clientes" element={<Clientes />} />
           <Route path="proveedores" element={<Proveedores />} />
@@ -67,7 +69,7 @@ function App() {
         <Route 
           path="/jefe" 
           element={
-            <ProtectedRoute allowedRoles={['JEFE', 'Gerente de Tienda']}>
+            <ProtectedRoute allowedRoles={['Jefe',]}>
               <JefeLayout />
             </ProtectedRoute>
           }
@@ -86,7 +88,7 @@ function App() {
         <Route 
           path="/cliente" 
           element={
-            <ProtectedRoute allowedRoles={['CLIENTE']}>
+            <ProtectedRoute allowedRoles={['Cliente']}>
               <ClienteLayout />
             </ProtectedRoute>
           }

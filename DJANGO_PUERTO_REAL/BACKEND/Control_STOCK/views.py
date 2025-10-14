@@ -382,3 +382,57 @@ class StockAdjustmentAPIView(APIView):
             # --- FIN REGISTRO ---
 
             return Response({"detail": f"Stock ajustado por {quantity_change} para {product.nombre_producto}. Nueva cantidad: {stock_entry.cantidad_actual_stock}"}, status=status.HTTP_200_OK)
+        
+class StockAddAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        product_id = request.data.get('product_id')
+        quantity_to_add = request.data.get('quantity')
+        reason = request.data.get('reason', 'Entrada de stock manual')
+        
+        if not product_id or quantity_to_add is None:
+            return Response({"detail": "Se requiere ID del producto y cantidad."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            quantity_to_add = int(quantity_to_add)
+            if quantity_to_add <= 0:
+                return Response({"detail": "La cantidad debe ser un número positivo."}, status=status.HTTP_400_BAD_REQUEST)
+        except ValueError:
+            return Response({"detail": "La cantidad debe ser un número."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            producto = Productos.objects.get(id_producto=product_id)
+        except Productos.DoesNotExist:
+            return Response({"detail": "Producto no encontrado."}, status=status.HTTP_404_NOT_FOUND)
+
+        with transaction.atomic():
+            # Buscamos una entrada de stock existente o creamos una nueva
+            stock_entry, created = Stocks.objects.get_or_create(
+                producto_en_stock=producto,
+                # Aquí podrías añadir lógica de lotes si la tuvieras
+                defaults={'cantidad_actual_stock': 0, 'lote_stock': 'LOTE-INICIAL'}
+            )
+            
+            stock_anterior = stock_entry.cantidad_actual_stock
+            stock_entry.cantidad_actual_stock += quantity_to_add
+            stock_entry.save()
+
+            # (Opcional pero recomendado) Registrar en el historial
+            # Asumiendo que tienes un tipo de movimiento 'MOV_STOCK_ENTRADA'
+            try:
+                tipo_movimiento_entrada = Tipos_Movimientos.objects.get(nombre_movimiento='MOV_STOCK_ENTRADA')
+                Historial_Stock.objects.create(
+                    cantidad_hstock=str(quantity_to_add),
+                    stock_hs=stock_entry,
+                    empleado_hs=request.user.empleado, # Asumiendo relación User -> Empleado
+                    tipo_movimiento_hs=tipo_movimiento_entrada,
+                    stock_anterior_hstock=stock_anterior,
+                    stock_nuevo_hstock=stock_entry.cantidad_actual_stock,
+                    observaciones_hstock=reason
+                )
+            except Exception as e:
+                # Si falla el historial, no detenemos la operación principal, pero lo notificamos
+                print(f"No se pudo crear el registro de historial: {e}")
+
+        return Response({"detail": f"Se agregaron {quantity_to_add} unidades al stock de {producto.nombre_producto}."}, status=status.HTTP_200_OK)

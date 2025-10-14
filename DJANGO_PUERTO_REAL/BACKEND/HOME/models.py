@@ -289,6 +289,9 @@ class Ventas(models.Model):
     promo_aplicada = models.ForeignKey(Promos_Clientes, on_delete=models.SET_NULL, null=True, blank=True)
     descuento_aplicado = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
     vuelto_entregado = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    qr_token = models.CharField(max_length=32, blank=True, null=True, unique=True)
+    metodo_pago = models.CharField(max_length=50, blank=True, null=True)
+
     DELETE_Vent = models.BooleanField(default=False)
     def __str__(self):
         return f"Venta #{self.id_venta} - {self.estado_venta.value} - {self.fecha_venta.strftime('%Y-%m-%d %H:%M:%S')} - Total: {self.total_venta}"

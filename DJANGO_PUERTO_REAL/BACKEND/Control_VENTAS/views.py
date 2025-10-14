@@ -1,6 +1,8 @@
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, serializers
 from rest_framework.response import Response
 from rest_framework.decorators import action
+from django.db import transaction
+from django.db.models import Sum
 from django.http import HttpResponse
 from django.template.loader import get_template
 from django.utils import timezone
@@ -11,6 +13,7 @@ import math
 from django.views.generic import TemplateView
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
+
 from HOME.models import (
     Ventas, Detalle_Ventas, Stocks, Historial_Stock,
     Cajas, Historial_Caja, Tipos_Movimientos, Tipo_Evento, Productos,
@@ -19,18 +22,13 @@ from HOME.models import (
 from .serializers import VentaSerializer
 from Auditoria.services import crear_registro
 
-# En Control_VENTAS/views.py
-
-from django.views.generic import TemplateView
-
+# --- Vistas de Template (sin cambios) ---
 class VentaView(TemplateView):
     template_name = "Control_VENTAS/Venta.html"
 
-# --- Vista de Template para el Dashboard de Ventas ---
 @method_decorator(login_required, name='dispatch')
 class VentasDashboardView(TemplateView):
     template_name = 'ventas_dashboard.html'
-
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['page_title'] = "Punto de Venta (POS)"
@@ -38,10 +36,9 @@ class VentasDashboardView(TemplateView):
         context['clientes'] = Clientes.objects.all()
         return context
 
-
 # --- Vistas de API ---
 class VentaViewSet(viewsets.ModelViewSet):
-    queryset = Ventas.objects.all()
+    queryset = Ventas.objects.all().order_by('-fecha_venta')
     serializer_class = VentaSerializer
 
     def get_serializer_context(self):
@@ -49,6 +46,82 @@ class VentaViewSet(viewsets.ModelViewSet):
         context.update({"request": self.request})
         return context
 
+    # --- NUEVO MÉTODO 'create' PARA CREAR VENTAS Y DESCONTAR STOCK ---
+    def create(self, request, *args, **kwargs):
+        detalles_data = request.data.get('detalles', [])
+        
+        if not detalles_data:
+            return Response({"detail": "La venta no tiene productos."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            with transaction.atomic():
+                # 1. Verificación de Stock
+                for item in detalles_data:
+                    producto_id = item.get('producto')
+                    cantidad_a_vender = item.get('cantidad')
+                    
+                    try:
+                        producto = Productos.objects.get(pk=producto_id)
+                        total_stock_agg = Stocks.objects.filter(producto_en_stock=producto).aggregate(total=Sum('cantidad_actual_stock'))
+                        total_stock = total_stock_agg['total'] or 0
+                        
+                        if total_stock < cantidad_a_vender:
+                            raise serializers.ValidationError(
+                                f"Stock insuficiente para '{producto.nombre_producto}'. Disponible: {total_stock}"
+                            )
+                    except Productos.DoesNotExist:
+                        raise serializers.ValidationError(f"Producto con ID {producto_id} no encontrado.")
+
+                # 2. Creación de la Venta
+                serializer = self.get_serializer(data=request.data)
+                serializer.is_valid(raise_exception=True)
+                venta = serializer.save()
+
+                # 3. Descuento de Stock y Creación de Historial
+                try:
+                    tipo_movimiento_salida = Tipos_Movimientos.objects.get(nombre_movimiento='MOV_STOCK_SALIDA')
+                except Tipos_Movimientos.DoesNotExist:
+                    raise serializers.ValidationError("Tipo de movimiento 'MOV_STOCK_SALIDA' no fue encontrado en la base de datos.")
+
+                for detalle in venta.detalles.all():
+                    producto = detalle.producto_det_vent
+                    cantidad_vendida = detalle.cantidad_det_vent
+                    
+                    stock_entry = Stocks.objects.filter(producto_en_stock=producto, cantidad_actual_stock__gte=cantidad_vendida).first()
+                    
+                    if stock_entry:
+                        stock_anterior = stock_entry.cantidad_actual_stock
+                        stock_entry.cantidad_actual_stock -= cantidad_vendida
+                        stock_entry.save()
+
+                        Historial_Stock.objects.create(
+                            stock_hs=stock_entry,
+                            cantidad_hstock=str(cantidad_vendida),
+                            tipo_movimiento_hs=tipo_movimiento_salida,
+                            empleado_hs=request.user.empleado,
+                            stock_anterior_hstock=stock_anterior,
+                            stock_nuevo_hstock=stock_entry.cantidad_actual_stock,
+                            observaciones_hstock=f"Venta #{venta.id_venta}"
+                        )
+                    else:
+                        # Esto no debería ocurrir gracias a la verificación de arriba, pero es una salvaguarda
+                        raise serializers.ValidationError(f"No se encontró un lote de stock con suficiente cantidad para {producto.nombre_producto}")
+
+
+            headers = self.get_success_headers(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+        except serializers.ValidationError as e:
+            # Captura tanto nuestros errores personalizados como los del serializador
+            error_detail = e.detail
+            if isinstance(e.detail, list):
+                error_detail = e.detail[0]
+            return Response({"detail": str(error_detail)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+    # --- TU MÉTODO 'update' ORIGINAL PARA ANULAR VENTAS (CONSERVADO) ---
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
         
@@ -60,7 +133,6 @@ class VentaViewSet(viewsets.ModelViewSet):
                             status=status.HTTP_403_FORBIDDEN)
 
         with transaction.atomic():
-            # Comprobar solicitud de anulación
             nuevo_estado_id = request.data.get('estado_venta')
             
             try:
@@ -69,7 +141,6 @@ class VentaViewSet(viewsets.ModelViewSet):
                 return Response({"error": "Estado 'ANULADA' no encontrado."}, status=status.HTTP_400_BAD_REQUEST)
 
             if nuevo_estado_id and int(nuevo_estado_id) == estado_anulada.id_estado and instance.estado_venta != estado_anulada:
-                # Comprobar límite de 20 minutos para anulación
                 time_diff = timezone.now() - instance.fecha_venta
                 if time_diff.total_seconds() > 1200: # 20 minutos
                     return Response(
@@ -77,7 +148,6 @@ class VentaViewSet(viewsets.ModelViewSet):
                         status=status.HTTP_403_FORBIDDEN
                     )
 
-                # --- REGISTRO DE AUDITORÍA ---
                 crear_registro(
                     usuario=request.user,
                     accion='ANULACION_VENTA',
@@ -88,9 +158,7 @@ class VentaViewSet(viewsets.ModelViewSet):
                         'realizada_por': instance.empleado_venta.user_empleado.username if instance.empleado_venta else None
                     }
                 )
-                # --- FIN REGISTRO ---
                 
-                # Revertir Stock
                 try:
                     tipo_movimiento_entrada = Tipos_Movimientos.objects.get(nombre_movimiento='MOV_STOCK_ENTRADA')
                 except Tipos_Movimientos.DoesNotExist:
@@ -115,10 +183,8 @@ class VentaViewSet(viewsets.ModelViewSet):
                         observaciones_hstock=f"Entrada por anulacion de venta ID: {instance.id_venta}"
                     )
                 
-                # Revertir Caja
                 caja = instance.caja_venta
                 
-                # Revertir ingreso de la venta
                 monto_ingreso_original = instance.total_venta - instance.descuento_aplicado
                 saldo_anterior_caja = caja.monto_teorico_caja
                 caja.monto_teorico_caja -= monto_ingreso_original
@@ -129,13 +195,12 @@ class VentaViewSet(viewsets.ModelViewSet):
                     caja_hc=caja,
                     empleado_hc=empleado,
                     tipo_event_caja=tipo_evento_egreso_anulacion,
-                    cantidad_movida_hcaja=monto_ingreso_original * -1, # Negativo para egreso
+                    cantidad_movida_hcaja=monto_ingreso_original * -1,
                     saldo_anterior_hcaja=saldo_anterior_caja,
                     nuevo_saldo_hcaja=caja.monto_teorico_caja,
                     descripcion_hcaja=f"Egreso por anulacion de ingreso de venta ID: {instance.id_venta}"
                 )
 
-                # Revertir egreso por vuelto entregado (si lo hubo)
                 if hasattr(instance, 'vuelto_entregado') and instance.vuelto_entregado > 0:
                     saldo_anterior_vuelto = caja.monto_teorico_caja
                     caja.monto_teorico_caja += instance.vuelto_entregado
@@ -152,7 +217,6 @@ class VentaViewSet(viewsets.ModelViewSet):
                         descripcion_hcaja=f"Ingreso por anulacion de vuelto de venta ID: {instance.id_venta}"
                     )
                 
-                # Revertir puntos (si se otorgaron)
                 if instance.cliente_venta and hasattr(instance, 'descuento_aplicado') and instance.total_venta - instance.descuento_aplicado > 0:
                     neto_pagado = instance.total_venta - instance.descuento_aplicado
                     puntos_ganados = math.floor(neto_pagado / settings.PESOS_POR_PUNTO)
@@ -163,10 +227,9 @@ class VentaViewSet(viewsets.ModelViewSet):
                         Historial_Puntos.objects.create(
                             cliente=cliente, venta_origen=instance, puntos_movidos=puntos_ganados * -1,
                             puntos_anteriores=puntos_anteriores, puntos_nuevos=cliente.puntos_actuales,
-                            tipo_movimiento='AJUSTE' # O un tipo específico 'ANULACION_PUNTOS' si está definido
+                            tipo_movimiento='AJUSTE'
                         )
                 
-                # Revertir estado del cupón (si se aplicó uno)
                 if instance.promo_aplicada:
                     try:
                         estado_disponible = Estados.objects.get(nombre_estado='DISPONIBLE')
@@ -175,9 +238,9 @@ class VentaViewSet(viewsets.ModelViewSet):
                     instance.promo_aplicada.estado_promo_cli = estado_disponible
                     instance.promo_aplicada.save()
 
-            # Proceder con la actualización (ej., cambiando el estado a ANULADA)
-            return super().update(request, *args, **kwargs)
+        return super().update(request, *args, **kwargs)
 
+    # --- TU MÉTODO 'generate_ticket_pdf' ORIGINAL (CONSERVADO) ---
     @action(detail=True, methods=['get'])
     def generate_ticket_pdf(self, request, pk=None):
         venta = self.get_object()

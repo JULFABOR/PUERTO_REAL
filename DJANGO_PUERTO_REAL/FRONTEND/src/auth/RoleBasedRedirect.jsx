@@ -1,32 +1,33 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-
-const getUserData = () => {
-    try {
-        const userDataString = localStorage.getItem('userData');
-        return userDataString ? JSON.parse(userDataString) : null;
-    } catch (error) {
-        console.error("Error parsing user data:", error);
-        return null;
-    }
-};
+import { useAuth } from '@/hooks/useAuth'; // <-- 1. IMPORTAMOS EL HOOK
 
 const RoleBasedRedirect = () => {
-    const userData = getUserData();
-    console.log("User data from localStorage:", userData);
-    const role = userData?.rol;
-    console.log("User role:", role);
+    // --- Usamos el hook useAuth como única fuente de verdad ---
+    const { user, isAuthenticated, loading } = useAuth();
 
-    if (role === 'JEFE') {
+    // Mientras se verifica el estado de autenticación, no hacemos nada
+    if (loading) {
+        return null; // O un spinner de carga
+    }
+
+    // Si después de cargar no está autenticado, va al login
+    if (!isAuthenticated) {
+        return <Navigate to="/" />;
+    }
+
+    const role = user?.rol;
+
+    // --- Corregimos a 'Jefe' y 'Empleado' (con mayúscula inicial) ---
+    if (role === 'Jefe') {
         return <Navigate to="/jefe/home" />;
-    } else if (role === 'EMPLEADO') {
+    } else if (role === 'Empleado') {
         return <Navigate to="/empleado/home" />;
-    } else if (role === 'CLIENTE') {
+    } else if (role === 'Cliente') {
         return <Navigate to="/cliente/home" />;
     }
 
-    // Fallback if role not found, redirect to login
-    console.log("Role not found or invalid, redirecting to login.");
+    // Si por alguna razón el rol no es válido, redirigimos al login
     return <Navigate to="/" />;
 };
 

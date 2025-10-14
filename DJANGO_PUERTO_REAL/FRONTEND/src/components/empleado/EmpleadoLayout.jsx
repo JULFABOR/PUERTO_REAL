@@ -11,6 +11,7 @@ import {
     faMoneyBillWave,
 } from '@fortawesome/free-solid-svg-icons';
 import { initFlowbite } from 'flowbite';
+import { Toaster } from 'react-hot-toast'; // <-- 1. IMPORTADO
 
 const getUserData = () => {
     try {
@@ -92,6 +93,18 @@ const EmpleadoLayout = () => {
                     <Outlet />
                 </main>
             </div>
+            
+            {/* --- 2. AÑADIDO --- */}
+            <Toaster 
+                position="top-right"
+                toastOptions={{
+                    style: {
+                        background: '#1F2937',
+                        color: '#D1D5DB',
+                        border: '1px solid #4B5563',
+                    },
+                }}
+            />
         </div>
     );
 };
