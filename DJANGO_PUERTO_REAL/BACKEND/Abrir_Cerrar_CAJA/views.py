@@ -16,6 +16,12 @@ from HOME.models import Cajas, Historial_Caja, Tipo_Evento, Estados, Fondo_Pagos
 
 from . import services # Importamos el módulo de servicios
 
+# Caching common states to reduce DB queries
+# Using .first() to prevent crashes in case of duplicate data in the database.
+ESTADO_ABIERTO = Estados.objects.filter(nombre_estado='ABIERTO').first()
+ESTADO_ACTIVO = Estados.objects.filter(nombre_estado='ACTIVO').first()
+ESTADO_CERRADO = Estados.objects.filter(nombre_estado='CERRADO').first()
+
 
 # ====== 1) Apertura de Caja ======
 
@@ -110,7 +116,7 @@ def rendir_fondo(request):
         messages.error(request, "No hay caja abierta.")
         return redirect("panel_caja")
 
-    fondo = services.Fondo_Pagos.objects.filter(estado_fp__nombre_estado='ACTIVO').first() # Asumiendo un estado ACTIVO para Fondo_Pagos
+    fondo = services.Fondo_Pagos.objects.filter(estado_fp=ESTADO_ACTIVO).first()
     if not fondo:
         messages.error(request, "No existe un Fondo de Pagos activo.")
         return redirect("panel_caja")
@@ -183,21 +189,26 @@ class HistorialCajaListAPIView(generics.ListAPIView):
     serializer_class = HistorialCajaSerializer
 
     def get_queryset(self):
-        # Filtra el historial por la caja abierta del empleado actual
         try:
             empleado_actual = self.request.user.empleado
-        except Empleados.DoesNotExist:
-            return Historial_Caja.objects.none() # O lanzar una excepción si se prefiere
+            
+            # Lógica más eficiente para encontrar la caja activa del empleado
+            historial_apertura = Historial_Caja.objects.filter(
+                empleado_hc=empleado_actual,
+                tipo_event_caja__nombre_evento='APERTURA',
+                caja_hc__estado_caja__nombre_estado='ABIERTO'
+            ).select_related('caja_hc').latest('fecha_movimiento_hcaja')
+            
+            caja_activa = historial_apertura.caja_hc
 
-        try:
-            estado_abierto = Estados.objects.get(nombre_estado='ABIERTO')
-            cajas_del_empleado_ids = Historial_Caja.objects.filter(empleado_hc=empleado_actual).values_list('caja_hc_id', flat=True)
-            caja_activa = Cajas.objects.get(id_caja__in=cajas_del_empleado_ids, estado_caja=estado_abierto)
-            return Historial_Caja.objects.filter(caja_hc=caja_activa).order_by('-fecha_movimiento_hcaja')
-        except Cajas.DoesNotExist:
-            return Historial_Caja.objects.none() # No hay caja abierta, no hay historial para mostrar
-        except Estados.DoesNotExist:
-            # Esto debería ser manejado por un error de configuración en el inicio de la app
+            # Usamos select_related para optimizar y evitar N+1 queries
+            return Historial_Caja.objects.filter(caja_hc=caja_activa).select_related(
+                'caja_hc__estado_caja',
+                'empleado_hc__user_empleado',
+                'tipo_event_caja'
+            ).order_by('-fecha_movimiento_hcaja')
+
+        except (Empleados.DoesNotExist, Historial_Caja.DoesNotExist):
             return Historial_Caja.objects.none()
 
 
@@ -292,15 +303,19 @@ class CajaEstadoAPIView(APIView):
     def get(self, request, *args, **kwargs):
         try:
             empleado_actual = request.user.empleado
-        except Empleados.DoesNotExist:
-            return Response({'detail': 'Tu usuario no está asociado a un empleado.'}, status=status.HTTP_403_FORBIDDEN)
 
-        try:
-            estado_abierto = Estados.objects.get(nombre_estado='ABIERTO')
-            cajas_del_empleado_ids = Historial_Caja.objects.filter(empleado_hc=empleado_actual).values_list('caja_hc_id', flat=True)
-            caja_activa = Cajas.objects.get(id_caja__in=cajas_del_empleado_ids, estado_caja=estado_abierto)
+            # Lógica más eficiente para encontrar la caja activa del empleado
+            historial_apertura = Historial_Caja.objects.filter(
+                empleado_hc=empleado_actual,
+                tipo_event_caja__nombre_evento='APERTURA',
+                caja_hc__estado_caja__nombre_estado='ABIERTO'
+            ).select_related('caja_hc').latest('fecha_movimiento_hcaja')
+            
+            caja_activa = historial_apertura.caja_hc
+            
             return Response(CajasSerializer(caja_activa).data, status=status.HTTP_200_OK)
-        except Cajas.DoesNotExist:
+
+        except (Empleados.DoesNotExist, Historial_Caja.DoesNotExist):
             return Response({'detail': 'No hay caja abierta para este empleado.'}, status=status.HTTP_404_NOT_FOUND)
         except Estados.DoesNotExist:
             return Response({'detail': "Error de configuración: El estado 'ABIERTO' no existe."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -325,7 +340,7 @@ class MovimientoFondoAPIView(APIView):
         except Empleados.DoesNotExist:
             return Response({'detail': 'Tu usuario no está asociado a un empleado.'}, status=status.HTTP_403_FORBIDDEN)
 
-        fondo = Fondo_Pagos.objects.filter(estado_fp__nombre_estado='ACTIVO').first() # Asumiendo un estado ACTIVO para Fondo_Pagos
+        fondo = Fondo_Pagos.objects.filter(estado_fp=ESTADO_ACTIVO).first()
         if not fondo:
             return Response({'detail': 'No existe un Fondo de Pagos activo.'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -353,7 +368,13 @@ class MovimientoFondoListAPIView(generics.ListAPIView):
 
     def get_queryset(self):
         # Filtra los movimientos por el fondo de pagos activo
-        fondo = Fondo_Pagos.objects.filter(estado_fp__nombre_estado='ACTIVO').first()
+        fondo = Fondo_Pagos.objects.filter(estado_fp=ESTADO_ACTIVO).first()
         if not fondo:
             return Movimiento_Fondo.objects.none() # No hay fondo activo, no hay movimientos
-        return Movimiento_Fondo.objects.filter(fondo_mov_fp=fondo).order_by('-fecha_mov_fp')
+        
+        # Usamos select_related para optimizar y evitar N+1 queries
+        return Movimiento_Fondo.objects.filter(fondo_mov_fp=fondo).select_related(
+            'fondo_mov_fp__estado_fp',
+            'empleado_mov_fp__user_empleado',
+            'tipo_mov_fp'
+        ).order_by('-fecha_mov_fp')

@@ -2,9 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     # Vistas de API
-    ProductoViewSet,
-    CategoriaProductoViewSet,
-    EstadoProductoViewSet,
+    ProductoViewSet, CategoriaProductoViewSet, EstadoProductoViewSet,
     StockListView, 
     StockDecrementAPIView, 
     StockAdjustmentAPIView, 
@@ -26,7 +24,8 @@ app_name = 'stock'
 router = DefaultRouter()
 router.register(r'productos', ProductoViewSet, basename='producto')
 router.register(r'categorias', CategoriaProductoViewSet, basename='categoria')
-router.register(r'estados-producto', EstadoProductoViewSet, basename='estados-producto')
+router.register(r'categorias-producto', CategoriaProductoViewSet, basename='categoria-producto')
+router.register(r'estados-producto', EstadoProductoViewSet, basename='estado-producto')
 
 # --- 2. Definimos las URLs de la API ---
 # Combinamos las URLs generadas por el router con las vistas de API manuales.

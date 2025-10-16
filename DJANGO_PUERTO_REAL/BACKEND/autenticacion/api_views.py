@@ -8,12 +8,20 @@ from django.contrib.auth.models import User
 from django.core.mail import send_mail
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from django.utils.encoding import force_bytes, force_str
+from django.utils.encoding import force_bytes
 from django.conf import settings
-from .serializers import UserRegisterSerializer
+from .serializers import UserRegisterSerializer, UserDataSerializer
+from HOME.models import Empleados
 
-# Asegúrate de que esta ruta de importación a tu modelo Empleados sea correcta
-from HOME.models import Empleados 
+# ==================================================================
+# --- Vista para obtener datos del usuario ---
+# ==================================================================
+class UserDataView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        serializer = UserDataSerializer(request.user)
+        return Response(serializer.data)
 
 # ==================================================================
 # --- VISTA DE LOGIN CORREGIDA ---
@@ -27,31 +35,24 @@ class CustomAuthToken(ObtainAuthToken):
         user = serializer.validated_data['user']
         token, created = Token.objects.get_or_create(user=user)
 
-        # --- LÓGICA CORREGIDA PARA OBTENER EMPLEADO Y ROL ---
+        # --- LÓGICA CORREGIDA ---
+        # Obtenemos el rol y el ID del empleado si existe.
+        rol = 'Cliente'
         empleado_id = None
-        rol = "Empleado" # Rol por defecto
+        if hasattr(user, 'perfil'):
+            rol = user.perfil.get_rol_display()
+            # Si el usuario es un empleado, obtenemos su ID.
+            if rol in ['JEFE', 'EMPLEADO']:
+                try:
+                    empleado_id = user.empleado.id_empleado
+                except Empleados.DoesNotExist:
+                    empleado_id = None # No debería pasar si el rol está bien asignado.
 
-        try:
-            # Buscamos en la tabla Empleados un registro asociado a este user
-            empleado = Empleados.objects.get(user_empleado=user)
-            empleado_id = empleado.id_empleado
-        except Empleados.DoesNotExist:
-            # Si un usuario (como un superadmin) no tiene un perfil de empleado
-            empleado_id = None
-
-        # Determinamos el rol basado en los grupos de Django
-        if user.groups.filter(name='Jefe').exists():
-            rol = 'Jefe'
-        elif user.is_superuser:
-            rol = 'Jefe' # Asignamos rol de Jefe a los superusuarios también
-        
-        # Construimos la respuesta final
         return Response({
             'token': token.key,
             'user_id': user.pk,
-            'email': user.email,
             'rol': rol,
-            'empleado_id': empleado_id # <-- Enviamos el ID del empleado
+            'empleado_id': empleado_id, # Devolvemos el ID del empleado
         })
 
 # ==================================================================
@@ -69,26 +70,18 @@ class RegisterView(APIView):
         serializer = UserRegisterSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
+            # El perfil se crea automáticamente con la señal en models.py
+            # Se puede asignar un rol específico si es necesario, por defecto es 'Cliente'
+            # user.perfil.rol = 'EMPLEADO'
+            # user.perfil.save()
+
             token, created = Token.objects.get_or_create(user=user)
             
-            empleado_id = None
-            try:
-                new_empleado = Empleados.objects.create(
-                    user=user,
-                    nombre_empleado=user.first_name,
-                    apellido_empleado=user.last_name,
-                )
-                empleado_id = new_empleado.id_empleado
-            except Exception as e:
-                print(f"No se pudo crear el perfil de empleado para {user.username}: {e}")
-
             return Response({
                 'message': 'Usuario registrado con éxito.',
                 'token': token.key,
                 'user_id': user.pk,
-                'email': user.email,
-                'rol': 'Empleado', # Asignamos un rol por defecto al registrar
-                'empleado_id': empleado_id
+                'rol': user.perfil.get_rol_display(),
             }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -149,13 +142,22 @@ class PasswordResetConfirmView(APIView):
     def post(self, request):
         serializer = PasswordResetConfirmSerializer(data=request.data)
         if serializer.is_valid():
-            user = serializer.validated_data['user']
-            password = serializer.validated_data['password']
-            
-            # Establecer la nueva contraseña
-            user.set_password(password)
-            user.save()
-            
-            return Response({'message': 'Tu contraseña ha sido restablecida con éxito.'}, status=status.HTTP_200_OK)
+            uidb64 = serializer.validated_data.get('uidb64')
+            token = serializer.validated_data.get('token')
+            password = serializer.validated_data.get('password')
+
+            try:
+                uid = force_str(urlsafe_base64_decode(uidb64))
+                user = User.objects.get(pk=uid)
+                token_generator = PasswordResetTokenGenerator()
+                if not token_generator.check_token(user, token):
+                    return Response({'error': 'El enlace de reseteo no es válido o ha expirado.'}, status=status.HTTP_400_BAD_REQUEST)
+                
+                user.set_password(password)
+                user.save()
+                return Response({'message': 'Tu contraseña ha sido restablecida con éxito.'}, status=status.HTTP_200_OK)
+
+            except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+                return Response({'error': 'El enlace de reseteo no es válido.'}, status=status.HTTP_400_BAD_REQUEST)
             
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

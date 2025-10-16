@@ -5,6 +5,53 @@ from HOME.models import (
 )
 from Auditoria.services import crear_registro
 
+# ==================================================================
+# --- SERIALIZERS DE LECTURA (para el Frontend) ---
+# ==================================================================
+
+class ProductoCompraSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Productos
+        fields = ('id_producto', 'nombre_producto', 'barcode')
+
+class ProveedorSimpleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Proveedores
+        fields = ('id_proveedor', 'nombre_proveedor')
+
+class EstadoSimpleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Estados
+        fields = ('id_estado', 'nombre_estado')
+
+class DetalleCompraReadSerializer(serializers.ModelSerializer):
+    producto_dt_comp = ProductoCompraSerializer(read_only=True)
+
+    class Meta:
+        model = Detalle_Compras
+        fields = ('id_det_comp', 'producto_dt_comp', 'cant_det_comp', 'precio_unidad_det_comp', 'subtotal_det_comp')
+
+class CompraReadSerializer(serializers.ModelSerializer):
+    detalles = DetalleCompraReadSerializer(many=True, read_only=True)
+    proveedor_compra = ProveedorSimpleSerializer(read_only=True)
+    estado_compra = EstadoSimpleSerializer(read_only=True)
+
+    class Meta:
+        model = Compras
+        fields = (
+            'id_compra', 
+            'proveedor_compra', 
+            'fecha_compra', 
+            'fecha_limite', 
+            'total_compra', 
+            'estado_compra', 
+            'detalles'
+        )
+
+# ==================================================================
+# --- SERIALIZERS DE ESCRITURA (para crear/actualizar compras) ---
+# ==================================================================
+
 class ProveedorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Proveedores
@@ -15,7 +62,7 @@ class MetodoPagoSerializer(serializers.ModelSerializer):
         model = Metodos_Pago
         fields = ('id_metodo', 'nombre_metodo')
 
-class DetalleCompraSerializer(serializers.ModelSerializer):
+class DetalleCompraWriteSerializer(serializers.ModelSerializer):
     id_det_comp = serializers.IntegerField(required=False)
     class Meta:
         model = Detalle_Compras
@@ -29,8 +76,8 @@ class CompraMetodoPagoSerializer(serializers.ModelSerializer):
         model = Compra_MetodoPago
         fields = ('metodo_pago', 'monto_comp_metpag', 'metodo_pago_comp_metpag')
 
-class CompraSerializer(serializers.ModelSerializer):
-    detalles = DetalleCompraSerializer(many=True)
+class CompraWriteSerializer(serializers.ModelSerializer):
+    detalles = DetalleCompraWriteSerializer(many=True)
     metodos_pago = CompraMetodoPagoSerializer(many=True, required=False)
 
     class Meta:
@@ -65,15 +112,12 @@ class CompraSerializer(serializers.ModelSerializer):
             metodo_pago_instance = metodo_pago_data.pop('metodo_pago_comp_metpag')
             Compra_MetodoPago.objects.create(compra_comp_metpag=compra, metodo_pago_comp_metpag=metodo_pago_instance, **metodo_pago_data)
 
-        # Crear una alerta si hay una fecha límite
         if compra.fecha_limite:
             Alertas.objects.create(
                 nombre_alerta=f"Compra pendiente: #{compra.id_compra}",
                 mensaje_alerta=f"La compra #{compra.id_compra} a {compra.proveedor_compra.nombre_proveedor} vence el {compra.fecha_limite.strftime('%d/%m/%Y')}. Revisar y cambiar estado."
-                # estado_alerta usará el valor por defecto del modelo
             )
         
-        # --- REGISTRO DE AUDITORÍA ---
         crear_registro(
             usuario=self.context['request'].user,
             accion='COMPRA_NUEVA',
@@ -84,18 +128,16 @@ class CompraSerializer(serializers.ModelSerializer):
                 'items': compra.detalles.count()
             }
         )
-        # --- FIN REGISTRO ---
 
         return compra
 
     def update(self, instance, validated_data):
-        estado_recibida = Estados.objects.get(nombre_estado='RECIBIDA') # Assuming 'RECIBIDA' is the state name
+        estado_recibida = Estados.objects.get(nombre_estado='RECIBIDA')
         is_recibida_antes = instance.estado_compra == estado_recibida
         
         detalles_data = validated_data.pop('detalles', None)
         metodos_pago_data = validated_data.pop('metodos_pago', None)
 
-        # Actualizar campos de Compra
         instance = super().update(instance, validated_data)
 
         if detalles_data is not None:
@@ -110,7 +152,7 @@ class CompraSerializer(serializers.ModelSerializer):
                     
                     detalle.cant_det_comp = detalle_data.get('cant_det_comp', detalle.cant_det_comp)
                     detalle.precio_unidad_det_comp = detalle_data.get('precio_unidad_det_comp', detalle.precio_unidad_det_comp)
-                    detalle.save() # Recalcula el subtotal
+                    detalle.save()
 
                     if is_recibida_antes:
                         cantidad_diff = detalle.cant_det_comp - original_cantidad
@@ -136,34 +178,30 @@ class CompraSerializer(serializers.ModelSerializer):
                                     observaciones_hstock=f"Ajuste por edicion de compra ID: {instance.id_compra}"
                                 )
                             except Stocks.DoesNotExist:
-                                # Manejar caso donde el registro de stock no existe si es necesario
                                 pass
                             except Tipos_Movimientos.DoesNotExist:
                                 raise serializers.ValidationError({"error": "Tipo de movimiento 'MOV_STOCK_AJUSTE' no encontrado."})
                 else:
-                    # Nuevo detalle
                     Detalle_Compras.objects.create(compra_dt_comp=instance, **detalle_data)
             
-            # Manejar detalles eliminados
             for detalle_id, detalle in existing_detalles.items():
                 if is_recibida_antes:
-                     # Ajustar stock para ítems eliminados
                     try:
                         stock = Stocks.objects.get(producto_en_stock=detalle.producto_dt_comp)
                         stock_anterior = stock.cantidad_actual_stock
                         stock.cantidad_actual_stock -= detalle.cant_det_comp
                         stock.save()
 
-                        tipo_movimiento_eliminacion = Tipos_Movimientos.objects.get(nombre_movimiento='MOV_STOCK_AJUSTE') # Assuming same type for adjustment
+                        tipo_movimiento_eliminacion = Tipos_Movimientos.objects.get(nombre_movimiento='MOV_STOCK_AJUSTE')
                         
                         empleado_auditoria = None
                         if hasattr(self.context['request'].user, 'empleado'):
                             empleado_auditoria = self.context['request'].user.empleado
                         else:
-                            pass # Or raise an error if strictly required
+                            pass
 
                         Historial_Stock.objects.create(
-                            stock_hs=stock, cantidad_hstock=-detalle.cant_det_comp, # Negative quantity for removal
+                            stock_hs=stock, cantidad_hstock=-detalle.cant_det_comp,
                             stock_anterior_hstock=stock_anterior, stock_nuevo_hstock=stock.cantidad_actual_stock,
                             tipo_movimiento_hs=tipo_movimiento_eliminacion, empleado_hs=empleado_auditoria,
                             observaciones_hstock=f"Ajuste por eliminación de detalle de compra ID: {instance.id_compra}"
@@ -174,7 +212,6 @@ class CompraSerializer(serializers.ModelSerializer):
                         raise serializers.ValidationError({"error": "Tipo de movimiento 'MOV_STOCK_AJUSTE' no encontrado."})
                 detalle.delete()
 
-            # Recalcular total
             instance.refresh_from_db()
             new_total = sum(d.subtotal_det_comp for d in instance.detalles.all())
             instance.total_compra = new_total

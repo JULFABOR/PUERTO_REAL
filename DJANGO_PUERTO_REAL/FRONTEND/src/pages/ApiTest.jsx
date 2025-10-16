@@ -39,16 +39,12 @@ useEffect(() => {
         const fetchData = async () => {
             setError('');
             try {
-                // The API call is now a single, clean line.
-                // apiClient handles the base URL and Authorization header automatically.
-                const result = await apiClient('/api/caja/estado/');
+                const result = await apiClient('/caja/api/estado/');
                 setData(result);
             } catch (err) {
                 console.error("Error al obtener datos de la API:", err);
                 setError(err.message);
                 
-                // This error handling logic still works perfectly
-                // because apiClient throws an error with a meaningful message.
                 if (err.message.includes('Credenciales de autenticación no se proveyeron') || err.message.includes('Token inválido')) {
                     localStorage.removeItem('authToken');
                     setToken('');
@@ -61,17 +57,13 @@ useEffect(() => {
 
   const handleLogout = async () => {
     try {
-      // Llama al endpoint de logout del backend para invalidar el token
       await apiClient('/auth/api/logout/', {
         method: 'POST',
       });
     } catch (err) {
-      // Si el servidor falla, la sesión local se cerrará de todos modos.
-      // El error se registra en la consola para depuración.
       console.error("Error al cerrar sesión en el servidor:", err);
     }
     
-    // Limpia el estado local y el token del navegador
     localStorage.removeItem('authToken');
     setToken('');
     setData(null);
@@ -87,22 +79,8 @@ useEffect(() => {
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxWidth: '300px', margin: '0 auto' }}>
           <h3>Iniciar Sesión</h3>
           {loginError && <p style={{ color: 'red' }}>{loginError}</p>}
-          <input
-            type="text"
-            placeholder="Usuario"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-            style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
-          />
-          <input
-            type="password"
-            placeholder="Contraseña"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
-          />
+          <input type="text" placeholder="Usuario" value={username} onChange={(e) => setUsername(e.target.value)} required style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }} />
+          <input type="password" placeholder="Contraseña" value={password} onChange={(e) => setPassword(e.target.value)} required style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }} />
           <button type="submit" style={{ padding: '10px 15px', borderRadius: '4px', border: 'none', backgroundColor: '#007bff', color: 'white', cursor: 'pointer' }}>
             Iniciar Sesión
           </button>

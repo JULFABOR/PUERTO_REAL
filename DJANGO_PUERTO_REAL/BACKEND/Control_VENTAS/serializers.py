@@ -7,7 +7,44 @@ from HOME.models import (
     Tipos_Movimientos, Productos, Clientes, Empleados
 )
 
-class DetalleVentaSerializer(serializers.ModelSerializer):
+# ==================================================================
+# --- SERIALIZERS DE LECTURA (para el Frontend) ---
+# ==================================================================
+
+class ProductoVentaSerializer(serializers.ModelSerializer):
+    """Serializer simple para mostrar info del producto en el detalle de venta."""
+    class Meta:
+        model = Productos
+        fields = ('id_producto', 'nombre_producto', 'barcode')
+
+class DetalleVentaReadSerializer(serializers.ModelSerializer):
+    """Serializer para leer los detalles de una venta, incluyendo el producto."""
+    producto_det_vent = ProductoVentaSerializer(read_only=True)
+
+    class Meta:
+        model = Detalle_Ventas
+        fields = ('id_det_vent', 'producto_det_vent', 'cantidad_det_vent', 'precio_unitario_det_vent', 'subtotal_det_vent')
+
+class VentaReadSerializer(serializers.ModelSerializer):
+    """Serializer para leer una venta con todos sus detalles anidados."""
+    detalles = DetalleVentaReadSerializer(many=True, read_only=True, source='detalles')
+    cliente_venta = serializers.StringRelatedField(read_only=True)
+    empleado_venta = serializers.StringRelatedField(read_only=True)
+    estado_venta = serializers.StringRelatedField(read_only=True)
+
+    class Meta:
+        model = Ventas
+        fields = (
+            'id_venta', 'cliente_venta', 'empleado_venta', 'caja_venta', 
+            'fecha_venta', 'total_venta', 'metodo_pago', 'estado_venta', 
+            'observaciones_venta', 'detalles', 'qr_token'
+        )
+
+# ==================================================================
+# --- SERIALIZERS DE ESCRITURA (para crear ventas) ---
+# ==================================================================
+
+class DetalleVentaWriteSerializer(serializers.ModelSerializer):
     producto = serializers.PrimaryKeyRelatedField(
         queryset=Productos.objects.all(), 
         source='producto_det_vent'
@@ -24,8 +61,8 @@ class DetalleVentaSerializer(serializers.ModelSerializer):
         fields = ('producto', 'cantidad', 'precio_unitario')
 
 
-class VentaSerializer(serializers.ModelSerializer):
-    detalles = DetalleVentaSerializer(many=True, write_only=True)
+class VentaWriteSerializer(serializers.ModelSerializer):
+    detalles = DetalleVentaWriteSerializer(many=True, write_only=True)
     qr_token = serializers.CharField(read_only=True)
 
     class Meta:

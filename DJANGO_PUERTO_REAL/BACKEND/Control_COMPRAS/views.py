@@ -1,6 +1,7 @@
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, filters
 from rest_framework.response import Response
 from rest_framework.decorators import action
+from django_filters.rest_framework import DjangoFilterBackend
 from django.http import HttpResponse
 from django.template.loader import get_template
 from django.utils import timezone
@@ -12,7 +13,7 @@ from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 
 from HOME.models import Compras, Proveedores, Stocks, Historial_Stock, Tipos_Movimientos, Estados
-from .serializers import CompraSerializer, ProveedorSerializer
+from .serializers import CompraReadSerializer, CompraWriteSerializer, ProveedorSerializer
 from Auditoria.services import crear_registro
 
 # --- Vistas de Template ---
@@ -29,13 +30,26 @@ class ProveedorListView(TemplateView):
 
 # --- Vistas de API ---
 class CompraViewSet(viewsets.ModelViewSet):
-    queryset = Compras.objects.all()
-    serializer_class = CompraSerializer
+    """
+    ViewSet para manejar las Compras.
+    Usa CompraReadSerializer para lectura y CompraWriteSerializer para escritura.
+    Permite filtrar por: /api/compras/?proveedor_compra=1&estado_compra=2&fecha_compra_after=YYYY-MM-DD
+    """
+    queryset = Compras.objects.all().order_by('-fecha_compra')
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_fields = {
+        'fecha_compra': ['gte', 'lte'],
+        'proveedor_compra': ['exact'],
+        'estado_compra': ['exact']
+    }
+    ordering_fields = ['fecha_compra', 'total_compra']
+
+    def get_serializer_class(self):
+        if self.action in ['create', 'update', 'partial_update']:
+            return CompraWriteSerializer
+        return CompraReadSerializer
 
     def get_serializer_context(self):
-        """
-        Contexto extra proporcionado a la clase serializadora.
-        """
         context = super().get_serializer_context()
         context.update({"request": self.request})
         return context
@@ -43,20 +57,17 @@ class CompraViewSet(viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
         
-        # Comprueba si solo se está cambiando el estado
         data_keys = list(request.data.keys())
         is_status_change_only = 'estado_compra' in data_keys and len(data_keys) == 1
 
         if not is_status_change_only:
-            # Aplica la regla de 20 minutos para todas las demás ediciones
             time_diff = timezone.now() - instance.fecha_compra
-            if time_diff.total_seconds() > 1200: # 20 minutos
+            if time_diff.total_seconds() > 1200:
                 return Response(
                     {"error": "Solo se puede editar la compra dentro de los 20 minutos de su creacion."},
                     status=status.HTTP_403_FORBIDDEN
                 )
 
-        # Lógica de movimiento de stock para cuando una compra se marca como "RECIBIDA"
         nuevo_estado_id = request.data.get('estado_compra')
         
         try:
@@ -72,7 +83,8 @@ class CompraViewSet(viewsets.ModelViewSet):
                 if hasattr(request.user, 'empleado'):
                     empleado = request.user.empleado
                 else:
-                    return Response({"error": "Solo los empleados pueden realizar esta acción."}, status=status.HTTP_403_FORBIDDEN)
+                    return Response({"error": "Solo los empleados pueden realizar esta acción."},
+                                    status=status.HTTP_403_FORBIDDEN)
 
                 for detalle in instance.detalles.all():
                     stock, created = Stocks.objects.get_or_create(
@@ -95,7 +107,6 @@ class CompraViewSet(viewsets.ModelViewSet):
                         observaciones_hstock=f"Entrada por compra ID: {instance.id_compra}"
                     )
                 
-                # --- REGISTRO DE AUDITORÍA ---
                 crear_registro(
                     usuario=request.user,
                     accion='COMPRA_RECIBIDA',
@@ -105,7 +116,6 @@ class CompraViewSet(viewsets.ModelViewSet):
                         'total_compra': str(instance.total_compra)
                     }
                 )
-                # --- FIN REGISTRO ---
 
             except Tipos_Movimientos.DoesNotExist:
                 return Response({"error": "Tipo de movimiento 'COMPRA A PROVEEDOR' no encontrado."}, status=status.HTTP_400_BAD_REQUEST)

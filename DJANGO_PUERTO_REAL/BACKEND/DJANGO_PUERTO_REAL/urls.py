@@ -1,8 +1,5 @@
 """
 Configuración de URL para el proyecto DJANGO_PUERTO_REAL.
-
-La lista `urlpatterns` enruta URLs a vistas. Para más información, consulta:
-    https://docs.djangoproject.com/en/5.2/topics/http/urls/
 """
 from django.contrib import admin
 from django.urls import path, include, re_path

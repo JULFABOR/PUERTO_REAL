@@ -7,7 +7,6 @@ from .views import (
     VentaView
 )
 
-
 app_name = 'ventas'
 
 # Router para la API

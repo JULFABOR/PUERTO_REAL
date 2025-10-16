@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { initFlowbite } from 'flowbite';
-import { useAuth } from '@/hooks/useAuth'; // <-- Import and use the hook
 import apiClient from '@/api/apiClient';
 
 const AuthPage = () => {
     const [activeTab, setActiveTab] = useState('login');
-    const { login } = useAuth(); // <-- Get login function from context
 
     useEffect(() => {
         initFlowbite();
@@ -34,11 +32,19 @@ const AuthPage = () => {
     const handleLoginSubmit = async (e) => {
         e.preventDefault();
         setLoginError('');
-        const result = await login(loginUsername, loginPassword); // Call the hook's login
-        if (!result.success) {
-            setLoginError(result.error);
+        try {
+            const data = await apiClient('/auth/api/login/', {
+                method: 'POST',
+                body: JSON.stringify({ username: loginUsername, password: loginPassword }),
+            });
+            localStorage.setItem('authToken', data.token);
+            // Forzar un refresco de página para que el resto de la app detecte el login
+            window.location.href = '/'; 
+        } catch (error) {
+            const errorData = error.response?.data || { detail: 'No se pudo conectar con el servidor.' };
+            const errorMessage = Object.values(errorData).flat().join(' ');
+            setLoginError(errorMessage || 'Error de inicio de sesión.');
         }
-        // Navigation is now handled inside AuthContext
     };
 
     const handleRegisterSubmit = async (e) => {
