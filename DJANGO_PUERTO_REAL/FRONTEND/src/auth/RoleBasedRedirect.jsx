@@ -19,11 +19,11 @@ const RoleBasedRedirect = () => {
     const role = user?.rol;
 
     // --- Corregimos a 'Jefe' y 'Empleado' (con mayúscula inicial) ---
-    if (role === 'Jefe') {
+    if (role === 'JEFE') {
         return <Navigate to="/jefe/home" />;
-    } else if (role === 'Empleado') {
+    } else if (role === 'EMPLEADO') {
         return <Navigate to="/empleado/home" />;
-    } else if (role === 'Cliente') {
+    } else if (role === 'CLIENTE') {
         return <Navigate to="/cliente/home" />;
     }
 

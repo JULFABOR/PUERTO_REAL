@@ -27,9 +27,6 @@ import JefeStock from './pages/jefe/JefeStock';
 import JefeSuppliers from './pages/jefe/JefeSuppliers';
 import JefeSettings from './pages/jefe/JefeSettings';
 
-
-// ... (rest of the file)
-
 function App() {
   return (
       <Routes>
@@ -51,14 +48,14 @@ function App() {
         <Route 
           path="/empleado" 
           element={
-            <ProtectedRoute allowedRoles={['Empleado']}>
+            <ProtectedRoute allowedRoles={['EMPLEADO']}>
               <EmpleadoLayout />
             </ProtectedRoute>
           }
         >
           <Route path="home" element={<EmpleadoHome />} />
           <Route path="pos" element={<VentasPOS />} />
-           <Route path="control-stock" element={<EmpleadoControlStock />} /> {/* <-- AÑADE ESTA LÍNEA */}
+          <Route path="control-stock" element={<EmpleadoControlStock />} />
           <Route path="stock" element={<Stock />} />
           <Route path="clientes" element={<Clientes />} />
           <Route path="proveedores" element={<Proveedores />} />
@@ -69,7 +66,7 @@ function App() {
         <Route 
           path="/jefe" 
           element={
-            <ProtectedRoute allowedRoles={['Jefe',]}>
+            <ProtectedRoute allowedRoles={['JEFE',]}>
               <JefeLayout />
             </ProtectedRoute>
           }
@@ -88,7 +85,7 @@ function App() {
         <Route 
           path="/cliente" 
           element={
-            <ProtectedRoute allowedRoles={['Cliente']}>
+            <ProtectedRoute allowedRoles={['CLIENTE']}>
               <ClienteLayout />
             </ProtectedRoute>
           }

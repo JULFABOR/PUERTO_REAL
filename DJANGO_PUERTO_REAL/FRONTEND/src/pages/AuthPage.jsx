@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { initFlowbite } from 'flowbite';
-import apiClient from '@/api/apiClient';
+import { useAuth } from '@/contexts/AuthContext'; // Importar el hook de autenticación
 
 const AuthPage = () => {
+    const { login } = useAuth(); // Obtener la función de login del contexto
     const [activeTab, setActiveTab] = useState('login');
 
     useEffect(() => {
@@ -32,19 +33,11 @@ const AuthPage = () => {
     const handleLoginSubmit = async (e) => {
         e.preventDefault();
         setLoginError('');
-        try {
-            const data = await apiClient('/auth/api/login/', {
-                method: 'POST',
-                body: JSON.stringify({ username: loginUsername, password: loginPassword }),
-            });
-            localStorage.setItem('authToken', data.token);
-            // Forzar un refresco de página para que el resto de la app detecte el login
-            window.location.href = '/'; 
-        } catch (error) {
-            const errorData = error.response?.data || { detail: 'No se pudo conectar con el servidor.' };
-            const errorMessage = Object.values(errorData).flat().join(' ');
-            setLoginError(errorMessage || 'Error de inicio de sesión.');
+        const result = await login(loginUsername, loginPassword);
+        if (!result.success) {
+            setLoginError(result.error);
         }
+        // La navegación se maneja dentro del AuthContext
     };
 
     const handleRegisterSubmit = async (e) => {
@@ -192,7 +185,7 @@ const AuthPage = () => {
                                             ¿Olvidaste tu contraseña?
                                         </button>
                                     </div>
-                                    <button type="submit" className="w-full text-pr-dark bg-pr-yellow hover:bg-yellow-400 focus:ring-4 focus:outline-none focus:ring-yellow-300 font-bold rounded-lg text-sm px-5 py-3 text-center transition duration-300">
+                                    <button type="button" onClick={handleLoginSubmit} className="w-full text-pr-dark bg-pr-yellow hover:bg-yellow-400 focus:ring-4 focus:outline-none focus:ring-yellow-300 font-bold rounded-lg text-sm px-5 py-3 text-center transition duration-300">
                                         Ingresar
                                     </button>
                                 </form>
