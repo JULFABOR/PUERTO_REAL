@@ -8,7 +8,7 @@ from django.contrib.auth.models import User
 from django.core.mail import send_mail
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from django.utils.encoding import force_bytes
+from django.utils.encoding import force_bytes, force_str
 from django.conf import settings
 from .serializers import UserRegisterSerializer, UserDataSerializer
 from HOME.models import Empleados
@@ -20,39 +20,40 @@ class UserDataView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        """
+        Devuelve los datos del usuario autenticado actualmente.
+        """
         serializer = UserDataSerializer(request.user)
         return Response(serializer.data)
 
 # ==================================================================
-# --- VISTA DE LOGIN CORREGIDA ---
+# --- VISTA DE LOGIN OPTIMIZADA ---
 # ==================================================================
 class CustomAuthToken(ObtainAuthToken):
 
     def post(self, request, *args, **kwargs):
+        """
+        Autentica a un usuario y devuelve el token junto con los datos completos del usuario.
+        """
         serializer = self.serializer_class(data=request.data,
-                                                    context={'request': request})
+                                           context={'request': request})
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data['user']
         token, created = Token.objects.get_or_create(user=user)
+        
+        user_data = UserDataSerializer(user).data
 
-        # --- LÓGICA CORREGIDA ---
-        # Obtenemos el rol y el ID del empleado si existe.
-        rol = 'Cliente'
-        empleado_id = None
-        if hasattr(user, 'perfil'):
-            rol = user.perfil.get_rol_display()
-            # Si el usuario es un empleado, obtenemos su ID.
-            if rol in ['JEFE', 'EMPLEADO']:
-                try:
-                    empleado_id = user.empleado.id_empleado
-                except Empleados.DoesNotExist:
-                    empleado_id = None # No debería pasar si el rol está bien asignado.
+        rol = user_data.get('perfil', {}).get('rol')
+        empleado_data = user_data.get('empleado')
+        empleado_id = empleado_data.get('id_empleado') if empleado_data else None
 
         return Response({
             'token': token.key,
-            'user_id': user.pk,
+            'user_id': user_data.get('id'),
+            'email': user_data.get('email'),
             'rol': rol,
-            'empleado_id': empleado_id, # Devolvemos el ID del empleado
+            'empleado_id': empleado_id,
+            'user': user_data  # Keep the full user object for any other potential use
         })
 
 # ==================================================================
@@ -61,27 +62,28 @@ class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        """
+        Invalida el token de autenticación del usuario.
+        """
         request.auth.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class RegisterView(APIView):
+    """
+    Registra un nuevo usuario.
+    """
     def post(self, request):
         serializer = UserRegisterSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
-            # El perfil se crea automáticamente con la señal en models.py
-            # Se puede asignar un rol específico si es necesario, por defecto es 'Cliente'
-            # user.perfil.rol = 'EMPLEADO'
-            # user.perfil.save()
-
             token, created = Token.objects.get_or_create(user=user)
             
+            user_data = UserDataSerializer(user).data
+
             return Response({
-                'message': 'Usuario registrado con éxito.',
                 'token': token.key,
-                'user_id': user.pk,
-                'rol': user.perfil.get_rol_display(),
+                'user': user_data
             }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -95,12 +97,12 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
     token = serializers.CharField()
     password = serializers.CharField(write_only=True)
     def validate(self, data):
-        # ... (lógica sin cambios)
-        pass
+        # This can be expanded with more password validation if needed
+        return data
 
 # --- VISTA PARA SOLICITAR EL RESETEO DE CONTRASEÑA ---
 class RequestPasswordResetView(APIView):
-    permission_classes = [] # No se necesita estar autenticado
+    permission_classes = []
 
     def post(self, request):
         serializer = PasswordResetRequestSerializer(data=request.data)
@@ -109,15 +111,12 @@ class RequestPasswordResetView(APIView):
             try:
                 user = User.objects.get(email=email)
                 
-                # Generar token y uid
                 token_generator = PasswordResetTokenGenerator()
                 uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
                 token = token_generator.make_token(user)
                 
-                # Construir la URL de reseteo para el frontend
-                reset_url = f"http://localhost:5173/reset-password?uidb64={uidb64}&token={token}"
+                reset_url = f"{settings.FRONTEND_URL}/reset-password?uidb64={uidb64}&token={token}"
                 
-                # Enviar el correo (se imprimirá en la consola de Django)
                 send_mail(
                     'Restablecimiento de Contraseña',
                     f'Hola, haz clic en el siguiente enlace para restablecer tu contraseña: {reset_url}',
@@ -127,17 +126,15 @@ class RequestPasswordResetView(APIView):
                 )
 
             except User.DoesNotExist:
-                # No hacemos nada si el usuario no existe, por seguridad
                 pass
 
-            # Siempre devolvemos una respuesta exitosa para no revelar si un email existe
             return Response({'message': 'Si tu correo está en nuestro sistema, recibirás un enlace para restablecer tu contraseña.'}, status=status.HTTP_200_OK)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 # --- VISTA PARA CONFIRMAR Y ESTABLECER LA NUEVA CONTRASEÑA ---
 class PasswordResetConfirmView(APIView):
-    permission_classes = [] # No se necesita estar autenticado
+    permission_classes = []
 
     def post(self, request):
         serializer = PasswordResetConfirmSerializer(data=request.data)

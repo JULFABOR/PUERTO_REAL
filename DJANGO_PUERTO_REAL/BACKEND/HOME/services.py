@@ -1,11 +1,20 @@
 from datetime import datetime, timedelta
 from typing import Tuple, Optional
 from django.utils import timezone
-from django.db.models import Sum, Count
+from django.db.models import Sum, Count, F
 from django.contrib.auth import get_user_model, authenticate
 from django.db import models
 
-
+from .models import (
+    Ventas,
+    Historial_Caja,
+    Cajas,
+    Clientes,
+    Productos,
+    Stocks,
+    Compras,
+    Fondo_Pagos,
+)
 
 # ==== Helpers de rango ==== 
 
@@ -15,9 +24,8 @@ def _today_bounds() -> Tuple[datetime, datetime]:
     end = start + timedelta(days=1)
     return start, end
 
-
 def parse_rango(rango: str, desde: Optional[str] = None, hasta: Optional[str] = None) -> Tuple[datetime, datetime, str]:
-#Devuelve (start, end, label). Admite: hoy|semana|mes o fechas YYYY-MM-DD"""
+    #Devuelve (start, end, label). Admite: hoy|semana|mes o fechas YYYY-MM-DD"""
     now = timezone.localtime()
     if rango == "semana":
         # Lunes a hoy (o semana completa)
@@ -39,92 +47,80 @@ def parse_rango(rango: str, desde: Optional[str] = None, hasta: Optional[str] = 
     start, end = _today_bounds()
     return start, end, "Hoy"
 
-
-
 # ==== KPI y estado de caja ==== 
-
 
 def kpi_ventas(start, end) -> float:
     try:
-        from HOME.models import Ventas
         total = (
-            Ventas.objects.filter(fecha_hora__gte=start, fecha_hora__lt=end, DELETE=False)
-            .aggregate(s=Sum("total"))
+            Ventas.objects.filter(fecha_venta__gte=start, fecha_venta__lt=end, DELETE_Vent=False)
+            .aggregate(s=Sum("total_venta"))
             .get("s")
         ) or 0
         return float(total)
-    except Exception:
+    except Exception as e:
+        print(f"Error en kpi_ventas: {e}")
         return 0.0
 
 def kpi_tickets(start, end) -> int:
     try:
-        from HOME.models import Ventas
         return (
-            Ventas.objects.filter(fecha_hora__gte=start, fecha_hora__lt=end, DELETE=False)
+            Ventas.objects.filter(fecha_venta__gte=start, fecha_venta__lt=end, DELETE_Vent=False)
             .count()
-    )
-    except Exception:
+        )
+    except Exception as e:
+        print(f"Error en kpi_tickets: {e}")
         return 0
 
 def kpi_egresos_operativos(start, end) -> float:
     """Solo egresos operativos, excluyendo transferencias internas."""
     try:
-        from HOME.models import Historial_Caja
         qs = Historial_Caja.objects.filter(
-            fecha_hora__gte=start,
-            fecha_hora__lt=end,
-            tipo__in=["EGRESO", "GASTO"],
-            es_transferencia=False,
-            DELETE=False,
-        )
-        total = qs.aggregate(s=Sum("monto")).get("s") or 0
+            fecha_movimiento_hcaja__gte=start,
+            fecha_movimiento_hcaja__lt=end,
+            tipo_event_caja__nombre_evento__in=["EGRESO", "GASTO"],
+            DELETE_Hcaja=False,
+        ).exclude(destino_movimiento='PARA_PAGOS_FONDO') # Excluir transferencias internas al fondo de pagos
+        
+        total = qs.aggregate(s=Sum("cantidad_movida_hcaja")).get("s") or 0
         return float(total)
-    except Exception:
+    except Exception as e:
+        print(f"Error en kpi_egresos_operativos: {e}")
         return 0.0
 
 def obtener_estado_caja() -> str:
     try:
-        from HOME.models import Cajas
-        caja = Cajas.objects.order_by("-fecha").first()
-        return caja.estado_caja if caja else "CERRADO"
-    except Exception:
+        caja = Cajas.objects.order_by("-id_caja").first()
+        return caja.estado_caja.nombre_estado if caja else "CERRADO"
+    except Exception as e:
+        print(f"Error en obtener_estado_caja: {e}")
         return "CERRADO"
-
-
 
 def kpi_saldo_caja_actual() -> float:
     try:
-        from HOME.models import Cajas
-        caja = Cajas.objects.order_by("-fecha").first()
+        caja = Cajas.objects.order_by("-id_caja").first()
         return float(caja.monto_cierre_caja) if caja and caja.monto_cierre_caja is not None else 0.0  
-    except Exception:
+    except Exception as e:
+        print(f"Error en kpi_saldo_caja_actual: {e}")
         return 0.0
-
 
 # ==== Listados ==== 
 
-
-def listar_ventas(start, end, ordenar: str = "-fecha_hora", limite: int = 50):
+def listar_ventas(start, end, ordenar: str = "-fecha_venta", limite: int = 50):
     try:
-        from HOME.models import Ventas
         qs = (
-            Ventas.objects.select_related("cajero")
-            .filter(fecha_hora__gte=start, fecha_hora__lt=end, DELETE=False)
+            Ventas.objects.select_related("empleado_venta__user_empleado")
+            .filter(fecha_venta__gte=start, fecha_venta__lt=end, DELETE_Vent=False)
             .order_by(ordenar)
         )
         return list(qs[:limite])
-    except Exception:
+    except Exception as e:
+        print(f"Error en listar_ventas: {e}")
         return []
-
-
-
 
 # ==== Autenticación y permisos básicos ==== 
 
-
 def autenticar_staff(usuario: str, password: str):
     """Permite usuario o email."""
-    from django.contrib.auth import authenticate, get_user_model
     User = get_user_model()
     user = None
     # probar por username
@@ -142,17 +138,12 @@ def cargar_permisos(user_id) -> list:
     # Integra con tu sistema real de permisos si aplica
     return ["ventas.ver", "compras.ver", "stock.ajustar"]
 
-
-
 def listar_sucursales_de_usuario(user_id) -> list:
     # Reemplazá por tu modelo real de Sucursales/Asignaciones
     return ["Sucursal Principal"]
 
-
-
 def autenticar_cliente(dni_o_email: str, pin_o_password: str):
     """Implementar contra tu modelo Cliente. Devolver dict {ok, cliente_id}."""
-    from HOME.models import Clientes
     User = get_user_model()
     try:
         # Try to find client by DNI
@@ -176,10 +167,8 @@ def autenticar_cliente(dni_o_email: str, pin_o_password: str):
 
     return {"ok": False, "error": "DNI/Email o PIN/Contraseña incorrectos."}
 
-
 def crear_cliente(datos: dict):
     """Implementar creación real. Devolver {ok, error?}."""
-    from HOME.models import Clientes
     User = get_user_model()
     try:
         # Create a new User instance
@@ -203,44 +192,34 @@ def crear_cliente(datos: dict):
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
-
-
 # ==== Pings (placeholders) ==== 
-
 
 def ping_red() -> bool:
     return True
 
-
-
 def ping_backend() -> bool:
     return True
 
-
 # ==== Global Search (placeholder) ==== 
-
 
 def global_search(query: str):
     # Devolvé una estructura mixta según tus modelos reales
     return []
 
-
 # ==== Alertas (placeholders) ==== 
+
 def hay_stock_bajo() -> bool:
-    from HOME.models import Productos, Stocks
     try:
         # Find products where current stock is below the low_stock_threshold
         low_stock_products = Productos.objects.filter(
             DELETE_Prod=False,
-            stocks__cantidad_actual_stock__lt=models.F('low_stock_threshold')
+            stocks__cantidad_actual_stock__lt=F('low_stock_threshold')
         ).distinct()
         return low_stock_products.exists()
     except Exception:
         return False
 
-
 def cxp_vencen_hoy() -> bool:
-    from HOME.models import Compras
     today = timezone.localdate()
     try:
         expiring_purchases = Compras.objects.filter(
@@ -253,7 +232,6 @@ def cxp_vencen_hoy() -> bool:
         return False
 
 def fondos_pagos_bajo_saldo() -> bool:
-    from HOME.models import Fondo_Pagos
     LOW_BALANCE_THRESHOLD = 100.00 # Define a threshold for low balance
     try:
         low_balance_funds = Fondo_Pagos.objects.filter(

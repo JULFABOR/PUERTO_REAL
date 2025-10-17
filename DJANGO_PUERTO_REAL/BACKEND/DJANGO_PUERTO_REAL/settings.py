@@ -18,8 +18,8 @@ import sys
 # Construye rutas dentro del proyecto así: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent
     
-if str(BASE_DIR) not in sys.path:
-    sys.path.insert(0, str(BASE_DIR))
+if str(BASE_DIR.parent) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR.parent))
 
 load_dotenv(os.path.join(BASE_DIR, '.env'))
 
@@ -50,14 +50,16 @@ INSTALLED_APPS = [
     'rest_framework.authtoken', # Para autenticación por token
     'corsheaders', # Para manejar CORS 
     'HOME', # Aplicación principal
-    'Abrir_Cerrar_CAJA', 
-    'Control_COMPRAS', 
-    'Control_VENTAS',
-    'Control_STOCK',
-    'Fidelizar_CLIENTES',  
-    'Analizar_INGRESOS_EGRESOS', 
-    'Auditoria', 
     'autenticacion', 
+    'Auditoria', 
+    # --- INICIO: Bloque comentado para depuración ---
+    # 'Abrir_Cerrar_CAJA', 
+    # 'Control_COMPRAS', 
+    # 'Control_VENTAS',
+    # 'Control_STOCK',
+    # 'Fidelizar_CLIENTES',  
+    # 'Analizar_INGRESOS_EGRESOS', 
+    # --- FIN: Bloque comentado para depuración ---
 ]
 
 REST_FRAMEWORK = {
@@ -71,6 +73,7 @@ REST_FRAMEWORK = {
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -163,7 +166,7 @@ USE_TZ = True
 STATIC_URL = 'static/'
 
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR.parent, 'FRONTEND', 'dist', 'assets')
+    os.path.join(BASE_DIR.parent.parent, 'FRONTEND', 'dist', 'assets')
 ]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
@@ -181,8 +184,22 @@ LOGIN_REDIRECT_URL = 'home:index_privado_staff'
 LOGOUT_REDIRECT_URL = 'home:index_publico'
 
 # Configuración de CORS
-# ADVERTENCIA: Esto permite todas las conexiones. Para producción, reemplázalo con la lista de orígenes permitidos.
-CORS_ALLOW_ALL_ORIGINS = True
+# Define qué orígenes de frontend tienen permitido acceder a esta API.
+# En producción, esto debería ser la URL de tu frontend, p. ej., 'https://yourfrontend.com'
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173')
+CORS_ALLOWED_ORIGINS = os.getenv(
+    'DJANGO_CORS_ALLOWED_ORIGINS',
+    'http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000'
+).split(',')
+
+# Si necesitas permitir credenciales (cookies, encabezados de autenticación) desde el frontend.
+# CORS_ALLOW_CREDENTIALS = True
+
+# Orígenes de confianza para CSRF, importante para POST, PUT, DELETE requests.
+CSRF_TRUSTED_ORIGINS = os.getenv(
+    'DJANGO_CSRF_TRUSTED_ORIGINS',
+    'http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000'
+).split(',')
 
 JAZZMIN_SETTINGS = {
     # Título de la ventana (se verá en la pestaña del navegador)

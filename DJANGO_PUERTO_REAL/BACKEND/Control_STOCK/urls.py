@@ -9,12 +9,12 @@ from .views import (
     StockAddAPIView,
 
     # Vistas de Páginas Web (Templates)
-    StockDashboardView,
-    ControlStockView,
-    CatalogoProductosView,
-    ProductoCreateView,
-    ProductoUpdateView,
-    ProductoDeleteView,
+    # StockDashboardView,
+    # ControlStockView,
+    # CatalogoProductosView,
+    # ProductoCreateView,
+    # ProductoUpdateView,
+    # ProductoDeleteView,
 )
 
 app_name = 'stock'
@@ -39,10 +39,10 @@ api_urlpatterns = router.urls + [
 # --- 3. Definimos las URLs de las Páginas Web ---
 # Estas son solo para las vistas que renderizan plantillas HTML.
 urlpatterns = [
-    path('dashboard/', StockDashboardView.as_view(), name='stock_dashboard'),
-    path('control/', ControlStockView.as_view(), name='control'),
-    path('catalogo/', CatalogoProductosView.as_view(), name='catalogo'),
-    path('producto/nuevo/', ProductoCreateView.as_view(), name='producto_create'),
-    path('producto/<int:pk>/editar/', ProductoUpdateView.as_view(), name='producto_update'),
-    path('producto/<int:pk>/eliminar/', ProductoDeleteView.as_view(), name='producto_delete'),
+    # path('dashboard/', StockDashboardView.as_view(), name='stock_dashboard'),
+    # path('control/', ControlStockView.as_view(), name='control'),
+    # path('catalogo/', CatalogoProductosView.as_view(), name='catalogo'),
+    # path('producto/nuevo/', ProductoCreateView.as_view(), name='producto_create'),
+    # path('producto/<int:pk>/editar/', ProductoUpdateView.as_view(), name='producto_update'),
+    # path('producto/<int:pk>/eliminar/', ProductoDeleteView.as_view(), name='producto_delete'),
 ]

@@ -37,7 +37,11 @@ class VentaViewSet(viewsets.ModelViewSet):
     
     Permite filtrar por: /api/ventas/?cliente_venta=1&empleado_venta=2&estado_venta=3&fecha_venta_after=YYYY-MM-DD&fecha_venta_before=YYYY-MM-DD
     """
-    queryset = Ventas.objects.all().order_by('-fecha_venta')
+    queryset = Ventas.objects.select_related(
+        'cliente_venta', 'empleado_venta', 'estado_venta'
+    ).prefetch_related(
+        'detalles__producto_det_vent'
+    ).all().order_by('-fecha_venta')
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = {
         'fecha_venta': ['gte', 'lte'],

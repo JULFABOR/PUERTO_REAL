@@ -17,6 +17,26 @@ class ProductoVentaSerializer(serializers.ModelSerializer):
         model = Productos
         fields = ('id_producto', 'nombre_producto', 'barcode')
 
+class ClienteReadSerializer(serializers.ModelSerializer):
+    """Serializer simple para la info del cliente en una venta."""
+    nombre_completo = serializers.CharField(source='user_cliente.get_full_name', read_only=True)
+    class Meta:
+        model = Clientes
+        fields = ('id_cliente', 'nombre_completo')
+
+class EmpleadoReadSerializer(serializers.ModelSerializer):
+    """Serializer simple para la info del empleado en una venta."""
+    username = serializers.CharField(source='user_empleado.username', read_only=True)
+    class Meta:
+        model = Empleados
+        fields = ('id_empleado', 'username')
+
+class EstadoVentaReadSerializer(serializers.ModelSerializer):
+    """Serializer simple para el estado de una venta."""
+    class Meta:
+        model = Estados
+        fields = ('id_estado', 'nombre_estado')
+
 class DetalleVentaReadSerializer(serializers.ModelSerializer):
     """Serializer para leer los detalles de una venta, incluyendo el producto."""
     producto_det_vent = ProductoVentaSerializer(read_only=True)
@@ -27,10 +47,10 @@ class DetalleVentaReadSerializer(serializers.ModelSerializer):
 
 class VentaReadSerializer(serializers.ModelSerializer):
     """Serializer para leer una venta con todos sus detalles anidados."""
-    detalles = DetalleVentaReadSerializer(many=True, read_only=True, source='detalles')
-    cliente_venta = serializers.StringRelatedField(read_only=True)
-    empleado_venta = serializers.StringRelatedField(read_only=True)
-    estado_venta = serializers.StringRelatedField(read_only=True)
+    detalles = DetalleVentaReadSerializer(many=True, read_only=True)
+    cliente_venta = ClienteReadSerializer(read_only=True)
+    empleado_venta = EmpleadoReadSerializer(read_only=True)
+    estado_venta = EstadoVentaReadSerializer(read_only=True)
 
     class Meta:
         model = Ventas

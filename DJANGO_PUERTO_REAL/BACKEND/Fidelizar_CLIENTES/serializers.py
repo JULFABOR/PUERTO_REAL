@@ -1,16 +1,27 @@
 from rest_framework import serializers
 from HOME.models import Promociones_Descuento, Promos_Clientes, Historial_Puntos, Clientes, Estados, Transacciones_Puntos
-from django.db.models import Sum
 
 class ClienteSerializer(serializers.ModelSerializer):
-    puntos = serializers.SerializerMethodField()
+    """
+    Serializer for the Cliente model, optimized for frontend consumption.
+    Includes calculated points and user details.
+    """
+    puntos = serializers.IntegerField(read_only=True)
+    first_name = serializers.CharField(source='user_cliente.first_name', read_only=True)
+    last_name = serializers.CharField(source='user_cliente.last_name', read_only=True)
+    email = serializers.EmailField(source='user_cliente.email', read_only=True)
 
     class Meta:
         model = Clientes
-        fields = ('id_cliente', 'dni_cliente', 'telefono_cliente', 'puntos')
-
-    def get_puntos(self, obj):
-        return Transacciones_Puntos.objects.filter(cliente_trans_puntos=obj).aggregate(Sum('puntos_transaccion'))['puntos_transaccion__sum'] or 0
+        fields = (
+            'id_cliente', 
+            'dni_cliente', 
+            'telefono_cliente', 
+            'first_name',
+            'last_name',
+            'email',
+            'puntos'
+        )
 
 class PromocionesDescuentoSerializer(serializers.ModelSerializer):
     class Meta:

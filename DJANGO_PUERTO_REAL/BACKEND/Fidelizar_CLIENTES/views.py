@@ -132,29 +132,42 @@ class PromosClientesViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 class HistorialPuntosViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Historial_Puntos.objects.all().order_by('-fecha_mov_hist_puntos')
+    queryset = Historial_Puntos.objects.select_related(
+        'trans_hist_puntos__cliente_trans_puntos__user_cliente',
+        'trans_hist_puntos__venta_origen',
+        'promo_usada_hist_puntos__cupon_descuento_promo_cli'
+    ).order_by('-fecha_mov_hist_puntos')
     serializer_class = HistorialPuntosSerializer
 
+from django.db.models import Sum
+
 class ClientesViewSet(viewsets.ModelViewSet):
-    queryset = Clientes.objects.all()
     serializer_class = ClienteSerializer
+
+    def get_queryset(self):
+        """
+        Optimized queryset that annotates the total points for each client
+        and selects the related user to avoid N+1 queries.
+        """
+        return Clientes.objects.select_related('user_cliente').annotate(
+            puntos=Sum('transacciones_puntos__puntos_transaccion', default=0)
+        ).order_by('-puntos')
 
     @action(detail=True, methods=['get'])
     def mis_puntos(self, request, pk=None):
-        cliente = self.get_object()
-        if not request.user.is_authenticated or request.user.cliente != cliente:
+        cliente = self.get_object() # This object has the 'puntos' annotation
+        if not request.user.is_authenticated or not hasattr(request.user, 'cliente') or request.user.cliente != cliente:
             return Response({"error": "Acceso denegado."}, status=status.HTTP_403_FORBIDDEN)
         
-        puntos = get_puntos_cliente(cliente)
-        return Response({"puntos_actuales": puntos})
+        return Response({"puntos_actuales": cliente.puntos})
 
     @action(detail=True, methods=['get'])
     def cupones_canjeables(self, request, pk=None):
-        cliente = self.get_object()
-        if not request.user.is_authenticated or request.user.cliente != cliente:
+        cliente = self.get_object() # This object has the 'puntos' annotation
+        if not request.user.is_authenticated or not hasattr(request.user, 'cliente') or request.user.cliente != cliente:
             return Response({"error": "Acceso denegado."}, status=status.HTTP_403_FORBIDDEN)
         
-        puntos_actuales = get_puntos_cliente(cliente)
+        puntos_actuales = cliente.puntos
         
         cupones_disponibles = Promociones_Descuento.objects.filter(
             puntos_requeridos_promo_desc__lte=puntos_actuales,

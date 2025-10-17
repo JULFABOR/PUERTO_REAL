@@ -35,7 +35,7 @@ class CompraViewSet(viewsets.ModelViewSet):
     Usa CompraReadSerializer para lectura y CompraWriteSerializer para escritura.
     Permite filtrar por: /api/compras/?proveedor_compra=1&estado_compra=2&fecha_compra_after=YYYY-MM-DD
     """
-    queryset = Compras.objects.all().order_by('-fecha_compra')
+    queryset = Compras.objects.select_related('proveedor_compra', 'estado_compra').prefetch_related('detalles__producto_dt_comp').all().order_by('-fecha_compra')
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = {
         'fecha_compra': ['gte', 'lte'],
@@ -55,73 +55,6 @@ class CompraViewSet(viewsets.ModelViewSet):
         return context
 
     def update(self, request, *args, **kwargs):
-        instance = self.get_object()
-        
-        data_keys = list(request.data.keys())
-        is_status_change_only = 'estado_compra' in data_keys and len(data_keys) == 1
-
-        if not is_status_change_only:
-            time_diff = timezone.now() - instance.fecha_compra
-            if time_diff.total_seconds() > 1200:
-                return Response(
-                    {"error": "Solo se puede editar la compra dentro de los 20 minutos de su creacion."},
-                    status=status.HTTP_403_FORBIDDEN
-                )
-
-        nuevo_estado_id = request.data.get('estado_compra')
-        
-        try:
-            estado_recibida = Estados.objects.get(nombre_estado='RECIBIDA')
-        except Estados.DoesNotExist:
-            return Response({"error": "Estado 'RECIBIDA' no encontrado."}, status=status.HTTP_400_BAD_REQUEST)
-
-        if nuevo_estado_id and int(nuevo_estado_id) == estado_recibida.id_estado and instance.estado_compra != estado_recibida:
-            try:
-                tipo_movimiento = Tipos_Movimientos.objects.get(nombre_movimiento='COMPRA A PROVEEDOR')
-                
-                empleado = None
-                if hasattr(request.user, 'empleado'):
-                    empleado = request.user.empleado
-                else:
-                    return Response({"error": "Solo los empleados pueden realizar esta acción."},
-                                    status=status.HTTP_403_FORBIDDEN)
-
-                for detalle in instance.detalles.all():
-                    stock, created = Stocks.objects.get_or_create(
-                        producto_en_stock=detalle.producto_dt_comp,
-                        defaults={
-                            'cantidad_actual_stock': 0, 
-                            'lote_stock': 0, 
-                            'observaciones_stock': 'Registro de stock inicial creado automaticamente'
-                        }
-                    )
-                    
-                    stock_anterior = stock.cantidad_actual_stock
-                    stock.cantidad_actual_stock += detalle.cant_det_comp
-                    stock.save()
-
-                    Historial_Stock.objects.create(
-                        stock_hs=stock, cantidad_hstock=detalle.cant_det_comp,
-                        stock_anterior_hstock=stock_anterior, stock_nuevo_hstock=stock.cantidad_actual_stock,
-                        tipo_movimiento_hs=tipo_movimiento, empleado_hs=empleado,
-                        observaciones_hstock=f"Entrada por compra ID: {instance.id_compra}"
-                    )
-                
-                crear_registro(
-                    usuario=request.user,
-                    accion='COMPRA_RECIBIDA',
-                    detalles={
-                        'compra_id': instance.id_compra,
-                        'proveedor': instance.proveedor_compra.nombre_proveedor if instance.proveedor_compra else None,
-                        'total_compra': str(instance.total_compra)
-                    }
-                )
-
-            except Tipos_Movimientos.DoesNotExist:
-                return Response({"error": "Tipo de movimiento 'COMPRA A PROVEEDOR' no encontrado."}, status=status.HTTP_400_BAD_REQUEST)
-            except Exception as e:
-                return Response({"error": f"Error al actualizar el stock: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
         return super().update(request, *args, **kwargs)
 
     @action(detail=True, methods=['get'])
