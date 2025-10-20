@@ -189,26 +189,14 @@ class HistorialCajaListAPIView(generics.ListAPIView):
     serializer_class = HistorialCajaSerializer
 
     def get_queryset(self):
-        try:
-            empleado_actual = self.request.user.empleado
-            
-            # Lógica más eficiente para encontrar la caja activa del empleado
-            historial_apertura = Historial_Caja.objects.filter(
-                empleado_hc=empleado_actual,
-                tipo_event_caja__nombre_evento='APERTURA',
-                caja_hc__estado_caja__nombre_estado='ABIERTO'
-            ).select_related('caja_hc').latest('fecha_movimiento_hcaja')
-            
-            caja_activa = historial_apertura.caja_hc
+        # Busca una caja que esté en estado 'ABIERTO'.
+        caja_abierta = Cajas.objects.filter(estado_caja__nombre_estado='ABIERTO').first()
 
-            # Usamos select_related para optimizar y evitar N+1 queries
-            return Historial_Caja.objects.filter(caja_hc=caja_activa).select_related(
-                'caja_hc__estado_caja',
-                'empleado_hc__user_empleado',
-                'tipo_event_caja'
-            ).order_by('-fecha_movimiento_hcaja')
-
-        except (Empleados.DoesNotExist, Historial_Caja.DoesNotExist):
+        if caja_abierta:
+            # Si se encuentra una caja abierta, devuelve el historial de esa caja.
+            return Historial_Caja.objects.filter(caja_hc=caja_abierta).order_by('-fecha_movimiento_hcaja')
+        else:
+            # Si no hay caja abierta, no hay historial que mostrar.
             return Historial_Caja.objects.none()
 
 
@@ -301,24 +289,36 @@ class CajaEstadoAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
+        # Intenta obtener el perfil de empleado del usuario.
         try:
             empleado_actual = request.user.empleado
+        except Empleados.DoesNotExist:
+            # Si el usuario no tiene un perfil de empleado, no puede tener una caja.
+            # Devuelve un estado de caja cerrada.
+            return Response({'caja_abierta': False, 'detail': 'Usuario no es un empleado.'}, status=status.HTTP_403_FORBIDDEN)
 
-            # Lógica más eficiente para encontrar la caja activa del empleado
-            historial_apertura = Historial_Caja.objects.filter(
-                empleado_hc=empleado_actual,
-                tipo_event_caja__nombre_evento='APERTURA',
-                caja_hc__estado_caja__nombre_estado='ABIERTO'
-            ).select_related('caja_hc').latest('fecha_movimiento_hcaja')
-            
-            caja_activa = historial_apertura.caja_hc
-            
-            return Response(CajasSerializer(caja_activa).data, status=status.HTTP_200_OK)
+        # Busca una caja que esté en estado 'ABIERTO'.
+        caja_abierta = Cajas.objects.filter(estado_caja__nombre_estado='ABIERTO').first()
 
-        except (Empleados.DoesNotExist, Historial_Caja.DoesNotExist):
-            return Response({'detail': 'No hay caja abierta para este empleado.'}, status=status.HTTP_404_NOT_FOUND)
-        except Estados.DoesNotExist:
-            return Response({'detail': "Error de configuración: El estado 'ABIERTO' no existe."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        if caja_abierta:
+            # Si se encuentra una caja abierta, serializa sus datos y los devuelve.
+            # El serializador se encarga de calcular el saldo actual y otros detalles.
+            serializer = CajasSerializer(caja_abierta)
+            return Response(serializer.data)
+        else:
+            # Si no hay ninguna caja abierta, buscar la fecha del último cierre.
+            ultimo_evento_cierre = Historial_Caja.objects.filter(
+                tipo_event_caja__nombre_evento='CIERRE'
+            ).order_by('-fecha_movimiento_hcaja').first()
+            
+            ultimo_cierre_fecha = None
+            if ultimo_evento_cierre:
+                ultimo_cierre_fecha = ultimo_evento_cierre.fecha_movimiento_hcaja
+
+            return Response({
+                'caja_abierta': False,
+                'ultimo_cierre': ultimo_cierre_fecha
+            })
 
 
 

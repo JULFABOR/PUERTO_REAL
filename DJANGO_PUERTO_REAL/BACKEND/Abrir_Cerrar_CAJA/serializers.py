@@ -31,12 +31,18 @@ class TiposMovimientosSerializer(serializers.ModelSerializer):
 
 class CajasSerializer(serializers.ModelSerializer):
     estado_caja = EstadoSerializer(read_only=True)
+    caja_abierta = serializers.SerializerMethodField()
 
     class Meta:
         model = Cajas
         fields = ('id_caja', 'total_gastos_caja', 'monto_apertura_caja', 
                 'monto_cierre_caja', 'monto_teorico_caja', 'diferencia_caja', 
-                'observaciones_caja', 'estado_caja')
+                'observaciones_caja', 'estado_caja', 'caja_abierta')
+
+    def get_caja_abierta(self, obj):
+        if obj.estado_caja:
+            return obj.estado_caja.nombre_estado == 'ABIERTO'
+        return False
 
 class HistorialCajaSerializer(serializers.ModelSerializer):
     caja_hc = CajasSerializer(read_only=True)

@@ -38,6 +38,7 @@ class CategoriaProductoViewSet(viewsets.ModelViewSet):
     """
     queryset = Categorias_Productos.objects.all()
     serializer_class = CategoriaProductoSerializer
+    permission_classes = [IsAuthenticated]
 
 
 class ProductoViewSet(viewsets.ModelViewSet):
@@ -58,7 +59,7 @@ class ProductoViewSet(viewsets.ModelViewSet):
 
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
-        instance = self.get_object()
+        instance = self.get_.object()
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
 

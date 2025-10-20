@@ -8,16 +8,6 @@ class EstadoProductoSerializer(serializers.ModelSerializer):
         model = Estados
         fields = ['id_estado', 'nombre_estado']
 
-from rest_framework import serializers
-from HOME.models import Productos, Stocks, Categorias_Productos, Historial_Stock, Tipos_Movimientos, Empleados, Estados
-from django.utils import timezone
-from datetime import timedelta
-
-class EstadoProductoSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Estados
-        fields = ['id_estado', 'nombre_estado']
-
 class CategoriaProductoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Categorias_Productos

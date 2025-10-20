@@ -53,10 +53,10 @@ INSTALLED_APPS = [
     'autenticacion', 
     'Auditoria', 
     # --- INICIO: Bloque comentado para depuración ---
-    # 'Abrir_Cerrar_CAJA', 
+    'Abrir_Cerrar_CAJA', 
     # 'Control_COMPRAS', 
     # 'Control_VENTAS',
-    # 'Control_STOCK',
+    'Control_STOCK',
     # 'Fidelizar_CLIENTES',  
     # 'Analizar_INGRESOS_EGRESOS', 
     # --- FIN: Bloque comentado para depuración ---

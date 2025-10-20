@@ -81,13 +81,13 @@ class Stocks(models.Model):
     cantidad_actual_stock = models.IntegerField()
     lote_stock = models.IntegerField()
     observaciones_stock = models.CharField(max_length=300)
-    producto_en_stock = models.ForeignKey(Productos, on_delete=models.CASCADE)
+    producto_en_stock = models.ForeignKey(Productos, on_delete=models.CASCADE, related_name='stocks')
     DELETE_Stock = models.BooleanField(default=False)
     def __str__(self):
         return f"{self.producto_en_stock.nombre_producto} - Lote: {self.lote_stock} - Cantidad: {self.cantidad_actual_stock} - Vence: {self.producto_en_stock.fecha_vencimiento_producto.strftime('%Y-%m-%d') if self.producto_en_stock.fecha_vencimiento_producto else 'N/A'}"
 class Historial_Stock(models.Model):
     id_historial_stock = models.BigAutoField(primary_key=True)
-    cantidad_hstock = models.IntegerField()
+    cantidad_hstock = models.CharField(max_length=255)
     stock_hs = models.ForeignKey(Stocks, on_delete=models.CASCADE)
     empleado_hs = models.ForeignKey(Empleados,on_delete=models.CASCADE)
     tipo_movimiento_hs = models.ForeignKey(Tipos_Movimientos, on_delete=models.CASCADE)
