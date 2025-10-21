@@ -38,7 +38,7 @@ const JefeAnalysis = () => {
 
     const exportToPDF = () => {
       // Esta URL debe apuntar a tu vista de Django que genera el reporte de análisis.
-      const pdfUrl = 'http://127.0.0.1:8000/api/reporte/analisis-pdf/';
+      const pdfUrl = '/api/reporte/analisis-pdf/';
       window.open(pdfUrl, '_blank');
     };
 

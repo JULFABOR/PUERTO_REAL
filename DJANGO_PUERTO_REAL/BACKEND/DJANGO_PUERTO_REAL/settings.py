@@ -176,6 +176,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Configuraciones personalizadas
 PESOS_POR_PUNTO = 110
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173') # Añadimos un valor por defecto
 
 # Redirecciones de Login/Logout
 LOGIN_REDIRECT_URL = 'home:index_privado_staff'

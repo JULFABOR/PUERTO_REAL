@@ -99,7 +99,7 @@ class StockAdjustmentSerializer(serializers.Serializer):
     quantity = serializers.IntegerField() # Can be positive or negative for adjustment
     movement_type = serializers.ChoiceField(choices=['MOV_STOCK_AJUSTE']) # Only 'MOV_STOCK_AJUSTE' allowed here
     reason = serializers.CharField(max_length=500, required=False, allow_blank=True)
-    employee = serializers.PrimaryKeyRelatedField(queryset=Empleados.objects.all())
+    employee = serializers.PrimaryKeyRelatedField(queryset=Empleados.objects.all(), required=False) # <-- CAMBIO AQUÍ
 
     def validate(self, data):
         if not data.get('product_id') and not data.get('barcode'):

@@ -22,6 +22,8 @@ from .serializers import UserRegisterSerializer
 # --- VISTA DE LOGIN CORREGIDA ---
 # ==================================================================
 class CustomAuthToken(ObtainAuthToken):
+    permission_classes = [] # No se necesita estar autenticado para hacer login
+    authentication_classes = [] # No se necesita token para esta vista
 
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data,
@@ -125,7 +127,7 @@ class RequestPasswordResetView(APIView):
                 token = token_generator.make_token(user)
                 
                 # Construir la URL de reseteo para el frontend
-                reset_url = f"http://localhost:5173/reset-password?uidb64={uidb64}&token={token}"
+                reset_url = f"{settings.FRONTEND_URL}/reset-password?uidb64={uidb64}&token={token}"
                 
                 # Enviar el correo (se imprimirá en la consola de Django)
                 send_mail(

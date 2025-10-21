@@ -108,7 +108,7 @@ const JefeCaja = () => {
         // TODO: Here you could POST the final data to an API endpoint before fetching the PDF.
         
         // This URL should point to your Django view that generates and returns the PDF
-        const pdfUrl = 'http://127.0.0.1:8000/api/reporte/caja-pdf/';
+                const pdfUrl = '/api/reporte/caja-pdf/';
         window.open(pdfUrl, '_blank');
         
         // Reset state after closing

@@ -28,9 +28,13 @@ const NewProductModal = ({ isOpen, onClose, onSuccess, categories }) => {
             precio_unitario_venta_producto: newProduct.precio_unitario_venta_producto,
             precio_unitario_compra_producto: newProduct.precio_unitario_compra_producto,
             categoria_producto: parseInt(newProduct.categoria_producto_id, 10),
-            estado_producto: 1,
+            estado_producto: 2, // Asume que 1 es un estado válido como 'Activo'
             stock_adquirido: 0,
-            stock_actual: 0
+            stock_actual: 0,
+            // --- CAMPOS AÑADIDOS ---
+            descripcion_producto: '', // Campo opcional
+            low_stock_threshold: 10,   // Un valor por defecto razonable
+            fecha_vencimiento_producto: null // Campo opcional
         };
         try {
             await apiClient('/api/stock/productos/', { method: 'POST', body: JSON.stringify(productDataToSend) });
