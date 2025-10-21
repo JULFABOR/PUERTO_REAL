@@ -9,6 +9,8 @@ const Caja = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [montoInicial, setMontoInicial] = useState('');
+    const [montoCierreReal, setMontoCierreReal] = useState('');
+    const [observacionesCierre, setObservacionesCierre] = useState('');
 
     const fetchCajaData = async () => {
         setLoading(true);
@@ -36,32 +38,38 @@ const Caja = () => {
             return;
         }
         try {
-            setLoading(true);
             await apiClient('/api/caja/abrir/', {
                 method: 'POST',
                 body: JSON.stringify({ monto_inicial: montoInicial }),
             });
             setMontoInicial('');
-            fetchCajaData(); // Refresh data
+            await fetchCajaData(); // Esperar a que los datos se recarguen
         } catch (err) {
             setError(err.message);
-        } finally {
-            setLoading(false);
         }
     };
 
     const handleCerrarCaja = async () => {
+        if (!montoCierreReal || parseFloat(montoCierreReal) <= 0) {
+            alert('Por favor, ingrese un monto de cierre válido y positivo.');
+            return;
+        }
         if (!window.confirm('¿Está seguro de que desea cerrar la caja? Esta acción no se puede deshacer.')) {
             return;
         }
         try {
-            setLoading(true);
-            await apiClient('/api/caja/cerrar/', { method: 'POST' });
-            fetchCajaData(); // Refresh data
+            await apiClient('/api/caja/cerrar/', {
+                method: 'POST',
+                body: JSON.stringify({
+                    monto_cierre_real: montoCierreReal,
+                    observaciones_cierre: observacionesCierre
+                }),
+            });
+            setMontoCierreReal('');
+            setObservacionesCierre('');
+            await fetchCajaData(); // Esperar a que los datos se recarguen
         } catch (err) {
             setError(err.message);
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -86,9 +94,29 @@ const Caja = () => {
                 {cajaEstado?.caja_abierta ? (
                     <div className="space-y-4">
                         <p className="text-green-400 font-bold text-lg">Caja Abierta</p>
-                        <p className="text-white text-2xl font-mono">${parseFloat(cajaEstado.saldo_actual).toFixed(2)}</p>
-                        <p className="text-pr-gray">Abierta por: {cajaEstado.abierta_por}</p>
-                        <p className="text-pr-gray">Fecha de apertura: {new Date(cajaEstado.fecha_apertura).toLocaleString()}</p>
+                        <p className="text-white text-2xl font-mono">
+                            ${parseFloat(cajaEstado?.saldo_actual || 0).toFixed(2)}
+                        </p>
+                        <p className="text-pr-gray">Abierta por: {cajaEstado?.abierta_por || 'N/A'}</p>
+                        <p className="text-pr-gray">
+                            Fecha de apertura: {cajaEstado?.fecha_apertura ? new Date(cajaEstado.fecha_apertura).toLocaleString() : 'N/A'}
+                        </p>
+                        <div className="mt-4 space-y-4">
+                            <input
+                                type="number"
+                                value={montoCierreReal}
+                                onChange={(e) => setMontoCierreReal(e.target.value)}
+                                placeholder="Monto de cierre real"
+                                className="bg-pr-dark-gray border border-pr-gray/20 rounded-lg py-2 px-4 text-white w-full focus:ring-pr-yellow focus:border-pr-yellow"
+                            />
+                            <textarea
+                                value={observacionesCierre}
+                                onChange={(e) => setObservacionesCierre(e.target.value)}
+                                placeholder="Observaciones de cierre (opcional)"
+                                className="bg-pr-dark-gray border border-pr-gray/20 rounded-lg py-2 px-4 text-white w-full focus:ring-pr-yellow focus:border-pr-yellow"
+                                rows="3"
+                            ></textarea>
+                        </div>
                         <button 
                             onClick={handleCerrarCaja}
                             className="bg-red-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-700 transition-colors"
@@ -142,15 +170,15 @@ const Caja = () => {
                             {historial.length > 0 ? (
                                 historial.map((mov) => (
                                 <tr key={mov.id} className="border-b border-pr-gray/20 hover:bg-pr-dark-gray">
-                                    <td className="p-4 text-white">{new Date(mov.fecha).toLocaleString()}</td>
+                                    <td className="p-4 text-white">{mov.fecha ? new Date(mov.fecha).toLocaleString() : 'Fecha inválida'}</td>
                                     <td className="p-4">
                                         <span className={`font-bold ${mov.tipo === 'APERTURA' || mov.tipo === 'INGRESO' ? 'text-green-500' : 'text-red-500'}`}>
-                                            {mov.tipo}
+                                            {mov.tipo || 'N/A'}
                                         </span>
                                     </td>
-                                    <td className="p-4 font-mono">${parseFloat(mov.monto).toFixed(2)}</td>
-                                    <td className="p-4">{mov.usuario}</td>
-                                    <td className="p-4">{mov.notas}</td>
+                                    <td className="p-4 font-mono">${parseFloat(mov.monto || 0).toFixed(2)}</td>
+                                    <td className="p-4">{mov.usuario || 'N/A'}</td>
+                                    <td className="p-4">{mov.notas || ''}</td>
                                 </tr>
                                 ))
                             ) : (

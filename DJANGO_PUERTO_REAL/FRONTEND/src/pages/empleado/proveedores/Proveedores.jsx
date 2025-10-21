@@ -28,7 +28,7 @@ const Proveedores = () => {
 
     const filteredProviders = useMemo(() => {
         return providers.filter(provider =>
-            provider.nombre.toLowerCase().includes(searchTerm.toLowerCase())
+            provider.nombre_proveedor.toLowerCase().includes(searchTerm.toLowerCase())
         );
     }, [providers, searchTerm]);
 
@@ -76,7 +76,7 @@ const Proveedores = () => {
                     <thead className="border-b border-pr-gray/20">
                         <tr>
                             <th className="p-4">Nombre del Proveedor</th>
-                            <th className="p-4">Contacto</th>
+                            <th className="p-4">Razón Social</th>
                             <th className="p-4">Teléfono</th>
                             <th className="p-4">Email</th>
                             <th className="p-4">Acciones</th>
@@ -85,11 +85,11 @@ const Proveedores = () => {
                     <tbody>
                         {filteredProviders.length > 0 ? (
                             filteredProviders.map((provider) => (
-                                <tr key={provider.id} className="border-b border-pr-gray/20 hover:bg-pr-dark-gray">
-                                    <td className="p-4 font-bold text-white">{provider.nombre}</td>
-                                    <td className="p-4">{provider.persona_contacto}</td>
-                                    <td className="p-4">{provider.telefono}</td>
-                                    <td className="p-4">{provider.email}</td>
+                                <tr key={provider.id_proveedor} className="border-b border-pr-gray/20 hover:bg-pr-dark-gray">
+                                    <td className="p-4 font-bold text-white">{provider.nombre_proveedor}</td>
+                                    <td className="p-4">{provider.razon_social_proveedor}</td>
+                                    <td className="p-4">{provider.telefono_proveedor}</td>
+                                    <td className="p-4">{provider.correo_proveedor}</td>
                                     <td className="p-4">
                                         <button className="text-pr-yellow hover:underline">Ver Detalles</button>
                                     </td>

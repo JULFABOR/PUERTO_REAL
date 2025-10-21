@@ -155,7 +155,17 @@ from rest_framework.serializers import Serializer, DecimalField, CharField, Choi
 from django.db import transaction
 
 from HOME.models import Cajas, Historial_Caja, Tipo_Evento, Estados, Fondo_Pagos, Movimiento_Fondo, Empleados
-from .serializers import AperturaCajaInputSerializer, CajasSerializer, HistorialCajaSerializer, RetiroInputSerializer, RendirFondoInputSerializer, CerrarCajaInputSerializer, MovimientoFondoInputSerializer, MovimientoFondoSerializer
+from .serializers import (
+    AperturaCajaInputSerializer, 
+    CajasSerializer, 
+    HistorialCajaSerializer, 
+    RetiroInputSerializer, 
+    RendirFondoInputSerializer, 
+    CerrarCajaInputSerializer, 
+    MovimientoFondoInputSerializer, 
+    MovimientoFondoSerializer,
+    AjusteCajaInputSerializer
+)
 
 
 class AbrirCajaAPIView(APIView):
@@ -284,6 +294,27 @@ class CerrarCajaAPIView(APIView):
         except Tipo_Evento.DoesNotExist:
             return Response({'detail': "Error de configuración: El tipo de evento para cierre no existe."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+class AjustarCajaAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        serializer = AjusteCajaInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        monto_ajuste = serializer.validated_data['monto_ajuste']
+        motivo_ajuste = serializer.validated_data['motivo_ajuste']
+
+        try:
+            empleado_actual = request.user.empleado
+        except Empleados.DoesNotExist:
+            return Response({'detail': 'Tu usuario no está asociado a un empleado.'}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            services.ajustar_caja_service(monto_ajuste, motivo_ajuste, empleado_actual)
+            return Response({'detail': 'Ajuste de caja registrado exitosamente.'}, status=status.HTTP_200_OK)
+        except ValueError as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 class CajaEstadoAPIView(APIView):
     permission_classes = [IsAuthenticated]

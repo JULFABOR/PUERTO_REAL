@@ -95,3 +95,7 @@ class MovimientoFondoInputSerializer(serializers.Serializer):
     monto = serializers.DecimalField(max_digits=12, decimal_places=2)
     motivo = serializers.CharField(max_length=200, required=False, allow_blank=True)
     tipo = serializers.ChoiceField(choices=[("ENTRADA", "Entrada"), ("SALIDA", "Salida")])
+
+class AjusteCajaInputSerializer(serializers.Serializer):
+    monto_ajuste = serializers.DecimalField(max_digits=10, decimal_places=2)
+    motivo_ajuste = serializers.CharField(max_length=255)

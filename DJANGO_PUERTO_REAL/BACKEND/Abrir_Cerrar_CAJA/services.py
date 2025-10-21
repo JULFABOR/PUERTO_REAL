@@ -254,3 +254,47 @@ def cerrar_caja_service(monto_cierre_real: Decimal, observaciones_cierre: str, e
         )
         # --- FIN REGISTRO ---
     return caja_activa
+
+def ajustar_caja_service(monto_ajuste: Decimal, motivo_ajuste: str, empleado_actual: Empleados):
+    """
+    Ajusta el saldo de la caja activa registrando un movimiento de ajuste.
+    """
+    caja_activa = _caja_abierta()
+    if not caja_activa:
+        raise ValueError("No hay una caja abierta para ajustar.")
+
+    with transaction.atomic():
+        saldo_anterior = caja_activa.monto_teorico_caja
+        nuevo_saldo = saldo_anterior + monto_ajuste
+
+        caja_activa.monto_teorico_caja = nuevo_saldo
+        caja_activa.save(update_fields=['monto_teorico_caja'])
+
+        tipo_evento_ajuste, _ = Tipo_Evento.objects.get_or_create(nombre_evento='AJUSTE')
+
+        Historial_Caja.objects.create(
+            cantidad_movida_hcaja=monto_ajuste,
+            caja_hc=caja_activa,
+            empleado_hc=empleado_actual,
+            tipo_event_caja=tipo_evento_ajuste,
+            fecha_movimiento_hcaja=timezone.now(),
+            saldo_anterior_hcaja=saldo_anterior,
+            nuevo_saldo_hcaja=nuevo_saldo,
+            descripcion_hcaja=motivo_ajuste
+        )
+
+        # --- REGISTRO DE AUDITORÍA ---
+        crear_registro(
+            usuario=getattr(empleado_actual, 'user_empleado', None),
+            accion='AJUSTE_CAJA',
+            detalles={
+                'caja_id': caja_activa.id_caja,
+                'monto_ajuste': str(monto_ajuste),
+                'motivo': motivo_ajuste,
+                'saldo_anterior': str(saldo_anterior),
+                'nuevo_saldo': str(nuevo_saldo)
+            }
+        )
+        # --- FIN REGISTRO ---
+
+    return caja_activa
