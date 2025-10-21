@@ -46,28 +46,28 @@ class RegistroAuditoria(models.Model):
     )
 
     historial_stock = models.ForeignKey(
-        'HOME.Historial_Stock',
+        'Control_STOCK.Historial_Stock',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         help_text="Enlace a un registro de historial de stock."
     )
     historial_caja = models.ForeignKey(
-        'HOME.Historial_Caja',
+        'Abrir_Cerrar_CAJA.Historial_Caja',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         help_text="Enlace a un registro de historial de caja."
     )
     historial_puntos = models.ForeignKey(
-        'HOME.Historial_Puntos',
+        'Fidelizar_CLIENTES.Historial_Puntos',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         help_text="Enlace a un registro de historial de puntos."
     )
     historial_movimientos_financieros = models.ForeignKey(
-        'HOME.Historial_Movimientos_Financieros',
+        'Abrir_Cerrar_CAJA.Historial_Movimientos_Financieros',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,

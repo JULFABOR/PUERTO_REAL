@@ -1,10 +1,9 @@
 import pandas as pd
 from django.db.models import Sum, F, ExpressionWrapper, DecimalField, Count
-from HOME.models import (
-    Ventas, Detalle_Ventas, Compras, Detalle_Compras, Historial_Caja,
-    Movimiento_Fondo, Productos, Empleados, Tipos_Movimientos,
-    Categorias_Productos, Historial_Movimientos_Financieros
-)
+from Control_VENTAS.models import Ventas, Detalle_Ventas
+from Abrir_Cerrar_CAJA.models import Historial_Caja, Movimiento_Fondo, Tipo_Evento, Historial_Movimientos_Financieros
+
+from django.db.models import Sum, F, ExpressionWrapper, DecimalField, Count
 from datetime import datetime, timedelta
 
 # Constants for event types

@@ -1,26 +1,33 @@
-from rest_framework import viewsets, status, serializers
-from rest_framework.response import Response
-from rest_framework.decorators import action
+# Python standard library
+import math
+from io import BytesIO
+
+# Django
+from django.conf import settings
+from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.models import Sum
 from django.http import HttpResponse
 from django.template.loader import get_template
 from django.utils import timezone
-from xhtml2pdf import pisa
-from io import BytesIO
-from django.conf import settings
-import math
-from django.views.generic import TemplateView
-from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
+from django.views.generic import TemplateView
 
-from HOME.models import (
-    Ventas, Detalle_Ventas, Stocks, Historial_Stock,
-    Cajas, Historial_Caja, Tipos_Movimientos, Tipo_Evento, Productos,
-    Promos_Clientes, Estados, Historial_Puntos, Clientes, Empleados
-)
-from .serializers import VentaSerializer
+# Third-party
+from rest_framework import serializers, status, viewsets
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from xhtml2pdf import pisa
+
+# Local application
+from Abrir_Cerrar_CAJA.models import Historial_Caja, Tipo_Evento
 from Auditoria.services import crear_registro
+from autenticacion.models import Empleados, Clientes
+from Config_PR.models import Estados, Tipos_Movimientos
+from Control_STOCK.models import Historial_Stock, Productos, Stocks
+from Fidelizar_CLIENTES.models import Historial_Puntos
+from .models import Ventas
+from .serializers import VentaSerializer
 
 # --- Vistas de Template (sin cambios) ---
 class VentaView(TemplateView):

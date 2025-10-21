@@ -1,29 +1,38 @@
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status, generics, viewsets
-from rest_framework.permissions import IsAuthenticated
-from django.db.models import Sum, Q, F
-from django.db import transaction
-from django.utils import timezone
+# Python standard library
 from datetime import timedelta
-from django.views.generic import TemplateView, ListView, CreateView, UpdateView, DeleteView
-from django.urls import reverse_lazy
-from django.contrib.auth.mixins import LoginRequiredMixin
+
+# Django
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
+from django.db.models import Q, Sum
+from django.urls import reverse_lazy
+from django.utils import timezone
 from django.utils.decorators import method_decorator
+from django.views.generic import CreateView, DeleteView, TemplateView, UpdateView
 
-# --- IMPORTACIONES PARA FILTRADO ---
+# Third-party
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters
+from rest_framework import filters, generics, status, viewsets
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
-from HOME.models import Productos, Stocks, Categorias_Productos, Historial_Stock, Tipos_Movimientos, Empleados, Estados
-from .serializers import (
-    StockSerializer, StockUpdateSerializer, StockAdjustmentSerializer, 
-    ProductoSerializer, ProductoWriteSerializer, HistorialStockSerializer, 
-    CategoriaProductoSerializer, EstadoProductoSerializer
-)
-from .forms import ProductoForm
+# Local application
 from Auditoria.services import crear_registro
+from autenticacion.models import Empleados
+from Config_PR.models import Estados, Tipos_Movimientos
+from .forms import ProductoForm
+from .models import Categorias_Productos, Historial_Stock, Productos, Stocks
+from .serializers import (
+    CategoriaProductoSerializer,
+    EstadoProductoSerializer,
+    HistorialStockSerializer,
+    ProductoSerializer,
+    ProductoWriteSerializer,
+    StockAdjustmentSerializer,
+    StockSerializer,
+    StockUpdateSerializer,
+)
 
 
 # --- Vistas de Template ---

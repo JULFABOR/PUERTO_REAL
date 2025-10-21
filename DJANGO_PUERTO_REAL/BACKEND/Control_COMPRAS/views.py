@@ -1,19 +1,26 @@
-from rest_framework import viewsets, status
-from rest_framework.response import Response
-from rest_framework.decorators import action
+# Python standard library
+from io import BytesIO
+
+# Django
+from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 from django.template.loader import get_template
 from django.utils import timezone
-from xhtml2pdf import pisa
-from io import BytesIO
-
-from django.views.generic import TemplateView
-from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
+from django.views.generic import TemplateView
 
-from HOME.models import Compras, Proveedores, Stocks, Historial_Stock, Tipos_Movimientos, Estados
-from .serializers import CompraSerializer, ProveedorSerializer
+# Third-party
+from rest_framework import status, viewsets
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from xhtml2pdf import pisa
+
+# Local application
 from Auditoria.services import crear_registro
+from Config_PR.models import Estados, Tipos_Movimientos
+from Control_STOCK.models import Historial_Stock, Stocks
+from .models import Compras, Proveedores
+from .serializers import CompraSerializer, ProveedorSerializer
 
 # --- Vistas de Template ---
 @method_decorator(login_required, name='dispatch')

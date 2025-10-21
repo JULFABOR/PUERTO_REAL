@@ -1,17 +1,10 @@
 from rest_framework import serializers
-from HOME.models import Productos, Stocks, Categorias_Productos, Historial_Stock, Tipos_Movimientos, Empleados, Estados
+from .models import Productos, Categorias_Productos, Stocks, Historial_Stock
+from autenticacion.models import Empleados
+from Config_PR.models import Estados
 from django.utils import timezone
 from datetime import timedelta
 
-class EstadoProductoSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Estados
-        fields = ['id_estado', 'nombre_estado']
-
-from rest_framework import serializers
-from HOME.models import Productos, Stocks, Categorias_Productos, Historial_Stock, Tipos_Movimientos, Empleados, Estados
-from django.utils import timezone
-from datetime import timedelta
 
 class EstadoProductoSerializer(serializers.ModelSerializer):
     class Meta:

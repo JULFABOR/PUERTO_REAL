@@ -5,7 +5,10 @@ from django.db import transaction
 from django.utils import timezone
 from django.core.mail import send_mail
 
-from HOME.models import Cajas, Historial_Caja, Tipo_Evento, Estados, Fondo_Pagos, Movimiento_Fondo, Empleados
+from autenticacion.models import Empleados
+from Config_PR.models import Estados
+from Abrir_Cerrar_CAJA.models import Cajas, Historial_Caja, Tipo_Evento, Fondo_Pagos, Movimiento_Fondo
+
 # Importar el servicio de auditoría
 from Auditoria.services import crear_registro
 

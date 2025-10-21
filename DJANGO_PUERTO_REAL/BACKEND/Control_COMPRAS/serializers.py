@@ -1,8 +1,9 @@
 from rest_framework import serializers
-from HOME.models import ( 
-    Compras, Detalle_Compras, Compra_MetodoPago, Productos, Metodos_Pago, 
-    Proveedores, Stocks, Historial_Stock, Tipos_Movimientos, Alertas, Estados
-)
+from .models import Proveedores, Compras, Detalle_Compras, Compra_MetodoPago
+from Abrir_Cerrar_CAJA.models import Metodos_Pago
+from Config_PR.models import Estados, Alertas, Tipos_Movimientos
+from Control_STOCK.models import Stocks, Historial_Stock
+
 from Auditoria.services import crear_registro
 
 class ProveedorSerializer(serializers.ModelSerializer):

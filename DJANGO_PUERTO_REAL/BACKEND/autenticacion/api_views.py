@@ -1,19 +1,22 @@
-from rest_framework.authtoken.views import ObtainAuthToken
-from rest_framework.authtoken.models import Token
-from rest_framework.response import Response
-from rest_framework import status, serializers
-from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated
-from django.contrib.auth.models import User
-from django.core.mail import send_mail
-from django.contrib.auth.tokens import PasswordResetTokenGenerator
-from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from django.utils.encoding import force_bytes, force_str
+# Django
 from django.conf import settings
-from .serializers import UserRegisterSerializer
+from django.contrib.auth.models import User
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.core.mail import send_mail
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode
 
-# Asegúrate de que esta ruta de importación a tu modelo Empleados sea correcta
-from HOME.models import Empleados 
+# Third-party
+from rest_framework import serializers, status
+from rest_framework.authtoken.models import Token
+from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+# Local application
+from .models import Empleados
+from .serializers import UserRegisterSerializer
 
 # ==================================================================
 # --- VISTA DE LOGIN CORREGIDA ---

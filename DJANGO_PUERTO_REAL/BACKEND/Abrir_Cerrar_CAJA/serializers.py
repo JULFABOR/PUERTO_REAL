@@ -1,5 +1,7 @@
 from rest_framework import serializers
-from HOME.models import Cajas, Historial_Caja, Fondo_Pagos, Movimiento_Fondo, Empleados, Estados, Tipo_Evento, Tipos_Movimientos
+from .models import Tipo_Evento, Cajas, Historial_Caja, Fondo_Pagos, Movimiento_Fondo
+from autenticacion.models import Empleados
+from Config_PR.models import Estados, Tipos_Movimientos
 from django.contrib.auth.models import User
 
 class UserSerializer(serializers.ModelSerializer):

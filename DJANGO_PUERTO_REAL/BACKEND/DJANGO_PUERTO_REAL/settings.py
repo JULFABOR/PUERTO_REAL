@@ -57,7 +57,8 @@ INSTALLED_APPS = [
     'Fidelizar_CLIENTES',  
     'Analizar_INGRESOS_EGRESOS', 
     'Auditoria', 
-    'autenticacion', 
+    'autenticacion',
+    'Config_PR',
 ]
 
 REST_FRAMEWORK = {

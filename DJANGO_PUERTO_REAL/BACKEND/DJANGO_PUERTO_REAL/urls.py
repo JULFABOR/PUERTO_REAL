@@ -17,7 +17,6 @@ from Control_COMPRAS.urls import api_urlpatterns as compras_api_urls
 from Control_STOCK.urls import urlpatterns as stock_web_urls
 from Control_STOCK.urls import api_urlpatterns as stock_api_urls
 from Fidelizar_CLIENTES.urls import urlpatterns as fidelizar_web_urls
-from Fidelizar_CLIENTES.urls import api_urlpatterns as fidelizar_api_urls
 from Abrir_Cerrar_CAJA.urls import web_urlpatterns as caja_web_urls
 from Abrir_Cerrar_CAJA.urls import api_urlpatterns as caja_api_urls
 
@@ -41,7 +40,6 @@ urlpatterns = [
     path('api/ventas/', include(ventas_api_urls)),
     path('api/compras/', include(compras_api_urls)),
     path('api/stock/', include(stock_api_urls)),
-    path('api/fidelizacion/', include(fidelizar_api_urls)),
     path('api/', include(caja_api_urls)),
     
     # Nueva ruta para la app de Auditoria

@@ -2,10 +2,11 @@ import uuid
 from django.db import transaction
 from django.db.models import Sum
 from rest_framework import serializers
-from HOME.models import (
-    Ventas, Detalle_Ventas, Stocks, Historial_Stock, 
-    Tipos_Movimientos, Productos, Clientes, Empleados
-)
+from .models import Ventas, Detalle_Ventas
+from Control_STOCK.models import Stocks, Historial_Stock
+from Config_PR.models import Tipos_Movimientos
+from Control_STOCK.models import Productos
+
 
 class DetalleVentaSerializer(serializers.ModelSerializer):
     producto = serializers.PrimaryKeyRelatedField(

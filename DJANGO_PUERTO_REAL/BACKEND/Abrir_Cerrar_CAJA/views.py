@@ -1,20 +1,26 @@
-from django.shortcuts import render
-
-# Create your views here.
-from decimal import Decimal
-from django.conf import settings
+# Django and Python standard library imports
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.core.mail import send_mail
 from django.db import transaction
 from django.shortcuts import render, redirect
-from django.utils import timezone
 
+# Third-party library imports
+from rest_framework import status, generics
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
+# Local application imports
 from .forms import AperturaCajaForm, RetiroEfectivoForm, RendirFondoForm
-from HOME.models import Cajas, Historial_Caja, Tipo_Evento, Estados, Fondo_Pagos, Movimiento_Fondo, Empleados
-
-from . import services # Importamos el módulo de servicios
+from .models import Cajas, Historial_Caja, Tipo_Evento, Fondo_Pagos, Movimiento_Fondo
+from .serializers import (
+    AperturaCajaInputSerializer, CajasSerializer, HistorialCajaSerializer,
+    RetiroInputSerializer, RendirFondoInputSerializer, CerrarCajaInputSerializer,
+    MovimientoFondoInputSerializer, MovimientoFondoSerializer
+)
+from . import services
+from autenticacion.models import Empleados
+from Config_PR.models import Estados
 
 
 # ====== 1) Apertura de Caja ======
@@ -141,15 +147,6 @@ def rendir_fondo(request):
 # API VIEWS
 # ==============================================================================
 
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status, generics
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.serializers import Serializer, DecimalField, CharField, ChoiceField
-from django.db import transaction
-
-from HOME.models import Cajas, Historial_Caja, Tipo_Evento, Estados, Fondo_Pagos, Movimiento_Fondo, Empleados
-from .serializers import AperturaCajaInputSerializer, CajasSerializer, HistorialCajaSerializer, RetiroInputSerializer, RendirFondoInputSerializer, CerrarCajaInputSerializer, MovimientoFondoInputSerializer, MovimientoFondoSerializer
 
 
 class AbrirCajaAPIView(APIView):
@@ -317,7 +314,7 @@ class MovimientoFondoAPIView(APIView):
         serializer.is_valid(raise_exception=True)
 
         monto = serializer.validated_data['monto']
-        motivo = serializer.validated_data.get('motivo', '').strip()
+        motivo = serializer.validated_.get('motivo', '').strip()
         tipo = serializer.validated_data['tipo']
 
         try:

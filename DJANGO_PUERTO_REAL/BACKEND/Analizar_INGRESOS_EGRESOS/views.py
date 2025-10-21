@@ -1,6 +1,15 @@
-from django.http import JsonResponse
-from .reports import generate_financial_report, generate_product_and_sales_trends_report, generate_expense_breakdown_report
+# Python standard library
 from datetime import datetime, timedelta
+
+# Django
+from django.http import JsonResponse
+
+# Local application
+from .reports import (
+    generate_expense_breakdown_report,
+    generate_financial_report,
+    generate_product_and_sales_trends_report,
+)
 
 def financial_report_view(request):
     """

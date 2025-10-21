@@ -1,7 +1,8 @@
-from django.http import JsonResponse
-from rest_framework.decorators import api_view
-from rest_framework.permissions import IsAdminUser
+# Django
 from django.contrib.admin.models import LogEntry
+from django.http import JsonResponse
+
+# Local application
 from .models import RegistroAuditoria
 
 def get_audit_logs(request):

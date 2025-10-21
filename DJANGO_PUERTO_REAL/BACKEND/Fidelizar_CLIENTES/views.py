@@ -1,25 +1,37 @@
-from rest_framework import viewsets, status
-from rest_framework.response import Response
+# Python standard library
+import math
+
+# Django
+from django.conf import settings
+from django.core import signing
+from django.db import transaction, models
+from django.utils import timezone
+
+# Third-party
+from rest_framework import status, viewsets
 from rest_framework.decorators import action, api_view
 from rest_framework.permissions import IsAdminUser
-from django.shortcuts import get_object_or_404
-from django.utils import timezone
-from django.db import transaction, models
-from django.core import signing
-from django.conf import settings
-import math
-from django.views.generic import TemplateView
-from django.contrib.auth.decorators import login_required
-from django.utils.decorators import method_decorator
-from HOME.models import (
-    Promociones_Descuento, Promos_Clientes, Historial_Puntos, Clientes, 
-    Estados, Ventas, Transacciones_Puntos, Tipos_Movimientos
+from rest_framework.response import Response
+
+# Local application
+from Auditoria.services import crear_registro
+from Config_PR.models import Estados, Tipos_Movimientos
+from Control_VENTAS.models import Ventas
+from autenticacion.models import Clientes
+from .models import (
+    Historial_Puntos,
+    Promociones_Descuento,
+    Promos_Clientes,
+    Transacciones_Puntos,
 )
 from .serializers import (
-    PromocionesDescuentoSerializer,PromocionesClientesSerializer, HistorialPuntosSerializer, 
-    ClienteSerializer, AjustePuntosSerializer
+    AjustePuntosSerializer,
+    ClienteSerializer,
+    HistorialPuntosSerializer,
+    PromocionesClientesSerializer,
+    PromocionesDescuentoSerializer,
 )
-from Auditoria.services import crear_registro
+
 
 def get_puntos_cliente(cliente):
     """
@@ -29,43 +41,7 @@ def get_puntos_cliente(cliente):
         total_puntos=models.Sum('puntos_transaccion')
     )['total_puntos'] or 0
 
-# --- Vistas de Template ---
-
-@method_decorator(login_required, name='dispatch')
-class FidelizacionDashboardView(TemplateView):
-    template_name = 'HOME/FidelizacionCliente.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['page_title'] = "Dashboard de Fidelización"
-        context['ultimos_movimientos'] = Historial_Puntos.objects.order_by('-fecha_mov_hist_puntos')[:10]
-        return context
-
-@method_decorator(login_required, name='dispatch')
-class ClientePerfilView(TemplateView):
-    template_name = 'HOME/Cliente-Perfil.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        cliente_id = kwargs.get('cliente_id')
-        cliente = get_object_or_404(Clientes, id_cliente=cliente_id)
-        
-        context['cliente'] = cliente
-        context['page_title'] = f"Perfil de {cliente.user_cliente.get_full_name()}"
-        context['historial_compras'] = Ventas.objects.filter(cliente_venta=cliente).order_by('-fecha_venta')[:10]
-        return context
-
-@method_decorator(login_required, name='dispatch')
-class ClienteListView(TemplateView):
-    template_name = 'HOME/Clientes.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['clientes'] = Clientes.objects.all()
-        context['page_title'] = "Gestión de Clientes"
-        return context
-
-# --- Vistas de API ---
+# --- Vistas de API (Para React) ---
 
 class CuponesDescuentoViewSet(viewsets.ModelViewSet):
     queryset = Promociones_Descuento.objects.all()
@@ -132,7 +108,8 @@ class PromosClientesViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 class HistorialPuntosViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Historial_Puntos.objects.all().order_by('-fecha_mov_hist_puntos')
+    # --- ¡AQUÍ ESTABA LA CORRECCIÓN! ---
+    queryset = Historial_Puntos.objects.all().order_by('-fecha_historial_puntos')
     serializer_class = HistorialPuntosSerializer
 
 class ClientesViewSet(viewsets.ModelViewSet):
@@ -218,7 +195,7 @@ def load_points_qr(request):
         return Response({"error": "Token no proporcionado."}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        data = signing.loads(token, max_age=300)
+        data = signing.loads(token, max_age=300) # 300 segundos = 5 minutos
         venta_id = data.get('venta_id')
     except (signing.SignatureExpired, signing.BadSignature):
         return Response({"error": "QR inválido o expirado."}, status=status.HTTP_400_BAD_REQUEST)
@@ -231,14 +208,23 @@ def load_points_qr(request):
     if venta.estado_venta.nombre_estado == 'ANULADA':
         return Response({"error": "La venta ha sido anulada."}, status=status.HTTP_400_BAD_REQUEST)
     
-    if venta.puntos_cargados_qr:
-        return Response({"error": "Los puntos de esta venta ya han sido cargados."}, status=status.HTTP_400_BAD_REQUEST)
+    # Asumiendo que añadiste este campo al modelo Ventas
+    # if venta.puntos_cargados_qr: 
+    #    return Response({"error": "Los puntos de esta venta ya han sido cargados."}, status=status.HTTP_400_BAD_REQUEST)
 
     cliente = venta.cliente_venta
     if not cliente:
         return Response({"error": "La venta no está asociada a un cliente."}, status=status.HTTP_400_BAD_REQUEST)
 
-    puntos_ganados = math.floor(venta.total_venta / settings.PESOS_POR_PUNTO)
+    # Asumiendo que tienes esta configuración en settings.py
+    # puntos_ganados = math.floor(venta.total_venta / settings.PESOS_POR_PUNTO)
+    
+    # --- CÁLCULO DE PUNTOS PROVISIONAL (ajusta esto) ---
+    # Necesitas definir cómo se calculan los puntos.
+    # Por ejemplo, 1 punto cada 1000 pesos.
+    puntos_ganados = math.floor(float(venta.total_venta) / 1000.0)
+    # --- FIN CÁLCULO PROVISIONAL ---
+
 
     if puntos_ganados <= 0:
         return Response({"error": "Esta venta no genera puntos."}, status=status.HTTP_400_BAD_REQUEST)
@@ -262,7 +248,8 @@ def load_points_qr(request):
             tipo_mov_hist_puntos=tipo_movimiento_ganados
         )
         
-        venta.puntos_cargados_qr = True
-        venta.save()
+        # Descomenta esto cuando añadas el campo 'puntos_cargados_qr' a tu modelo 'Ventas'
+        # venta.puntos_cargados_qr = True 
+        # venta.save()
 
     return Response({"message": f"Puntos cargados exitosamente. {puntos_ganados} puntos añadidos."}, status=status.HTTP_200_OK)

@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from HOME.models import Promociones_Descuento, Promos_Clientes, Historial_Puntos, Clientes, Estados, Transacciones_Puntos
+from .models import Promociones_Descuento, Promos_Clientes, Historial_Puntos, Transacciones_Puntos
+from autenticacion.models import Clientes
 from django.db.models import Sum
 
 class ClienteSerializer(serializers.ModelSerializer):
