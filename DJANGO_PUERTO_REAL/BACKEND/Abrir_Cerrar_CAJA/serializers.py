@@ -64,6 +64,30 @@ class CajasSerializer(serializers.ModelSerializer):
             
         return representation
 
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+
+        # Añadir campos dinámicamente
+        representation['caja_abierta'] = instance.estado_caja.nombre_estado == 'ABIERTA' if instance.estado_caja else False
+
+        # Optimización: Una sola consulta para obtener el historial de apertura
+        historial_apertura = Historial_Caja.objects.filter(
+            caja_hc=instance, 
+            tipo_event_caja__nombre_evento='APERTURA'
+        ).select_related('empleado_hc__user_empleado').first()
+
+        if historial_apertura:
+            representation['fecha_apertura'] = historial_apertura.fecha_movimiento_hcaja
+            if historial_apertura.empleado_hc:
+                representation['empleado_apertura'] = EmpleadoSerializer(historial_apertura.empleado_hc).data
+            else:
+                representation['empleado_apertura'] = None
+        else:
+            representation['fecha_apertura'] = None
+            representation['empleado_apertura'] = None
+            
+        return representation
+
 class HistorialCajaSerializer(serializers.ModelSerializer):
     caja_hc = CajasSerializer(read_only=True)
     empleado_hc = EmpleadoSerializer(read_only=True)
@@ -115,3 +139,7 @@ class MovimientoFondoInputSerializer(serializers.Serializer):
     monto = serializers.DecimalField(max_digits=12, decimal_places=2)
     motivo = serializers.CharField(max_length=200, required=False, allow_blank=True)
     tipo = serializers.ChoiceField(choices=[("ENTRADA", "Entrada"), ("SALIDA", "Salida")])
+
+class AjusteCajaInputSerializer(serializers.Serializer):
+    monto_ajuste = serializers.DecimalField(max_digits=10, decimal_places=2)
+    motivo_ajuste = serializers.CharField(max_length=255)

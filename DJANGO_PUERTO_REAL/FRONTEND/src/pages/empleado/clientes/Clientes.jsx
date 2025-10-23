@@ -27,8 +27,8 @@ const Clientes = () => {
 
     const filteredClients = useMemo(() => {
         return clients.filter(client =>
-            client.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            client.email.toLowerCase().includes(searchTerm.toLowerCase())
+            (client.first_name && client.first_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            (client.email && client.email.toLowerCase().includes(searchTerm.toLowerCase()))
         );
     }, [clients, searchTerm]);
     
@@ -85,11 +85,11 @@ const Clientes = () => {
                     <tbody>
                         {filteredClients.length > 0 ? (
                             filteredClients.map((client) => (
-                                <tr key={client.id} className="border-b border-pr-gray/20 hover:bg-pr-dark-gray">
-                                    <td className="p-4 font-bold text-white">{client.nombre} {client.apellido}</td>
+                                <tr key={client.id_cliente} className="border-b border-pr-gray/20 hover:bg-pr-dark-gray">
+                                    <td className="p-4 font-bold text-white">{client.first_name} {client.last_name}</td>
                                     <td className="p-4">{client.email}</td>
-                                    <td className="p-4">{client.telefono}</td>
-                                    <td className="p-4 font-bold text-pr-yellow">{client.puntos_actuales || 0}</td>
+                                    <td className="p-4">{client.telefono_cliente}</td>
+                                    <td className="p-4 font-bold text-pr-yellow">{client.puntos || 0}</td>
                                     <td className="p-4">
                                         <button className="text-pr-yellow hover:underline">Ver Perfil</button>
                                     </td>

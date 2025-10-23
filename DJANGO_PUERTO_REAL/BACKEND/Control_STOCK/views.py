@@ -4,7 +4,7 @@ from datetime import timedelta
 # Django
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.db.models import Q, Sum
+from django.db.models import Q, Sum, F
 from django.urls import reverse_lazy
 from django.utils import timezone
 from django.utils.decorators import method_decorator
@@ -35,70 +35,6 @@ from .serializers import (
 )
 
 
-# --- Vistas de Template ---
-@method_decorator(login_required, name='dispatch')
-class StockDashboardView(TemplateView):
-    template_name = 'Control_STOCK/stock_dashboard.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['page_title'] = "Gestión de Inventario"
-        
-        # Obtener todos los productos con su información de stock
-        productos = Productos.objects.filter(DELETE_Prod=False).annotate(
-            total_stock=Sum('stocks__cantidad_actual_stock')
-        )
-        
-        context['productos'] = productos
-        return context
-
-@method_decorator(login_required, name='dispatch')
-class ControlStockView(TemplateView):
-    template_name = 'Control_STOCK/Control-Stock.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['page_title'] = "Control de Inventario"
-        return context
-
-@method_decorator(login_required, name='dispatch')
-class CatalogoProductosView(TemplateView):
-    template_name = 'Control_STOCK/producto_list.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['page_title'] = "Catálogo de Productos"
-        # Opcional: Aquí puedes agregar la lógica para pasar la lista de productos al template
-        # context['productos'] = Productos.objects.all() 
-        return context
-    
-# Vista para Crear un Producto Nuevo
-@method_decorator(login_required, name='dispatch')
-class ProductoCreateView(CreateView):
-    model = Productos
-    # Usa el formulario que ya tienes importado
-    form_class = ProductoForm
-    template_name = 'Control_STOCK/producto_form.html'
-    # Redirige al catálogo después de crear exitosamente
-    success_url = reverse_lazy('stock:catalogo')
-
-# Vista para Editar un Producto Existente
-@method_decorator(login_required, name='dispatch')
-class ProductoUpdateView(UpdateView):
-    model = Productos
-    form_class = ProductoForm
-    template_name = 'Control_STOCK/producto_form.html'
-    success_url = reverse_lazy('stock:catalogo')
-
-# Vista para Eliminar un Producto
-@method_decorator(login_required, name='dispatch')
-class ProductoDeleteView(DeleteView):
-    model = Productos
-    template_name = 'Control_STOCK/producto_confirm_delete.html'
-    success_url = reverse_lazy('stock:catalogo')
-
-
-
 class EstadoProductoViewSet(viewsets.ReadOnlyModelViewSet):
     """
     API endpoint que permite ver los estados de los productos.
@@ -112,17 +48,19 @@ class CategoriaProductoViewSet(viewsets.ModelViewSet):
     """
     queryset = Categorias_Productos.objects.all()
     serializer_class = CategoriaProductoSerializer
+    permission_classes = [IsAuthenticated]
 
 
 class ProductoViewSet(viewsets.ModelViewSet):
-    
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_fields = ['categoria_producto']  # Permite filtrar por: /productos/?categoria_producto=2
     search_fields = ['nombre_producto', 'barcode'] # Permite buscar por: /productos/?search=coca
+    
     """
     API endpoint que permite ver, crear, editar y eliminar productos.
     """
     queryset = Productos.objects.filter(DELETE_Prod=False).annotate(total_stock=Sum('stocks__cantidad_actual_stock')).order_by('-id_producto')
+    permission_classes = [IsAuthenticated]
     
     def get_serializer_class(self):
         if self.action in ['create', 'update', 'partial_update']:
@@ -131,7 +69,7 @@ class ProductoViewSet(viewsets.ModelViewSet):
 
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
-        instance = self.get_object()
+        instance = self.get_.object()
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
 
@@ -181,7 +119,7 @@ class ProductoViewSet(viewsets.ModelViewSet):
             return Response(read_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
         except Exception as e:
-            print(f"Error creating product or stock: {e}")
+            # Es mejor usar logging en un proyecto real, pero print sirve para depurar.
             return Response({"detail": f"Error al crear el producto: {str(e)}"},
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -203,13 +141,12 @@ class StockListView(generics.ListAPIView):
             queryset = queryset.filter(producto_en_stock__categoria_producto__id_categoria=category_id)
 
         if low_stock == 'true':
-            # Filtrar productos con bajo stock
-            low_stock_products_ids = []
-            for product in Productos.objects.all():
-                total_stock = Stocks.objects.filter(producto_en_stock=product).aggregate(total=Sum('cantidad_actual_stock'))['total'] or 0
-                if total_stock <= product.low_stock_threshold:
-                    low_stock_products_ids.append(product.id_producto)
-            queryset = queryset.filter(producto_en_stock__id_producto__in=low_stock_products_ids)
+            # Filtra eficientemente los productos cuyo stock total es menor o igual a su umbral de bajo stock.
+            queryset = queryset.annotate(
+                total_stock=Sum('producto_en_stock__stocks__cantidad_actual_stock')
+            ).filter(
+                total_stock__lte=F('producto_en_stock__low_stock_threshold')
+            )
 
         if expiring_days:
             try:

@@ -21,7 +21,7 @@ class Perfil(models.Model):
 
 # Esta señal asegura que se cree un Perfil cada vez que se cree un User
 @receiver(post_save, sender=User)
-def crear_o_actualizar_perfil_de_usuario(sender, instance, created, **kwargs):
+def crear_perfil_de_usuario(sender, instance, created, **kwargs):
     if created:
         Perfil.objects.create(usuario=instance)
     instance.perfil.save()

@@ -5,7 +5,6 @@ from Config_PR.models import Estados
 from django.utils import timezone
 from datetime import timedelta
 
-
 class EstadoProductoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Estados
@@ -17,8 +16,13 @@ class CategoriaProductoSerializer(serializers.ModelSerializer):
         fields = ['id_categoria', 'nombre_categoria']
 
 class ProductoWriteSerializer(serializers.ModelSerializer):
-    stock_adquirido = serializers.IntegerField(write_only=True)
-    stock_actual = serializers.IntegerField(write_only=True)
+    stock_adquirido = serializers.IntegerField(write_only=True, required=False, default=0)
+    stock_actual = serializers.IntegerField(write_only=True, required=False, default=0)
+    # Hacemos los campos opcionales para que coincidan con el modelo
+    descripcion_producto = serializers.CharField(required=False, allow_blank=True)
+    low_stock_threshold = serializers.IntegerField(required=False, default=0)
+    barcode = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    fecha_vencimiento_producto = serializers.DateTimeField(required=False, allow_null=True)
 
     class Meta:
         model = Productos

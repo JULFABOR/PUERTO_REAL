@@ -141,7 +141,7 @@ const VentasPOS = () => {
         const cargarConfiguracion = async () => {
             try {
                 // Obtener caja abierta del empleado
-                const responseCajas = await apiClient('/api/ventas/cajas/?estado_caja__nombre_estado=ABIERTA');
+                const responseCajas = await apiClient('/api/caja/cajas/?estado_caja__nombre_estado=ABIERTA');
                 const cajas = responseCajas.results || responseCajas;
                 if (cajas && cajas.length > 0) {
                     setCajaId(cajas[0].id_caja);
@@ -230,12 +230,34 @@ const VentasPOS = () => {
 
     const procesarVenta = async (metodoPago) => {
         setShowPaymentModal(false);
-        if (carrito.length === 0) return toast.error("El carrito está vacío.");
-        if (!user?.empleado_id) return toast.error("No se pudo identificar al empleado.");
-        if (!cajaId) return toast.error("No hay caja abierta.");
-        if (!clienteGenericoId) return toast.error("No se encontró cliente genérico.");
-        if (!estadoVentaId) return toast.error("No se encontró estado de venta.");
+        console.log("Debug: Iniciando procesarVenta con método:", metodoPago);
 
+        if (carrito.length === 0) {
+            console.log("Debug: Falla validación - Carrito vacío.");
+            return toast.error("El carrito está vacío.");
+        }
+
+        if (!user?.empleado_id) {
+            console.log("Debug: Falla validación - No se pudo identificar al empleado.", user);
+            return toast.error("No se pudo identificar al empleado.");
+        }
+
+        if (!cajaId) {
+            console.log("Debug: Falla validación - No hay ID de caja.", cajaId);
+            return toast.error("No hay caja abierta.");
+        }
+
+        if (!clienteGenericoId) {
+            console.log("Debug: Falla validación - No hay ID de cliente genérico.", clienteGenericoId);
+            return toast.error("No se encontró cliente genérico.");
+        }
+
+        if (!estadoVentaId) {
+            console.log("Debug: Falla validación - No hay ID de estado de venta.", estadoVentaId);
+            return toast.error("No se encontró estado de venta.");
+        }
+
+        console.log("Debug: Todas las validaciones pasaron.");
         setLoading(true);
         const processingToast = toast.loading(`Registrando venta...`);
 
@@ -254,10 +276,11 @@ const VentasPOS = () => {
             observaciones_venta: clienteSeleccionado ? `Venta a ${clienteSeleccionado.user_cliente.first_name}` : 'Venta sin cliente',
         };
 
-        console.log('Datos a enviar:', datosVenta);
+        console.log('Debug: Datos a enviar al backend:', datosVenta);
         
         try {
             const response = await apiClient('/api/ventas/ventas/', { method: 'POST', body: JSON.stringify(datosVenta) });
+            console.log("Debug: Respuesta exitosa del backend:", response);
             toast.success("¡Venta registrada con éxito!", { id: processingToast });
             const qrData = {
                 qr_token: response.qr_token || `VENTA-ID-${response.id_venta}`,
@@ -265,7 +288,7 @@ const VentasPOS = () => {
             };
             setVentaFinalizadaData(qrData);
         } catch (err) {
-            console.error('Error completo:', err);
+            console.error('Debug: Error completo en la llamada a la API:', err);
             const errorDetail = err.data?.detail || (err.data && Object.values(err.data).flat().join(' ')) || 'Error al registrar la venta.';
             toast.error(errorDetail, { id: processingToast });
         } finally {

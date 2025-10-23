@@ -9,15 +9,21 @@ from django.db import transaction
 from django.db.models import Sum
 from django.http import HttpResponse
 from django.template.loader import get_template
-from django.utils import timezone
+from xhtml2pdf import pisa
+from io import BytesIO
+from django.views.generic import TemplateView
+from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 from django.views.generic import TemplateView
+from django_filters.rest_framework import DjangoFilterBackend
+
 
 # Third-party
 from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from xhtml2pdf import pisa
+from rest_framework import filters
 
 # Local application
 from Abrir_Cerrar_CAJA.models import Historial_Caja, Tipo_Evento
@@ -27,7 +33,7 @@ from Config_PR.models import Estados, Tipos_Movimientos
 from Control_STOCK.models import Historial_Stock, Productos, Stocks
 from Fidelizar_CLIENTES.models import Historial_Puntos
 from .models import Ventas
-from .serializers import VentaSerializer
+from .serializers import VentaReadSerializer, VentaWriteSerializer
 
 # --- Vistas de Template (sin cambios) ---
 class VentaView(TemplateView):
@@ -45,209 +51,32 @@ class VentasDashboardView(TemplateView):
 
 # --- Vistas de API ---
 class VentaViewSet(viewsets.ModelViewSet):
-    queryset = Ventas.objects.all().order_by('-fecha_venta')
-    serializer_class = VentaSerializer
+    """
+    ViewSet para manejar las ventas.
+    Usa VentaReadSerializer para operaciones de lectura (list, retrieve)
+    y VentaWriteSerializer para operaciones de escritura (create).
+    
+    Permite filtrar por: /api/ventas/?cliente_venta=1&empleado_venta=2&estado_venta=3&fecha_venta_after=YYYY-MM-DD&fecha_venta_before=YYYY-MM-DD
+    """
+    queryset = Ventas.objects.select_related(
+        'cliente_venta', 'empleado_venta', 'estado_venta'
+    ).prefetch_related(
+        'detalles__producto_det_vent'
+    ).all().order_by('-fecha_venta')
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_fields = {
+        'fecha_venta': ['gte', 'lte'],
+        'cliente_venta': ['exact'],
+        'empleado_venta': ['exact'],
+        'estado_venta': ['exact']
+    }
+    ordering_fields = ['fecha_venta', 'total_venta']
 
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        context.update({"request": self.request})
-        return context
+    def get_serializer_class(self):
+        if self.action in ['create', 'update', 'partial_update']:
+            return VentaWriteSerializer
+        return VentaReadSerializer
 
-    # --- NUEVO MÉTODO 'create' PARA CREAR VENTAS Y DESCONTAR STOCK ---
-    def create(self, request, *args, **kwargs):
-        detalles_data = request.data.get('detalles', [])
-        
-        if not detalles_data:
-            return Response({"detail": "La venta no tiene productos."}, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            with transaction.atomic():
-                # 1. Verificación de Stock
-                for item in detalles_data:
-                    producto_id = item.get('producto')
-                    cantidad_a_vender = item.get('cantidad')
-                    
-                    try:
-                        producto = Productos.objects.get(pk=producto_id)
-                        total_stock_agg = Stocks.objects.filter(producto_en_stock=producto).aggregate(total=Sum('cantidad_actual_stock'))
-                        total_stock = total_stock_agg['total'] or 0
-                        
-                        if total_stock < cantidad_a_vender:
-                            raise serializers.ValidationError(
-                                f"Stock insuficiente para '{producto.nombre_producto}'. Disponible: {total_stock}"
-                            )
-                    except Productos.DoesNotExist:
-                        raise serializers.ValidationError(f"Producto con ID {producto_id} no encontrado.")
-
-                # 2. Creación de la Venta
-                serializer = self.get_serializer(data=request.data)
-                serializer.is_valid(raise_exception=True)
-                venta = serializer.save()
-
-                # 3. Descuento de Stock y Creación de Historial
-                try:
-                    tipo_movimiento_salida = Tipos_Movimientos.objects.get(nombre_movimiento='MOV_STOCK_SALIDA')
-                except Tipos_Movimientos.DoesNotExist:
-                    raise serializers.ValidationError("Tipo de movimiento 'MOV_STOCK_SALIDA' no fue encontrado en la base de datos.")
-
-                for detalle in venta.detalles.all():
-                    producto = detalle.producto_det_vent
-                    cantidad_vendida = detalle.cantidad_det_vent
-                    
-                    stock_entry = Stocks.objects.filter(producto_en_stock=producto, cantidad_actual_stock__gte=cantidad_vendida).first()
-                    
-                    if stock_entry:
-                        stock_anterior = stock_entry.cantidad_actual_stock
-                        stock_entry.cantidad_actual_stock -= cantidad_vendida
-                        stock_entry.save()
-
-                        Historial_Stock.objects.create(
-                            stock_hs=stock_entry,
-                            cantidad_hstock=str(cantidad_vendida),
-                            tipo_movimiento_hs=tipo_movimiento_salida,
-                            empleado_hs=request.user.empleado,
-                            stock_anterior_hstock=stock_anterior,
-                            stock_nuevo_hstock=stock_entry.cantidad_actual_stock,
-                            observaciones_hstock=f"Venta #{venta.id_venta}"
-                        )
-                    else:
-                        # Esto no debería ocurrir gracias a la verificación de arriba, pero es una salvaguarda
-                        raise serializers.ValidationError(f"No se encontró un lote de stock con suficiente cantidad para {producto.nombre_producto}")
-
-
-            headers = self.get_success_headers(serializer.data)
-            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
-
-        except serializers.ValidationError as e:
-            # Captura tanto nuestros errores personalizados como los del serializador
-            error_detail = e.detail
-            if isinstance(e.detail, list):
-                error_detail = e.detail[0]
-            return Response({"detail": str(error_detail)}, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-    # --- TU MÉTODO 'update' ORIGINAL PARA ANULAR VENTAS (CONSERVADO) ---
-    def update(self, request, *args, **kwargs):
-        instance = self.get_object()
-        
-        empleado = None
-        if hasattr(request.user, 'empleado'):
-            empleado = request.user.empleado
-        else:
-            return Response({"error": "Solo los empleados pueden realizar esta acción."},
-                            status=status.HTTP_403_FORBIDDEN)
-
-        with transaction.atomic():
-            nuevo_estado_id = request.data.get('estado_venta')
-            
-            try:
-                estado_anulada = Estados.objects.get(nombre_estado='ANULADA')
-            except Estados.DoesNotExist:
-                return Response({"error": "Estado 'ANULADA' no encontrado."}, status=status.HTTP_400_BAD_REQUEST)
-
-            if nuevo_estado_id and int(nuevo_estado_id) == estado_anulada.id_estado and instance.estado_venta != estado_anulada:
-                time_diff = timezone.now() - instance.fecha_venta
-                if time_diff.total_seconds() > 1200: # 20 minutos
-                    return Response(
-                        {"error": "La venta solo puede ser anulada dentro de los 20 minutos de su creacion."},
-                        status=status.HTTP_403_FORBIDDEN
-                    )
-
-                crear_registro(
-                    usuario=request.user,
-                    accion='ANULACION_VENTA',
-                    detalles={
-                        'venta_id': instance.id_venta,
-                        'cliente': instance.cliente_venta.id_cliente if instance.cliente_venta else None,
-                        'total_original': str(instance.total_venta),
-                        'realizada_por': instance.empleado_venta.user_empleado.username if instance.empleado_venta else None
-                    }
-                )
-                
-                try:
-                    tipo_movimiento_entrada = Tipos_Movimientos.objects.get(nombre_movimiento='MOV_STOCK_ENTRADA')
-                except Tipos_Movimientos.DoesNotExist:
-                    return Response({"error": "Tipo de movimiento 'MOV_STOCK_ENTRADA' no encontrado."}, status=status.HTTP_400_BAD_REQUEST)
-
-                for detalle in instance.detalles.all():
-                    stock, created = Stocks.objects.get_or_create(
-                        producto_en_stock=detalle.producto_det_vent,
-                        defaults={'cantidad_actual_stock': 0, 'lote_stock': 0}
-                    )
-                    stock_anterior = stock.cantidad_actual_stock
-                    stock.cantidad_actual_stock += detalle.cantidad_det_vent
-                    stock.save()
-
-                    Historial_Stock.objects.create(
-                        stock_hs=stock,
-                        cantidad_hstock=detalle.cantidad_det_vent,
-                        stock_anterior_hstock=stock_anterior,
-                        stock_nuevo_hstock=stock.cantidad_actual_stock,
-                        tipo_movimiento_hs=tipo_movimiento_entrada,
-                        empleado_hs=empleado,
-                        observaciones_hstock=f"Entrada por anulacion de venta ID: {instance.id_venta}"
-                    )
-                
-                caja = instance.caja_venta
-                
-                monto_ingreso_original = instance.total_venta - instance.descuento_aplicado
-                saldo_anterior_caja = caja.monto_teorico_caja
-                caja.monto_teorico_caja -= monto_ingreso_original
-                caja.save()
-
-                tipo_evento_egreso_anulacion, _ = Tipo_Evento.objects.get_or_create(nombre_evento="ANULACION_VENTA_EGRESO")
-                Historial_Caja.objects.create(
-                    caja_hc=caja,
-                    empleado_hc=empleado,
-                    tipo_event_caja=tipo_evento_egreso_anulacion,
-                    cantidad_movida_hcaja=monto_ingreso_original * -1,
-                    saldo_anterior_hcaja=saldo_anterior_caja,
-                    nuevo_saldo_hcaja=caja.monto_teorico_caja,
-                    descripcion_hcaja=f"Egreso por anulacion de ingreso de venta ID: {instance.id_venta}"
-                )
-
-                if hasattr(instance, 'vuelto_entregado') and instance.vuelto_entregado > 0:
-                    saldo_anterior_vuelto = caja.monto_teorico_caja
-                    caja.monto_teorico_caja += instance.vuelto_entregado
-                    caja.save()
-
-                    tipo_evento_ingreso_anulacion, _ = Tipo_Evento.objects.get_or_create(nombre_evento="ANULACION_VENTA_INGRESO")
-                    Historial_Caja.objects.create(
-                        caja_hc=caja,
-                        empleado_hc=empleado,
-                        tipo_event_caja=tipo_evento_ingreso_anulacion,
-                        cantidad_movida_hcaja=instance.vuelto_entregado,
-                        saldo_anterior_hcaja=saldo_anterior_vuelto,
-                        nuevo_saldo_hcaja=caja.monto_teorico_caja,
-                        descripcion_hcaja=f"Ingreso por anulacion de vuelto de venta ID: {instance.id_venta}"
-                    )
-                
-                if instance.cliente_venta and hasattr(instance, 'descuento_aplicado') and instance.total_venta - instance.descuento_aplicado > 0:
-                    neto_pagado = instance.total_venta - instance.descuento_aplicado
-                    puntos_ganados = math.floor(neto_pagado / settings.PESOS_POR_PUNTO)
-                    if puntos_ganados > 0:
-                        cliente = instance.cliente_venta
-                        puntos_anteriores = cliente.puntos_actuales
-                        cliente.puntos_actuales -= puntos_ganados
-                        Historial_Puntos.objects.create(
-                            cliente=cliente, venta_origen=instance, puntos_movidos=puntos_ganados * -1,
-                            puntos_anteriores=puntos_anteriores, puntos_nuevos=cliente.puntos_actuales,
-                            tipo_movimiento='AJUSTE'
-                        )
-                
-                if instance.promo_aplicada:
-                    try:
-                        estado_disponible = Estados.objects.get(nombre_estado='DISPONIBLE')
-                    except Estados.DoesNotExist:
-                        return Response({"error": "Estado 'DISPONIBLE' no encontrado."}, status=status.HTTP_400_BAD_REQUEST)
-                    instance.promo_aplicada.estado_promo_cli = estado_disponible
-                    instance.promo_aplicada.save()
-
-        return super().update(request, *args, **kwargs)
-
-    # --- TU MÉTODO 'generate_ticket_pdf' ORIGINAL (CONSERVADO) ---
     @action(detail=True, methods=['get'])
     def generate_ticket_pdf(self, request, pk=None):
         venta = self.get_object()

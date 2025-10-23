@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { initFlowbite } from 'flowbite';
-import { useAuth } from '@/hooks/useAuth'; // <-- Import and use the hook
-import apiClient from '@/api/apiClient';
+import { useAuth } from '@/contexts/AuthContext'; // Importar el hook de autenticación
 
 const AuthPage = () => {
+    const { login } = useAuth(); // Obtener la función de login del contexto
     const [activeTab, setActiveTab] = useState('login');
-    const { login } = useAuth(); // <-- Get login function from context
 
     useEffect(() => {
         initFlowbite();
@@ -34,11 +33,11 @@ const AuthPage = () => {
     const handleLoginSubmit = async (e) => {
         e.preventDefault();
         setLoginError('');
-        const result = await login(loginUsername, loginPassword); // Call the hook's login
+        const result = await login(loginUsername, loginPassword);
         if (!result.success) {
             setLoginError(result.error);
         }
-        // Navigation is now handled inside AuthContext
+        // La navegación se maneja dentro del AuthContext
     };
 
     const handleRegisterSubmit = async (e) => {
@@ -186,7 +185,7 @@ const AuthPage = () => {
                                             ¿Olvidaste tu contraseña?
                                         </button>
                                     </div>
-                                    <button type="submit" className="w-full text-pr-dark bg-pr-yellow hover:bg-yellow-400 focus:ring-4 focus:outline-none focus:ring-yellow-300 font-bold rounded-lg text-sm px-5 py-3 text-center transition duration-300">
+                                    <button type="button" onClick={handleLoginSubmit} className="w-full text-pr-dark bg-pr-yellow hover:bg-yellow-400 focus:ring-4 focus:outline-none focus:ring-yellow-300 font-bold rounded-lg text-sm px-5 py-3 text-center transition duration-300">
                                         Ingresar
                                     </button>
                                 </form>

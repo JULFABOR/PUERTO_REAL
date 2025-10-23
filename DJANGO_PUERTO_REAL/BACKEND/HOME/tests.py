@@ -105,7 +105,7 @@ class ServiceTests(TestCase):
             monto_teorico_caja=100.00,
             diferencia_caja=0,
             observaciones_caja='',
-            estado_caja=Estados.objects.create(nombre_estado='ABIERTO', tipo_estado=self.tipo_estado_activo)
+            estado_caja=Estados.objects.create(nombre_estado='ABIERTA', tipo_estado=self.tipo_estado_activo)
         )
         self.caja_cerrada = Cajas.objects.create(
             monto_apertura_caja=0.00,
@@ -114,13 +114,13 @@ class ServiceTests(TestCase):
             monto_teorico_caja=0.00,
             diferencia_caja=0,
             observaciones_caja='',
-            estado_caja=Estados.objects.create(nombre_estado='CERRADO', tipo_estado=self.tipo_estado_activo)
+            estado_caja=Estados.objects.create(nombre_estado='CERRADA', tipo_estado=self.tipo_estado_activo)
         )
 
         # Create Tipo_Evento for kpi_egresos_operativos test
         self.tipo_evento_egreso = Tipo_Evento.objects.create(nombre_evento='EGRESO')
         self.tipo_evento_gasto = Tipo_Evento.objects.create(nombre_evento='GASTO')
-        self.tipo_evento_apertura = Tipo_Evento.objects.create(nombre_evento='APERTURA')
+        self.tipo_evento_apertura = Tipo_Evento.objects.create(nombre_evento='APERTURA') # Estandarizamos el nombre
 
         # Create Historial_Caja entries for kpi_egresos_operativos test
         Historial_Caja.objects.create(
@@ -179,12 +179,12 @@ class ServiceTests(TestCase):
         self.assertFalse(S.fondos_pagos_bajo_saldo())
 
     def test_obtener_estado_caja(self):
-        self.assertEqual(S.obtener_estado_caja(), 'ABIERTO')
+        self.assertEqual(S.obtener_estado_caja(), 'ABIERTA')
 
         # Close the open cash register
         self.caja_abierta.estado_caja = self.estado_inactivo # Assuming INACTIVO means closed
         self.caja_abierta.save()
-        self.assertEqual(S.obtener_estado_caja(), 'CERRADO') # Should return CERRADO if no open boxes
+        self.assertEqual(S.obtener_estado_caja(), 'CERRADA') # Should return CERRADO if no open boxes
 
     def test_kpi_saldo_caja_actual(self):
         # Assuming the last created caja is self.caja_cerrada, but the service orders by -id_caja

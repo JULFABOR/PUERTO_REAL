@@ -213,7 +213,7 @@ def rendir_fondo_service(monto: Decimal, empleado_actual: Empleados):
         caja_activa.save(update_fields=['monto_teorico_caja'])
 
         tipo_evento_rendicion = Tipo_Evento.objects.get(nombre_evento='TRANSFERENCIA_DESDE_FONDO')
-        Historial_Caja.objects.create(
+        Historial_Caja.objects.create( # This was already correct, but I'll make sure it's consistent
             cantidad_movida_hcaja=monto,
             caja_hc=caja_activa,
             empleado_hc=empleado_actual,
@@ -224,6 +224,9 @@ def rendir_fondo_service(monto: Decimal, empleado_actual: Empleados):
             descripcion_hcaja="Rendición Fondo"
         )
     return caja_activa
+
+# En Abrir_Cerrar_CAJA/services.py
+# (Reemplaza la función original por esta)
 
 def cerrar_caja_service(monto_cierre_real: Decimal, observaciones_cierre: str, empleado_actual: Empleados):
     tipo_estado_caja, _ = Tipos_Estados.objects.get_or_create(nombre_tipo_estado='Caja')
@@ -240,6 +243,7 @@ def cerrar_caja_service(monto_cierre_real: Decimal, observaciones_cierre: str, e
         raise ValueError("No se encontró una caja abierta activa para este empleado.")
     except Cajas.MultipleObjectsReturned:
         raise ValueError("Error: Este empleado tiene múltiples cajas abiertas. Contacte a un administrador.")
+    # --- FIN CORRECCIÓN 1 ---
 
     with transaction.atomic():
         estado_cerrado, _ = Estados.objects.get_or_create(
@@ -253,8 +257,9 @@ def cerrar_caja_service(monto_cierre_real: Decimal, observaciones_cierre: str, e
 
         caja_activa.monto_cierre_caja = monto_cierre_real
         caja_activa.diferencia_caja = diferencia
-        caja_activa.observaciones_caja = observaciones_cierre # Actualizar observaciones con las del cierre
+        caja_activa.observaciones_caja = observaciones_cierre
         caja_activa.estado_caja = estado_cerrado
+        
         # --- CORRECCIÓN 2: Asignar el empleado de cierre ---
         # (Asumo que el campo se llama 'empleado_cierre_caja')
         if hasattr(caja_activa, 'empleado_cierre_caja'):
@@ -300,4 +305,48 @@ def cerrar_caja_service(monto_cierre_real: Decimal, observaciones_cierre: str, e
             }
         )
         # --- FIN REGISTRO ---
+    return caja_activa
+
+def ajustar_caja_service(monto_ajuste: Decimal, motivo_ajuste: str, empleado_actual: Empleados):
+    """
+    Ajusta el saldo de la caja activa registrando un movimiento de ajuste.
+    """
+    caja_activa = _caja_abierta()
+    if not caja_activa:
+        raise ValueError("No hay una caja abierta para ajustar.")
+
+    with transaction.atomic():
+        saldo_anterior = caja_activa.monto_teorico_caja
+        nuevo_saldo = saldo_anterior + monto_ajuste
+
+        caja_activa.monto_teorico_caja = nuevo_saldo
+        caja_activa.save(update_fields=['monto_teorico_caja'])
+
+        tipo_evento_ajuste, _ = Tipo_Evento.objects.get_or_create(nombre_evento='AJUSTE')
+
+        Historial_Caja.objects.create(
+            cantidad_movida_hcaja=monto_ajuste,
+            caja_hc=caja_activa,
+            empleado_hc=empleado_actual,
+            tipo_event_caja=tipo_evento_ajuste,
+            fecha_movimiento_hcaja=timezone.now(),
+            saldo_anterior_hcaja=saldo_anterior,
+            nuevo_saldo_hcaja=nuevo_saldo,
+            descripcion_hcaja=motivo_ajuste
+        )
+
+        # --- REGISTRO DE AUDITORÍA ---
+        crear_registro(
+            usuario=getattr(empleado_actual, 'user_empleado', None),
+            accion='AJUSTE_CAJA',
+            detalles={
+                'caja_id': caja_activa.id_caja,
+                'monto_ajuste': str(monto_ajuste),
+                'motivo': motivo_ajuste,
+                'saldo_anterior': str(saldo_anterior),
+                'nuevo_saldo': str(nuevo_saldo)
+            }
+        )
+        # --- FIN REGISTRO ---
+
     return caja_activa

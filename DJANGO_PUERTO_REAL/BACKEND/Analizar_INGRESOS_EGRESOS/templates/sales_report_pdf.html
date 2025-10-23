@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Reporte de Ventas</title>
+    <style>
+        @page {
+            size: a4 portrait;
+            @frame header_frame {
+                -pdf-frame-content: header_content;
+                left: 50pt; right: 50pt; top: 50pt; height: 50pt;
+            }
+            @frame content_frame {
+                left: 50pt; right: 50pt; top: 120pt; bottom: 50pt;
+            }
+            @frame footer_frame {
+                -pdf-frame-content: footer_content;
+                left: 50pt; right: 50pt; bottom: 30pt; height: 20pt;
+            }
+        }
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            color: #333;
+        }
+        #header_content {
+            text-align: center;
+        }
+        #header_content h1 {
+            font-size: 24px;
+            color: #2c3e50;
+            margin: 0;
+        }
+        #header_content p {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin: 5px 0;
+        }
+        #footer_content {
+            text-align: right;
+            font-size: 10px;
+            color: #7f8c8d;
+        }
+        h2 {
+            font-size: 18px;
+            color: #34495e;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 5px;
+            margin-top: 20px;
+        }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .summary-item {
+            background-color: #ecf0f1;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .summary-item p {
+            margin: 0;
+            font-size: 12px;
+        }
+        .summary-item .value {
+            font-size: 16px;
+            font-weight: bold;
+            color: #2980b9;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #bdc3c7;
+            padding: 8px;
+            text-align: left;
+            font-size: 12px;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+        }
+        tbody tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <div id="header_content">
+        <h1>Reporte de Ventas - PUERTO REAL</h1>
+        <p>Fecha de generación: {{ today }}</p>
+        <p>Periodo del reporte: {{ period }}</p>
+    </div>
+
+    <div id="footer_content">
+        Página <pdf:pagenumber> de <pdf:pagecount>
+    </div>
+
+    <h2>Indicadores Principales</h2>
+    <div class="summary-grid">
+        <div class="summary-item">
+            <p>Ventas Totales</p>
+            <p class="value">${{ total_sales }}</p>
+        </div>
+        <div class="summary-item">
+            <p>Ganancia Bruta</p>
+            <p class="value">${{ gross_profit }}</p>
+        </div>
+        <div class="summary-item">
+            <p>Nº Transacciones</p>
+            <p class="value">{{ total_transactions }}</p>
+        </div>
+        <div class="summary-item">
+            <p>Ticket Promedio</p>
+            <p class="value">${{ average_ticket }}</p>
+        </div>
+    </div>
+
+    <h2>Ventas por Medio de Pago</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Medio de Pago</th>
+                <th>Monto</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for method in payment_methods %}
+            <tr>
+                <td>{{ method.name }}</td>
+                <td>${{ method.amount }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>Rentabilidad por Producto</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Producto</th>
+                <th>Uds. Vendidas</th>
+                <th>Ingresos</th>
+                <th>Costo Total</th>
+                <th>Ganancia Bruta</th>
+                <th>Margen</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for product in products %}
+            <tr>
+                <td>{{ product.name }}</td>
+                <td>{{ product.units }}</td>
+                <td>${{ product.revenue }}</td>
+                <td>${{ product.cost }}</td>
+                <td>${{ product.profit }}</td>
+                <td>{{ product.margin }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+</body>
+</html>
