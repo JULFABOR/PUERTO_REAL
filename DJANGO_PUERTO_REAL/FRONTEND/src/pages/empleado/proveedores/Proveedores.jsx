@@ -2,27 +2,31 @@ import React, { useState, useEffect, useMemo } from 'react';
 import apiClient from '@/api/apiClient';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSearch, faPlus } from '@fortawesome/free-solid-svg-icons';
+import NewProviderModal from '@/components/Modals/NewProviderModal';
+import ProviderDetailsModal from '@/components/Modals/ProviderDetailsModal';
 
 const Proveedores = () => {
     const [providers, setProviders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [isNewProviderModalOpen, setIsNewProviderModalOpen] = useState(false);
+    const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+    const [selectedProvider, setSelectedProvider] = useState(null);
+
+    const fetchProviders = async () => {
+        setLoading(true);
+        try {
+            const data = await apiClient('/api/compras/proveedores/');
+            setProviders(data);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchProviders = async () => {
-            setLoading(true);
-            try {
-                // The endpoint might be nested under /api/compras/
-                const data = await apiClient('/api/compras/proveedores/');
-                setProviders(data);
-            } catch (err) {
-                setError(err.message);
-            } finally {
-                setLoading(false);
-            }
-        };
-
         fetchProviders();
     }, []);
 
@@ -33,8 +37,16 @@ const Proveedores = () => {
     }, [providers, searchTerm]);
 
     const handleAddProvider = () => {
-        // Placeholder for add provider functionality
-        alert("Funcionalidad para añadir proveedor no implementada.");
+        setIsNewProviderModalOpen(true);
+    };
+
+    const handleViewDetails = (provider) => {
+        setSelectedProvider(provider);
+        setIsDetailsModalOpen(true);
+    };
+
+    const handleSuccess = () => {
+        fetchProviders();
     };
 
     if (loading) {
@@ -91,7 +103,7 @@ const Proveedores = () => {
                                     <td className="p-4">{provider.telefono_proveedor}</td>
                                     <td className="p-4">{provider.correo_proveedor}</td>
                                     <td className="p-4">
-                                        <button className="text-pr-yellow hover:underline">Ver Detalles</button>
+                                        <button onClick={() => handleViewDetails(provider)} className="text-pr-yellow hover:underline">Ver Detalles</button>
                                     </td>
                                 </tr>
                             ))
@@ -103,8 +115,19 @@ const Proveedores = () => {
                     </tbody>
                 </table>
             </div>
+            <NewProviderModal 
+                isOpen={isNewProviderModalOpen} 
+                onClose={() => setIsNewProviderModalOpen(false)} 
+                onSuccess={handleSuccess} 
+            />
+            <ProviderDetailsModal 
+                isOpen={isDetailsModalOpen} 
+                onClose={() => setIsDetailsModalOpen(false)} 
+                provider={selectedProvider} 
+            />
         </div>
     );
 };
+
 
 export default Proveedores;

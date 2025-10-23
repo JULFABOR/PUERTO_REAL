@@ -90,10 +90,10 @@ def kpi_egresos_operativos(start, end) -> float:
 def obtener_estado_caja() -> str:
     try:
         caja = Cajas.objects.order_by("-id_caja").first()
-        return caja.estado_caja.nombre_estado if caja else "CERRADO"
+        return caja.estado_caja.nombre_estado if caja else "CERRADA"
     except Exception as e:
         print(f"Error en obtener_estado_caja: {e}")
-        return "CERRADO"
+        return "CERRADA"
 
 def kpi_saldo_caja_actual() -> float:
     try:

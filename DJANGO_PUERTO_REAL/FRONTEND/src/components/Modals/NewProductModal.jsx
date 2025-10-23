@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import apiClient from '@/api/apiClient';
 
@@ -7,12 +7,32 @@ const initialNewProductState = {
     barcode: '',
     precio_unitario_venta_producto: '',
     precio_unitario_compra_producto: '',
-    categoria_producto_id: '',
+    categoria_producto: '', // Cambiado de categoria_producto_id
+    estado_producto: '', // Añadido estado_producto
 };
 
 const NewProductModal = ({ isOpen, onClose, onSuccess, categories }) => {
     const [newProduct, setNewProduct] = useState(initialNewProductState);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [productStates, setProductStates] = useState([]);
+
+    useEffect(() => {
+        if (isOpen) {
+            const fetchProductStates = async () => {
+                try {
+                    const states = await apiClient('/api/stock/estados-producto/');
+                    setProductStates(states || []);
+                    // Opcional: establecer un estado por defecto si es necesario
+                    if (states && states.length > 0) {
+                        setNewProduct(prev => ({ ...prev, estado_producto: states[0].id_estado }));
+                    }
+                } catch (error) {
+                    toast.error("No se pudieron cargar los estados de los productos.");
+                }
+            };
+            fetchProductStates();
+        }
+    }, [isOpen]);
 
     const handleChange = (e) => {
         setNewProduct(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -20,26 +40,33 @@ const NewProductModal = ({ isOpen, onClose, onSuccess, categories }) => {
 
     const handleCreateProduct = async (e) => {
         e.preventDefault();
-        if (!newProduct.categoria_producto_id) return toast.error("Debes seleccionar una categoría.");
+        if (!newProduct.categoria_producto) return toast.error("Debes seleccionar una categoría.");
+        if (!newProduct.estado_producto) return toast.error("Debes seleccionar un estado.");
+        
         setIsSubmitting(true);
+
         const productDataToSend = {
-            nombre_producto: newProduct.nombre_producto,
-            barcode: newProduct.barcode,
-            precio_unitario_venta_producto: newProduct.precio_unitario_venta_producto,
-            precio_unitario_compra_producto: newProduct.precio_unitario_compra_producto,
-            categoria_producto: parseInt(newProduct.categoria_producto_id, 10),
-            estado_producto: 1,
-            stock_adquirido: 0,
-            stock_actual: 0
+            ...newProduct,
+            categoria_producto: parseInt(newProduct.categoria_producto, 10),
+            estado_producto: parseInt(newProduct.estado_producto, 10),
+            // Los campos de stock se pueden añadir aquí si es necesario
+            stock_adquirido: 0, 
+            stock_actual: 0,
         };
+
         try {
-            await apiClient('/api/stock/productos/', { method: 'POST', body: JSON.stringify(productDataToSend) });
+            await apiClient('/api/stock/productos/', { 
+                method: 'POST', 
+                body: JSON.stringify(productDataToSend) 
+            });
             toast.success('¡Producto creado con éxito!');
             setNewProduct(initialNewProductState);
             onSuccess();
             onClose();
         } catch (error) {
-            toast.error('No se pudo crear el producto.');
+            // Si el backend envía detalles del error, los mostramos
+            const errorMsg = error.data ? Object.values(error.data).join(', ') : 'No se pudo crear el producto.';
+            toast.error(errorMsg);
         } finally {
             setIsSubmitting(false);
         }
@@ -60,10 +87,15 @@ const NewProductModal = ({ isOpen, onClose, onSuccess, categories }) => {
                     <div className="p-4 md:p-5">
                         <form className="space-y-4" onSubmit={handleCreateProduct}>
                             <input name="nombre_producto" value={newProduct.nombre_producto} onChange={handleChange} placeholder="Nombre del Producto" className="border text-sm rounded-lg block w-full p-2.5 bg-pr-dark-gray border-gray-500 text-white" required />
-                            <input name="barcode" value={newProduct.barcode} onChange={handleChange} placeholder="SKU / Código de Barras" className="border text-sm rounded-lg block w-full p-2.5 bg-pr-dark-gray border-gray-500 text-white" required />
-                            <select name="categoria_producto_id" value={newProduct.categoria_producto_id} onChange={handleChange} className="border text-sm rounded-lg block w-full p-2.5 bg-pr-dark-gray border-gray-500 text-white" required>
+                            <input name="barcode" value={newProduct.barcode} onChange={handleChange} placeholder="SKU / Código de Barras" className="border text-sm rounded-lg block w-full p-2.5 bg-pr-dark-gray border-gray-500 text-white" />
+                            <select name="categoria_producto" value={newProduct.categoria_producto} onChange={handleChange} className="border text-sm rounded-lg block w-full p-2.5 bg-pr-dark-gray border-gray-500 text-white" required>
                                 <option value="">Seleccione una categoría</option>
                                 {categories.map(cat => <option key={cat.id_categoria} value={cat.id_categoria}>{cat.nombre_categoria}</option>)}
+                            </select>
+                            {/* Campo añadido para el estado del producto */}
+                            <select name="estado_producto" value={newProduct.estado_producto} onChange={handleChange} className="border text-sm rounded-lg block w-full p-2.5 bg-pr-dark-gray border-gray-500 text-white" required>
+                                <option value="">Seleccione un estado</option>
+                                {productStates.map(state => <option key={state.id_estado} value={state.id_estado}>{state.nombre_estado}</option>)}
                             </select>
                             <div className="grid grid-cols-2 gap-4">
                                 <input type="number" step="0.01" name="precio_unitario_venta_producto" value={newProduct.precio_unitario_venta_producto} onChange={handleChange} placeholder="Precio Venta" className="border text-sm rounded-lg block w-full p-2.5 bg-pr-dark-gray border-gray-500 text-white" required />

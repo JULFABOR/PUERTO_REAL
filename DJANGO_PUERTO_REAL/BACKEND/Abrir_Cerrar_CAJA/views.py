@@ -16,11 +16,6 @@ from HOME.models import Cajas, Historial_Caja, Tipo_Evento, Estados, Fondo_Pagos
 
 from . import services # Importamos el módulo de servicios
 
-# Caching common states to reduce DB queries
-# Using .first() to prevent crashes in case of duplicate data in the database.
-ESTADO_ABIERTO = Estados.objects.filter(nombre_estado='ABIERTO').first()
-ESTADO_ACTIVO = Estados.objects.filter(nombre_estado='ACTIVO').first()
-ESTADO_CERRADO = Estados.objects.filter(nombre_estado='CERRADO').first()
 
 
 # ====== 1) Apertura de Caja ======
@@ -116,7 +111,8 @@ def rendir_fondo(request):
         messages.error(request, "No hay caja abierta.")
         return redirect("panel_caja")
 
-    fondo = services.Fondo_Pagos.objects.filter(estado_fp=ESTADO_ACTIVO).first()
+    estado_activo = Estados.objects.get(nombre_estado='ACTIVO')
+    fondo = services.Fondo_Pagos.objects.filter(estado_fp=estado_activo).first()
     if not fondo:
         messages.error(request, "No existe un Fondo de Pagos activo.")
         return redirect("panel_caja")
@@ -153,6 +149,7 @@ from rest_framework import status, generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.serializers import Serializer, DecimalField, CharField, ChoiceField
 from django.db import transaction
+from django.db.models.functions import TruncDate
 
 from HOME.models import Cajas, Historial_Caja, Tipo_Evento, Estados, Fondo_Pagos, Movimiento_Fondo, Empleados
 from .serializers import (
@@ -199,16 +196,40 @@ class HistorialCajaListAPIView(generics.ListAPIView):
     serializer_class = HistorialCajaSerializer
 
     def get_queryset(self):
-        # Busca una caja que esté en estado 'ABIERTO'.
-        caja_abierta = Cajas.objects.filter(estado_caja__nombre_estado='ABIERTO').first()
-
-        if caja_abierta:
-            # Si se encuentra una caja abierta, devuelve el historial de esa caja.
-            return Historial_Caja.objects.filter(caja_hc=caja_abierta).order_by('-fecha_movimiento_hcaja')
-        else:
-            # Si no hay caja abierta, no hay historial que mostrar.
+        empleado_actual = getattr(self.request.user, 'empleado', None)
+        if not empleado_actual:
             return Historial_Caja.objects.none()
 
+        date_str = self.request.query_params.get('date', None)
+        
+        if date_str:
+            try:
+                target_date = timezone.datetime.strptime(date_str, '%Y-%m-%d').date()
+            except (ValueError, TypeError):
+                target_date = timezone.now().date() # Fallback a hoy si el formato es incorrecto
+        else:
+            target_date = timezone.now().date()
+
+        return Historial_Caja.objects.filter(
+            empleado_hc=empleado_actual,
+            fecha_movimiento_hcaja__date=target_date
+        ).order_by('-fecha_movimiento_hcaja')
+
+class DistinctHistoryDatesAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        empleado_actual = getattr(request.user, 'empleado', None)
+        if not empleado_actual:
+            return Response([], status=status.HTTP_200_OK)
+
+        dates = Historial_Caja.objects.filter(
+            empleado_hc=empleado_actual
+        ).annotate(
+            date=TruncDate('fecha_movimiento_hcaja')
+        ).values_list('date', flat=True).distinct().order_by('-date')
+        
+        return Response(dates)
 
 class RetiroAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -293,6 +314,8 @@ class CerrarCajaAPIView(APIView):
             return Response({'detail': "Error de configuración: El estado 'ABIERTO' o 'CERRADO' no existe."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Tipo_Evento.DoesNotExist:
             return Response({'detail': "Error de configuración: El tipo de evento para cierre no existe."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception as e:
+            return Response({'detail': f'Ocurrió un error inesperado al cerrar la caja: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class AjustarCajaAPIView(APIView):
@@ -329,7 +352,7 @@ class CajaEstadoAPIView(APIView):
             return Response({'caja_abierta': False, 'detail': 'Usuario no es un empleado.'}, status=status.HTTP_403_FORBIDDEN)
 
         # Busca una caja que esté en estado 'ABIERTO'.
-        caja_abierta = Cajas.objects.filter(estado_caja__nombre_estado='ABIERTO').first()
+        caja_abierta = Cajas.objects.filter(estado_caja__nombre_estado='ABIERTA').first()
 
         if caja_abierta:
             # Si se encuentra una caja abierta, serializa sus datos y los devuelve.
@@ -371,7 +394,8 @@ class MovimientoFondoAPIView(APIView):
         except Empleados.DoesNotExist:
             return Response({'detail': 'Tu usuario no está asociado a un empleado.'}, status=status.HTTP_403_FORBIDDEN)
 
-        fondo = Fondo_Pagos.objects.filter(estado_fp=ESTADO_ACTIVO).first()
+        estado_activo = Estados.objects.get(nombre_estado='ACTIVO')
+        fondo = Fondo_Pagos.objects.filter(estado_fp=estado_activo).first()
         if not fondo:
             return Response({'detail': 'No existe un Fondo de Pagos activo.'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -399,7 +423,8 @@ class MovimientoFondoListAPIView(generics.ListAPIView):
 
     def get_queryset(self):
         # Filtra los movimientos por el fondo de pagos activo
-        fondo = Fondo_Pagos.objects.filter(estado_fp=ESTADO_ACTIVO).first()
+        estado_activo = Estados.objects.get(nombre_estado='ACTIVO')
+        fondo = Fondo_Pagos.objects.filter(estado_fp=estado_activo).first()
         if not fondo:
             return Movimiento_Fondo.objects.none() # No hay fondo activo, no hay movimientos
         
@@ -409,3 +434,38 @@ class MovimientoFondoListAPIView(generics.ListAPIView):
             'empleado_mov_fp__user_empleado',
             'tipo_mov_fp'
         ).order_by('-fecha_mov_fp')
+
+from rest_framework import viewsets, filters
+from django_filters.rest_framework import DjangoFilterBackend
+
+# ==============================================================================
+# VIEWSET PARA LISTAR CAJAS (ESTO ES LO QUE TE FALTA)
+# ==============================================================================
+
+class CajaViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet para obtener una lista de Cajas y ver su detalle.
+    
+    Permite filtrar por estado, por ejemplo:
+    /api/cajas/?estado_caja__nombre_estado=ABIERTA
+    /api/cajas/?estado_caja=1
+    """
+    permission_classes = [IsAuthenticated]
+    
+    # Usamos el CajasSerializer que ya tienes (lo vi en tus imports)
+    serializer_class = CajasSerializer
+    
+    # Optimizamos la consulta para incluir el estado y el empleado
+    queryset = Cajas.objects.select_related(
+        'estado_caja',
+        # 'empleado_apertura_caja__user_empleado', # Estos campos no existen en el modelo Cajas
+        # 'empleado_cierre_caja__user_empleado'    # Estos campos no existen en el modelo Cajas
+    ).all().order_by('-id_caja')
+    
+    # --- ESTA ES LA LÍNEA CLAVE QUE CORRIGE TU ERROR 500 ---
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_fields = {
+        'estado_caja': ['exact'],
+        'estado_caja__nombre_estado': ['exact'],
+    }
+    ordering_fields = ['id_caja', 'monto_cierre_caja'] # 'monto_final_caja' no existe, se usa 'monto_cierre_caja'

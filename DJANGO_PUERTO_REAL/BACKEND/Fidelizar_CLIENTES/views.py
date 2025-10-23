@@ -1,4 +1,5 @@
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, filters
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.response import Response
 from rest_framework.decorators import action, api_view
 from rest_framework.permissions import IsAdminUser
@@ -143,6 +144,9 @@ from django.db.models import Sum
 
 class ClientesViewSet(viewsets.ModelViewSet):
     serializer_class = ClienteSerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['dni_cliente']
+    search_fields = ['dni_cliente', 'user_cliente__first_name', 'user_cliente__last_name']
 
     def get_queryset(self):
         """

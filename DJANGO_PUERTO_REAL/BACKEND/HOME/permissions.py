@@ -26,7 +26,7 @@ class CajaAbiertaRequired(BasePermission):
 
         # Usamos select_related para optimizar la consulta y evitar joins adicionales más adelante.
         caja_abierta = Cajas.objects.filter(
-            estado_caja__nombre_estado='ABIERTO',
+            estado_caja__nombre_estado='ABIERTA',
             historial_caja__empleado_hc=empleado
         ).select_related('estado_caja').first()
 
@@ -36,7 +36,7 @@ class CajaAbiertaRequired(BasePermission):
             return False
 
         # Verificamos si hay más de una caja abierta para este empleado, lo cual es un error de datos.
-        if Cajas.objects.filter(estado_caja__nombre_estado='ABIERTO', historial_caja__empleado_hc=empleado).count() > 1:
+        if Cajas.objects.filter(estado_caja__nombre_estado='ABIERTA', historial_caja__empleado_hc=empleado).count() > 1:
             raise APIException(detail='Error de consistencia de datos: Tienes más de una caja abierta.', code='multiple_open_cajas')
 
         # Adjuntamos la caja activa al request para que pueda ser usada en la vista.

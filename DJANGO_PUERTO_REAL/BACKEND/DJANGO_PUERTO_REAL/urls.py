@@ -9,7 +9,7 @@ from rest_framework.authtoken.views import obtain_auth_token
 # Se importan las listas de URLs de las apps
 # --- INICIO: Bloque comentado para depuración ---
 # from Control_VENTAS.urls import urlpatterns as ventas_web_urls
-# from Control_VENTAS.urls import api_urlpatterns as ventas_api_urls
+from Control_VENTAS.urls import api_urlpatterns as ventas_api_urls
 # from Control_COMPRAS.urls import urlpatterns as compras_web_urls
 from Control_COMPRAS.urls import api_urlpatterns as compras_api_urls
 # from Control_STOCK.urls import urlpatterns as stock_web_urls
@@ -38,7 +38,7 @@ urlpatterns = [
 
     # # Rutas de API
     # path('api/token-auth/', obtain_auth_token, name='api_token_auth'), # Para obtener tokens
-    # path('api/ventas/', include(ventas_api_urls)),
+    path('api/ventas/', include(ventas_api_urls)),
     path('api/compras/', include(compras_api_urls)),
     path('api/stock/', include(stock_api_urls)),
     path('api/fidelizacion/', include(fidelizar_api_urls)),

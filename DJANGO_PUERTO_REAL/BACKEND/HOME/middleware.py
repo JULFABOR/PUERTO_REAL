@@ -19,7 +19,7 @@ def requiere_caja_abierta(view_func):
 
         # Buscar una caja abierta asociada a este empleado de forma eficiente.
         cajas_abiertas = Cajas.objects.filter(
-            estado_caja__nombre_estado='ABIERTO',
+            estado_caja__nombre_estado='ABIERTA',
             historial_caja__empleado_hc=empleado
         ).distinct()
 

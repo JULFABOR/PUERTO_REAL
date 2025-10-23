@@ -4,7 +4,7 @@ from django.db.models import Sum
 from rest_framework import serializers
 from HOME.models import (
     Ventas, Detalle_Ventas, Stocks, Historial_Stock, 
-    Tipos_Movimientos, Productos, Clientes, Empleados
+    Tipos_Movimientos, Productos, Clientes, Empleados, Cajas, Estados
 )
 
 # ==================================================================
@@ -93,6 +93,17 @@ class VentaWriteSerializer(serializers.ModelSerializer):
             'observaciones_venta', 'detalles', 'qr_token'
         )
         read_only_fields = ('id_venta', 'fecha_venta', 'qr_token')
+    
+    def validate_caja_venta(self, caja):
+        """
+        Valida que la caja (que es una instancia del modelo Cajas)
+        exista y tenga el estado 'ABIERTA'.
+        """
+        if not caja.estado_caja or caja.estado_caja.nombre_estado != 'ABIERTA': 
+            raise serializers.ValidationError(
+                f"La caja seleccionada (ID: {caja.id_caja}) no está abierta."
+            )
+        return caja
 
     def create(self, validated_data):
         detalles_data = validated_data.pop('detalles')
@@ -115,7 +126,10 @@ class VentaWriteSerializer(serializers.ModelSerializer):
             venta = Ventas.objects.create(**validated_data)
 
             # 3. Descontar stock y crear detalles
-            tipo_movimiento_salida = Tipos_Movimientos.objects.get(nombre_movimiento='MOV_STOCK_SALIDA')
+            # Usamos get_or_create para asegurar que el tipo de movimiento exista.
+            # Esto evita un error 500 si el tipo de movimiento no ha sido creado previamente.
+            tipo_movimiento_salida, _ = Tipos_Movimientos.objects.get_or_create(
+                nombre_movimiento='MOV_STOCK_SALIDA')
             
             for detalle_data in detalles_data:
                 # Calcular subtotal
@@ -154,7 +168,7 @@ class VentaWriteSerializer(serializers.ModelSerializer):
                     # Registrar en historial
                     Historial_Stock.objects.create(
                         stock_hs=stock_entry,
-                        cantidad_hstock=str(cantidad_a_descontar),
+                        cantidad_hstock=cantidad_a_descontar,
                         tipo_movimiento_hs=tipo_movimiento_salida,
                         empleado_hs=venta.empleado_venta,
                         stock_anterior_hstock=stock_anterior,
