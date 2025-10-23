@@ -39,6 +39,30 @@ class CajasSerializer(serializers.ModelSerializer):
         fields = ('id_caja', 'total_gastos_caja', 'monto_apertura_caja', 
                 'monto_cierre_caja', 'monto_teorico_caja', 'diferencia_caja', 
                 'observaciones_caja', 'estado_caja')
+    
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+
+        # Añadir campos dinámicamente
+        representation['caja_abierta'] = instance.estado_caja.nombre_estado == 'ABIERTA' if instance.estado_caja else False
+
+        # Optimización: Una sola consulta para obtener el historial de apertura
+        historial_apertura = Historial_Caja.objects.filter(
+            caja_hc=instance, 
+            tipo_event_caja__nombre_evento='APERTURA'
+        ).select_related('empleado_hc__user_empleado').first()
+
+        if historial_apertura:
+            representation['fecha_apertura'] = historial_apertura.fecha_movimiento_hcaja
+            if historial_apertura.empleado_hc:
+                representation['empleado_apertura'] = EmpleadoSerializer(historial_apertura.empleado_hc).data
+            else:
+                representation['empleado_apertura'] = None
+        else:
+            representation['fecha_apertura'] = None
+            representation['empleado_apertura'] = None
+            
+        return representation
 
 class HistorialCajaSerializer(serializers.ModelSerializer):
     caja_hc = CajasSerializer(read_only=True)
