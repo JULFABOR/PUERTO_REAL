@@ -13,11 +13,12 @@ const QrModal = ({ ventaData, onNuevaVenta }) => {
     const puntosGanados = Math.floor(ventaData.total_venta / 1000);
 
     return (
-        <div className="fixed inset-0 bg-pr-dark bg-opacity-75 flex items-center justify-center z-50">
-            <div className="bg-white text-pr-dark p-8 rounded-2xl shadow-2xl max-w-md w-full text-center">
-                <h2 className="text-2xl font-bold mb-2">¡Venta Registrada con Éxito!</h2>
-                <p className="text-pr-gray mb-6">El cliente puede escanear este QR para sumar sus puntos.</p>
-                <div className="flex justify-center mb-6 p-4 bg-gray-100 rounded-lg">
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+            <div className="bg-pr-dark text-white p-8 rounded-2xl shadow-2xl max-w-md w-full text-center border border-gray-700">
+                <h2 className="text-2xl font-bold mb-2 text-pr-yellow">¡Venta Registrada con Éxito!</h2>
+                <p className="text-gray-400 mb-6">El cliente puede escanear este QR para sumar sus puntos.</p>
+                {/* El fondo blanco es necesario para la legibilidad del QR */}
+                <div className="flex justify-center mb-6 p-4 bg-white rounded-lg">
                     <QRCodeSVG value={ventaData.qr_token} size={256} />
                 </div>
                 <div className="text-left mb-6 bg-pr-dark-gray text-white p-4 rounded-lg">
@@ -60,23 +61,23 @@ const PaymentModal = ({ isOpen, onClose, onConfirm, total }) => {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-pr-dark bg-opacity-75 flex items-center justify-center z-50">
-            <div className="bg-white text-pr-dark p-8 rounded-2xl shadow-2xl max-w-4xl w-full">
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+            <div className="bg-pr-dark text-white p-8 rounded-2xl shadow-2xl max-w-4xl w-full border border-gray-700">
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-3xl font-bold">Finalizar Venta</h2>
                     <div className="text-right">
-                        <span className="text-gray-500">Total a Pagar</span>
-                        <p className="text-4xl font-bold text-pr-dark">${total.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</p>
+                        <span className="text-gray-400">Total a Pagar</span>
+                        <p className="text-4xl font-bold text-pr-yellow">${total.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</p>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                    <div className="bg-gray-100 p-6 rounded-lg flex flex-col">
+                    <div className="bg-pr-dark-gray p-6 rounded-lg flex flex-col border border-gray-700">
                         <h3 className="font-bold text-xl mb-4 flex items-center gap-2"><FontAwesomeIcon icon={faMoneyBillWave} className="text-green-500"/> Efectivo</h3>
                         <div className="flex-grow space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700">Cliente paga con:</label>
-                                <input type="number" value={montoRecibido} onChange={(e) => setMontoRecibido(e.target.value)} placeholder={total.toFixed(2)} className="w-full p-2 border border-gray-300 rounded-md text-lg" />
+                                <label className="block text-sm font-medium text-gray-400">Cliente paga con:</label>
+                                <input type="number" value={montoRecibido} onChange={(e) => setMontoRecibido(e.target.value)} placeholder={total.toFixed(2)} className="w-full p-2 bg-pr-dark border border-gray-600 rounded-md text-lg text-white" />
                             </div>
                             <div className="flex justify-between items-center text-lg">
                                 <span className="font-semibold">Vuelto:</span>
@@ -86,23 +87,23 @@ const PaymentModal = ({ isOpen, onClose, onConfirm, total }) => {
                         <button onClick={() => onConfirm('efectivo')} className="w-full bg-green-500 text-white font-bold py-3 rounded-lg hover:bg-green-600 mt-4">Confirmar Efectivo</button>
                     </div>
 
-                    <div className="bg-gray-100 p-6 rounded-lg flex flex-col justify-between">
+                    <div className="bg-pr-dark-gray p-6 rounded-lg flex flex-col justify-between border border-gray-700">
                         <div>
                             <h3 className="font-bold text-xl mb-4 flex items-center gap-2"><FontAwesomeIcon icon={faUniversity} className="text-purple-500"/> Transferencia</h3>
-                            <p className="text-gray-600">Confirma la recepción de la transferencia.</p>
+                            <p className="text-gray-400">Confirma la recepción de la transferencia.</p>
                         </div>
                         <button onClick={() => onConfirm('transferencia')} className="w-full bg-purple-500 text-white font-bold py-3 rounded-lg hover:bg-purple-600 mt-4">Confirmar Transferencia</button>
                     </div>
                     
-                    <div className="bg-gray-100 p-6 rounded-lg flex flex-col justify-between">
+                    <div className="bg-pr-dark-gray p-6 rounded-lg flex flex-col justify-between border border-gray-700">
                         <div>
                             <h3 className="font-bold text-xl mb-4 flex items-center gap-2"><FontAwesomeIcon icon={faCreditCard} className="text-blue-500"/> Tarjeta / QR (Posnet)</h3>
-                            <p className="text-gray-600">Confirma que el pago fue aprobado en el terminal.</p>
+                            <p className="text-gray-400">Confirma que el pago fue aprobado en el terminal.</p>
                         </div>
                         <button onClick={() => onConfirm('tarjeta_mp')} className="w-full bg-blue-500 text-white font-bold py-3 rounded-lg hover:bg-blue-600 mt-4">Confirmar Pago con Posnet</button>
                     </div>
                 </div>
-                <button onClick={onClose} className="w-full text-center text-gray-500 hover:underline mt-4">Cancelar Venta</button>
+                <button onClick={onClose} className="w-full text-center text-gray-400 hover:underline mt-4">Cancelar Venta</button>
             </div>
         </div>
     );
@@ -155,7 +156,7 @@ const VentasPOS = () => {
                 if (clientes && clientes.length > 0) {
                     setClienteGenericoId(clientes[0].id_cliente);
                 } else {
-                    toast.error('No se encontró cliente genérico. Ejecuta el script de configuración.');
+                    toast.error('No se encontró cliente genérico.');
                 }
 
                 // Obtener estado "completada"
@@ -164,11 +165,11 @@ const VentasPOS = () => {
                 if (estados && estados.length > 0) {
                     setEstadoVentaId(estados[0].id_estado);
                 } else {
-                    toast.error('No se encontró estado COMPLETADA. Ejecuta el script de configuración.');
+                    toast.error('No se encontró estado COMPLETADA.');
                 }
             } catch (error) {
                 console.error('Error cargando configuración:', error);
-                toast.error('Error al cargar configuración inicial');
+                toast.error('Error al cargar configuración');
             }
         };
         cargarConfiguracion();
@@ -316,7 +317,8 @@ const VentasPOS = () => {
             <QrModal ventaData={ventaFinalizadaData} onNuevaVenta={iniciarNuevaVenta} />
             <PaymentModal isOpen={showPaymentModal} onClose={() => setShowPaymentModal(false)} onConfirm={procesarVenta} total={totalCarrito} />
 
-            <div className="w-1/2 flex flex-col p-6">
+            {/* --- Columna Izquierda (Productos) - 60% --- */}
+            <div className="w-3/5 flex flex-col p-6">
                 <div className="relative mb-6">
                     <input ref={searchInputRef} type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Buscar por nombre o escanear código..." className="w-full p-4 pl-12 bg-pr-dark border-2 border-gray-700 rounded-xl text-white text-lg focus:outline-none focus:border-pr-yellow"/>
                     <svg className="w-6 h-6 absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
@@ -326,9 +328,14 @@ const VentasPOS = () => {
                     {isSearching ? <div className="text-center py-10 text-pr-gray">Buscando...</div> : searchResults.length > 0 ? (
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                             {searchResults.map(p => (
-                                <div key={p.id_producto} onClick={() => agregarAlCarrito(p)} className="bg-pr-dark rounded-xl p-4 flex flex-col items-center text-center cursor-pointer hover:ring-2 ring-pr-yellow">
+                                <div 
+                                    key={p.id_producto} 
+                                    onClick={() => agregarAlCarrito(p)} 
+                                    className="bg-pr-dark rounded-xl p-4 flex flex-col items-center text-center cursor-pointer transition-all duration-300 ease-in-out border border-gray-700 shadow-md shadow-black/20 hover:shadow-lg hover:shadow-pr-yellow/20 hover:-translate-y-1"
+                                >
                                     <img src={p.image || 'https://via.placeholder.com/150'} alt={p.nombre_producto} className="w-24 h-24 object-cover rounded-lg mb-3" />
-                                    <p className="font-semibold text-sm leading-tight mb-1">{p.nombre_producto}</p>
+                                    {/* Altura fija (h-10) para alinear los nombres de producto */}
+                                    <p className="font-semibold text-sm leading-tight mb-1 h-10 flex items-center justify-center">{p.nombre_producto}</p>
                                     <p className="font-bold text-pr-yellow text-lg">{formatCurrency(p.precio_unitario_venta_producto)}</p>
                                     <p className="text-xs text-gray-500 mt-1">Stock: {p.total_stock || 0}</p>
                                 </div>
@@ -338,7 +345,8 @@ const VentasPOS = () => {
                 </div>
             </div>
 
-            <div className="w-1/2 bg-pr-dark flex flex-col p-6 shadow-2xl">
+            {/* --- Columna Derecha (Carrito) - 40% --- */}
+            <div className="w-2/5 bg-pr-dark flex flex-col p-6 shadow-2xl">
                 <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-700">
                     <h2 className="text-3xl font-bold text-pr-yellow flex items-center gap-3"><FontAwesomeIcon icon={faShoppingCart} /> Venta Actual</h2>
                     {carrito.length > 0 && <button onClick={() => setCarrito([])} className="text-sm text-red-500 hover:underline">Vaciar Carrito</button>}
@@ -348,19 +356,29 @@ const VentasPOS = () => {
                     {carrito.length === 0 ? <div className="flex items-center justify-center h-full text-gray-600"><p>El carrito está vacío</p></div> : (
                         <div className="space-y-4">
                             {carrito.map(item => (
-                                <div key={item.id_producto} className="flex items-center gap-4 bg-pr-dark-gray p-3 rounded-lg">
-                                    <img src={item.image || 'https://via.placeholder.com/150'} alt={item.nombre_producto} className="w-16 h-16 object-cover rounded-md"/>
-                                    <div className="flex-grow">
-                                        <p className="font-semibold">{item.nombre_producto}</p>
+                                <div key={item.id_producto} className="flex items-center gap-4 bg-pr-dark-gray p-4 rounded-lg border border-gray-700">
+                                    <img src={item.image || 'https://via.placeholder.com/150'} alt={item.nombre_producto} className="w-16 h-16 object-cover rounded-md flex-shrink-0"/>
+                                    <div className="flex-grow min-w-0">
+                                        <p className="font-semibold truncate">{item.nombre_producto}</p>
                                         <p className="text-sm text-gray-400">{formatCurrency(item.precio_unitario_venta_producto)}</p>
                                     </div>
-                                    <div className="flex items-center gap-3 bg-pr-dark p-1 rounded-lg">
-                                        <button onClick={() => cambiarCantidad(item.id_producto, -1)} className="text-white w-8 h-8 rounded hover:bg-gray-700"><FontAwesomeIcon icon={faMinus}/></button>
-                                        <span className="font-bold text-lg w-8 text-center">{item.cantidad}</span>
-                                        <button onClick={() => cambiarCantidad(item.id_producto, 1)} className="text-white w-8 h-8 rounded hover:bg-gray-700"><FontAwesomeIcon icon={faPlus}/></button>
+                                    
+                                    {/* --- Controles de cantidad mejorados --- */}
+                                    <div className="flex items-center border border-gray-600 rounded-lg flex-shrink-0">
+                                        <button onClick={() => cambiarCantidad(item.id_producto, -1)} className="text-white w-9 h-9 rounded-l-md transition-colors hover:bg-pr-yellow hover:text-pr-dark">
+                                            <FontAwesomeIcon icon={faMinus}/>
+                                        </button>
+                                        <span className="font-bold text-lg w-10 text-center bg-pr-dark">{item.cantidad}</span>
+                                        <button onClick={() => cambiarCantidad(item.id_producto, 1)} className="text-white w-9 h-9 rounded-r-md transition-colors hover:bg-pr-yellow hover:text-pr-dark">
+                                            <FontAwesomeIcon icon={faPlus}/>
+                                        </button>
                                     </div>
-                                    <p className="font-bold w-28 text-right text-lg">{formatCurrency(item.precio_unitario_venta_producto * item.cantidad)}</p>
-                                    <button onClick={() => eliminarDelCarrito(item.id_producto)} className="text-gray-500 hover:text-red-500 w-8 h-8"><FontAwesomeIcon icon={faTrash} /></button>
+                                    {/* --- Fin de controles --- */}
+                                    
+                                    <p className="font-bold w-28 text-right text-lg flex-shrink-0">{formatCurrency(item.precio_unitario_venta_producto * item.cantidad)}</p>
+                                    <button onClick={() => eliminarDelCarrito(item.id_producto)} className="text-gray-500 hover:text-red-500 w-9 h-9 flex-shrink-0">
+                                        <FontAwesomeIcon icon={faTrash} />
+                                    </button>
                                 </div>
                             ))}
                         </div>

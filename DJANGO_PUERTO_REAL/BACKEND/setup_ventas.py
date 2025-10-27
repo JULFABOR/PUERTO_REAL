@@ -7,7 +7,9 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'DJANGO_PUERTO_REAL.settings')
 django.setup()
 
 from django.contrib.auth.models import User
-from HOME.models import Clientes, Estados, Tipos_Estados, Cajas
+from Config_PR.models import Tipos_Estados, Estados
+from Abrir_Cerrar_CAJA.models import Cajas
+from autenticacion.models import Clientes
 
 def setup():
     print("Iniciando configuracion del sistema de ventas...\n")

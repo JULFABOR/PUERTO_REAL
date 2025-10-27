@@ -37,13 +37,18 @@ class Promos_Clientes (models.Model):
 
 class Transacciones_Puntos(models.Model):
     id_trans_puntos = models.BigAutoField(primary_key=True)
-    cliente_trans_puntos = models.ForeignKey('autenticacion.Clientes', on_delete=models.CASCADE)
+    cliente_trans_puntos = models.ForeignKey(
+        'autenticacion.Clientes', 
+        on_delete=models.CASCADE,
+        related_name="historial_transacciones"
+    )
     puntos_trans_puntos = models.IntegerField()
     fecha_trans_puntos = models.DateField(auto_now_add=True)
     descripcion_trans_puntos = models.CharField(max_length=300)
     DELETE_Trans_Puntos = models.BooleanField(default=False)
     def __str__(self):
         return f"{self.cliente_trans_puntos} - {self.puntos_trans_puntos} puntos"
+    
 # class Origen_Puntos(models.Model):
 #     id_origen_puntos = models.AutoField(primary_key=True)
 #     nombre_origen = models.CharField(max_length=50)

@@ -9,6 +9,11 @@ from django.db import transaction
 from django.utils import timezone
 from django.core import signing
 from django.db import models
+from django.shortcuts import get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.utils.decorators import method_decorator
+from django.views.generic import TemplateView
+
 # Local application
 from Auditoria.services import crear_registro
 from Config_PR.models import Estados, Tipos_Movimientos
@@ -27,7 +32,41 @@ from .serializers import (
     PromocionesClientesSerializer,
     PromocionesDescuentoSerializer,
 )
+# --- Vistas de Template ---
 
+@method_decorator(login_required, name='dispatch')
+class FidelizacionDashboardView(TemplateView):
+    template_name = 'HOME/FidelizacionCliente.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = "Dashboard de Fidelización"
+        context['ultimos_movimientos'] = Historial_Puntos.objects.order_by('-fecha_mov_hist_puntos')[:10]
+        return context
+
+@method_decorator(login_required, name='dispatch')
+class ClientePerfilView(TemplateView):
+    template_name = 'HOME/Cliente-Perfil.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        cliente_id = kwargs.get('cliente_id')
+        cliente = get_object_or_404(Clientes, id_cliente=cliente_id)
+        
+        context['cliente'] = cliente
+        context['page_title'] = f"Perfil de {cliente.user_cliente.get_full_name()}"
+        context['historial_compras'] = Ventas.objects.filter(cliente_venta=cliente).order_by('-fecha_venta')[:10]
+        return context
+
+@method_decorator(login_required, name='dispatch')
+class ClienteListView(TemplateView):
+    template_name = 'HOME/Clientes.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['clientes'] = Clientes.objects.all()
+        context['page_title'] = "Gestión de Clientes"
+        return context
 
 def get_puntos_cliente(cliente):
     """
@@ -38,6 +77,7 @@ def get_puntos_cliente(cliente):
     )['total_puntos'] or 0
 
 # --- Vistas de API (Para React) ---
+
 
 class CuponesDescuentoViewSet(viewsets.ModelViewSet):
     queryset = Promociones_Descuento.objects.all()
@@ -108,7 +148,7 @@ class HistorialPuntosViewSet(viewsets.ReadOnlyModelViewSet):
         'trans_hist_puntos__cliente_trans_puntos__user_cliente',
         'trans_hist_puntos__venta_origen',
         'promo_usada_hist_puntos__cupon_descuento_promo_cli'
-    ).order_by('-fecha_mov_hist_puntos')
+    ).order_by('-fecha_historial_puntos')
     serializer_class = HistorialPuntosSerializer
 
 from django.db.models import Sum
@@ -125,7 +165,7 @@ class ClientesViewSet(viewsets.ModelViewSet):
         and selects the related user to avoid N+1 queries.
         """
         return Clientes.objects.select_related('user_cliente').annotate(
-            puntos=Sum('transacciones_puntos__puntos_transaccion', default=0)
+            puntos=Sum('historial_transacciones__puntos_trans_puntos', default=0) 
         ).order_by('-puntos')
 
     @action(detail=True, methods=['get'])

@@ -1,4 +1,5 @@
 from django.db import models
+from decimal import Decimal
 
 
 # Create your models here.
@@ -18,7 +19,7 @@ class Compras(models.Model):
     id_compra = models.BigAutoField(primary_key =True)
     fecha_compra = models.DateTimeField(auto_now_add=True)
     fecha_limite = models.DateTimeField(null=True, blank=True) # Para compras pendientes
-    total_compra = models.DecimalField(max_digits=10, decimal_places=2)
+    total_compra = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
     proveedor_compra = models.ForeignKey(Proveedores, on_delete=models.PROTECT)
     estado_compra = models.ForeignKey('Config_PR.Estados', on_delete=models.CASCADE)
     DELETE_Comp = models.BooleanField(default=False)

@@ -1,10 +1,10 @@
 import os
 import django
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'tu_proyecto.settings')  # Cambia 'tu_proyecto'
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'DJANGO_PUERTO_REAL.settings')  # Cambia 'tu_proyecto'
 django.setup()
 
-from HOME.models import Tipos_Movimientos
+from Config_PR.models import Tipos_Movimientos
 
 def setup_stock():
     print("🚀 Configurando tipos de movimientos de stock...\n")

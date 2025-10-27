@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.db import transaction
 from django.utils import timezone
 from django.core.mail import send_mail
+from django.core.exceptions import ObjectDoesNotExist
 
 from autenticacion.models import Empleados
 from Config_PR.models import Estados,Tipos_Estados
@@ -225,85 +226,79 @@ def rendir_fondo_service(monto: Decimal, empleado_actual: Empleados):
         )
     return caja_activa
 
-# En Abrir_Cerrar_CAJA/services.py
-# (Reemplaza la función original por esta)
-
+@transaction.atomic # Asegura atomicidad
 def cerrar_caja_service(monto_cierre_real: Decimal, observaciones_cierre: str, empleado_actual: Empleados):
-    tipo_estado_caja, _ = Tipos_Estados.objects.get_or_create(nombre_tipo_estado='Caja')
-    estado_abierto, _ = Estados.objects.get_or_create(
-        nombre_estado='ABIERTA',
-        defaults={'tipo_estado': tipo_estado_caja}
-    )
-    
+    """
+    Cierra la caja abierta actual del sistema.
+    'empleado_actual' es quien realiza la acción.
+    """
+    if not empleado_actual: # Necesitamos saber quién cierra
+        raise ValueError("Se requiere el empleado que está cerrando la caja.")
 
-    try:
-        cajas_del_empleado_ids = Historial_Caja.objects.filter(empleado_hc=empleado_actual).values_list('caja_hc_id', flat=True)
-        caja_activa = Cajas.objects.get(id_caja__in=cajas_del_empleado_ids, estado_caja=estado_abierto)
-    except Cajas.DoesNotExist:
-        raise ValueError("No se encontró una caja abierta activa para este empleado.")
-    except Cajas.MultipleObjectsReturned:
-        raise ValueError("Error: Este empleado tiene múltiples cajas abiertas. Contacte a un administrador.")
-    # --- FIN CORRECCIÓN 1 ---
+    # --- CORRECCIÓN: Usa la función que busca LA caja abierta ---
+    caja_activa = _caja_abierta() # Llama a la función que busca sin filtro de empleado
+    if not caja_activa:
+        # Si _caja_abierta() devuelve None (porque no encontró ninguna)
+        raise ValueError("No se encontró ninguna caja abierta en el sistema para cerrar.")
+    # Ya no necesitamos el try/except anterior para buscar la caja
 
-    with transaction.atomic():
-        estado_cerrado, _ = Estados.objects.get_or_create(
-            nombre_estado='CERRADA',
-            defaults={'tipo_estado': tipo_estado_caja}
-        )
-        tipo_evento_cierre, _ = Tipo_Evento.objects.get_or_create(nombre_evento='CIERRE')
+    # --- Lógica de Cierre (resto sin cambios importantes) ---
+    with transaction.atomic(): # Ya tenías un with transaction aquí, puedes quitar el decorador si prefieres
+        # Asegura que los tipos de estado/evento existan
+        try:
+            tipo_estado_caja, _ = Tipos_Estados.objects.get_or_create(nombre_tipo_estado='Caja')
+            estado_cerrado = Estados.objects.get(nombre_estado='CERRADA', tipo_estado=tipo_estado_caja)
+            tipo_evento_cierre = Tipo_Evento.objects.get(nombre_evento='CIERRE')
+        except ObjectDoesNotExist as e:
+            tipo = 'Estado CERRADA' if 'Estados' in str(e) else 'Tipo Evento CIERRE'
+            raise ValueError(f"Error de configuración: No se encontró '{tipo}'.")
 
         monto_teorico = caja_activa.monto_teorico_caja
-        diferencia = monto_cierre_real - monto_teorico
+        # Asegúrate de convertir a Decimal antes de restar
+        diferencia = Decimal(monto_cierre_real) - monto_teorico
 
+        # Actualiza la caja
         caja_activa.monto_cierre_caja = monto_cierre_real
         caja_activa.diferencia_caja = diferencia
         caja_activa.observaciones_caja = observaciones_cierre
         caja_activa.estado_caja = estado_cerrado
-        
-        # --- CORRECCIÓN 2: Asignar el empleado de cierre ---
-        # (Asumo que el campo se llama 'empleado_cierre_caja')
-        if hasattr(caja_activa, 'empleado_cierre_caja'):
-            caja_activa.empleado_cierre_caja = empleado_actual
-        # --- FIN CORRECCIÓN 2 ---
-        
-        # Especificamos los campos a guardar (es una mejor práctica)
-        # Asegúrate de que 'empleado_cierre_caja' esté en tu modelo Cajas
-        update_fields_list = [
-            'monto_cierre_caja', 
-            'diferencia_caja', 
-            'observaciones_caja', 
-            'estado_caja',
-        ]
-        
-        # Añadimos el campo de empleado_cierre solo si existe en el modelo
-        if hasattr(caja_activa, 'empleado_cierre_caja'):
-            update_fields_list.append('empleado_cierre_caja')
-            
-        caja_activa.save(update_fields=update_fields_list)
 
+        # Guarda los campos actualizados
+        caja_activa.save(update_fields=[
+            'monto_cierre_caja',
+            'diferencia_caja',
+            'observaciones_caja',
+            'estado_caja',
+        ])
+
+        # Crea el historial registrando QUIÉN cerró (empleado_actual)
         Historial_Caja.objects.create(
-            cantidad_movida_hcaja=monto_cierre_real,
             caja_hc=caja_activa,
-            empleado_hc=empleado_actual,
+            empleado_hc=empleado_actual, # Correcto: el que ejecuta la acción
             tipo_event_caja=tipo_evento_cierre,
-            fecha_movimiento_hcaja=timezone.now(),
+            cantidad_movida_hcaja=Decimal('0.00'), # Cierre no mueve monto
             saldo_anterior_hcaja=monto_teorico,
-            nuevo_saldo_hcaja=monto_cierre_real,
-            descripcion_hcaja=observaciones_cierre or 'Cierre de caja'
+            nuevo_saldo_hcaja=Decimal(monto_cierre_real),
+            descripcion_hcaja=f"Cierre. Diferencia: {diferencia}. Obs: {observaciones_cierre}"
+            # fecha_movimiento_hcaja se asigna automáticamente (auto_now_add=True en modelo?)
+            # Si no, añade: fecha_movimiento_hcaja=timezone.now()
         )
-        
+
         # --- REGISTRO DE AUDITORÍA ---
-        crear_registro(
-            usuario=getattr(empleado_actual, 'user_empleado', None),
-            accion='CIERRE_CAJA',
-            detalles={
-                'caja_id': caja_activa.id_caja,
-                'monto_teorico': str(monto_teorico),
-                'monto_real': str(monto_cierre_real),
-                'diferencia': str(diferencia),
-                'observaciones': observaciones_cierre
-            }
-        )
+        try: # Envuelve en try/except para no romper el cierre si falla la auditoría
+            crear_registro(
+                usuario=getattr(empleado_actual, 'user_empleado', None),
+                accion='CIERRE_CAJA',
+                detalles={
+                    'caja_id': caja_activa.id_caja,
+                    'monto_teorico': str(monto_teorico),
+                    'monto_real': str(monto_cierre_real),
+                    'diferencia': str(diferencia),
+                    'observaciones': observaciones_cierre
+                }
+            )
+        except Exception as audit_error:
+            print(f"Error al crear registro de auditoría para cierre de caja {caja_activa.id_caja}: {audit_error}")
         # --- FIN REGISTRO ---
     return caja_activa
 

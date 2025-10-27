@@ -20,7 +20,7 @@ from rest_framework.authtoken.models import Token
 
 
 # Local application
-from .models import Empleados, PerfilUsuario
+from .models import Empleados
 from .serializers import UserRegisterSerializer, UserDataSerializer
 
 # ==================================================================

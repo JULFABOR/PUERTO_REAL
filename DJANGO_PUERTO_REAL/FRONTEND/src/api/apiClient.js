@@ -13,9 +13,6 @@ const apiClient = async (url, options = {}) => {
         headers['Authorization'] = `Token ${token}`;
     }
 
-    // La lógica de 'baseUrl' y 'fullUrl' se elimina.
-    // Ahora confiamos en el proxy de Vite configurado en vite.config.js.
-    // El parámetro 'url' debe ser una ruta relativa como '/api/users' o '/auth/api/login/'.
 
     try {
         const fetchOptions = {

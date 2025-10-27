@@ -1,40 +1,184 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import apiClient from '@/api/apiClient'; // Asegúrate que la ruta es correcta
+import { toast } from 'react-hot-toast';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUserPlus, faStar, faPercent, faWineBottle, faGift } from '@fortawesome/free-solid-svg-icons';
+import {
+    faUserPlus, faStar, faPercent, faWineBottle, faGift, // Icons for promotions
+    faSearch, faSpinner, faExclamationTriangle, faInbox, // Icons for states & search
+    faPen, faTrash // Icons for actions
+} from '@fortawesome/free-solid-svg-icons';
+
+// --- Modales --- (Asegúrate que las rutas sean correctas)
+import NewClientModal from '../../components/Modals/NewClientModal';
+import EditClientModal from '../../components/Modals/EditClientModal';
+import ConfirmDeleteModal from '../../components/Modals/ConfirmDeleteModal';
+// Modal de Condiciones (asumimos que existe o lo creas)
+// import ConditionsModal from '../../../components/Modals/ConditionsModal';
 
 const JefeCustomers = () => {
-    const [showNewClientModal, setShowNewClientModal] = useState(false);
-    const [showEditClientModal, setShowEditClientModal] = useState(false);
-    const [showConditionsModal, setShowConditionsModal] = useState(false);
+    // --- ESTADOS ---
+    const [clients, setClients] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
 
-    // TODO: Fetch data from API
-    const [customers] = useState([]);
+    // Estados para modales
+    const [showNewClientModal, setShowNewClientModal] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [clientToEdit, setClientToEdit] = useState(null);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [clientToDelete, setClientToDelete] = useState(null);
+    const [showConditionsModal, setShowConditionsModal] = useState(false); // Para modal de condiciones
+
+    // --- LÓGICA DE DATOS ---
+    const fetchClients = useCallback(async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const data = await apiClient('/api/fidelizacion/clientes/');
+            setClients(data.results || data || []);
+        } catch (err) {
+            setError(err.message || 'Error desconocido al cargar clientes.');
+            toast.error("No se pudieron cargar los clientes.");
+            setClients([]);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchClients();
+    }, [fetchClients]);
+
+    // --- FILTRADO FRONTEND ---
+    const filteredClients = useMemo(() => {
+        const search = searchTerm.toLowerCase();
+        if (!search) return clients;
+        // Campos de búsqueda adaptados a los datos esperados
+        return clients.filter(client =>
+            (client.user_first_name?.toLowerCase().includes(search)) ||
+            (client.user_last_name?.toLowerCase().includes(search)) ||
+            (client.user_email?.toLowerCase().includes(search)) ||
+            (client.dni_cliente?.toLowerCase().includes(search)) ||
+            (client.telefono_cliente?.includes(search)) // Búsqueda por teléfono también
+        );
+    }, [clients, searchTerm]);
+
+    // --- CÁLCULO DE ESTADÍSTICAS ---
+    const stats = useMemo(() => {
+        const totalClients = clients.length;
+        // TODO: Adaptar lógica para "Nuevos (Este Mes)" si la API no lo da directo
+        const newThisMonth = 0; // Placeholder
+        const topClient = clients.reduce((max, client) => (client.puntos || 0) > (max.puntos || 0) ? client : max, { puntos: -1 });
+        // TODO: Necesitaríamos info de puntos canjeados de la API
+        const totalPointsRedeemed = 0; // Placeholder
+
+        return {
+            totalClients,
+            newThisMonth,
+            topClientName: totalClients > 0 && topClient.puntos > -1 ? `${topClient.user_first_name || ''} ${topClient.user_last_name || ''} (${topClient.puntos} pts)` : '-',
+            totalPointsRedeemed
+        };
+    }, [clients]);
+
+
+    // --- MANEJO DE MODALES Y ACCIONES ---
+    const handleSuccess = () => {
+        fetchClients();
+        setShowNewClientModal(false);
+        setShowEditModal(false);
+    };
+
+    const handleEditClick = (client) => {
+        setClientToEdit(client);
+        setShowEditModal(true);
+    };
+
+    const handleDeleteClick = (client) => {
+        setClientToDelete(client);
+        setShowDeleteModal(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!clientToDelete) return;
+        const loadingToast = toast.loading('Eliminando cliente...');
+        try {
+            await apiClient(`/api/fidelizacion/clientes/${clientToDelete.id_cliente}/`, { method: 'DELETE' });
+            toast.success('Cliente eliminado con éxito', { id: loadingToast });
+            setClientToDelete(null);
+            setShowDeleteModal(false);
+            fetchClients();
+        } catch (err) {
+            toast.error(err.data?.detail || 'No se pudo eliminar el cliente.', { id: loadingToast });
+        }
+    };
+
+    // --- RENDERIZADO ---
+    if (loading && clients.length === 0) { // Spinner solo en carga inicial
+        return (
+             <div className="flex justify-center items-center h-64 text-pr-yellow">
+                 <FontAwesomeIcon icon={faSpinner} className="animate-spin text-4xl" />
+             </div>
+        );
+    }
+
+    if (error) { /* ... (Estado de error sin cambios) ... */ }
 
     return (
         <>
+            {/* --- CABECERA Y BOTÓN NUEVO --- */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
                 <h1 className="text-3xl font-bold text-white mb-4 sm:mb-0">Gestión de Clientes</h1>
-                <button onClick={() => setShowNewClientModal(true)} className="w-full sm:w-auto text-pr-dark bg-pr-yellow hover:bg-yellow-400 font-bold rounded-lg text-sm px-5 py-2.5 text-center flex items-center justify-center gap-2">
+                <button
+                    onClick={() => setShowNewClientModal(true)}
+                    className="w-full sm:w-auto text-pr-dark bg-pr-yellow hover:bg-yellow-400 font-bold rounded-lg text-sm px-5 py-2.5 text-center flex items-center justify-center gap-2 transition-colors"
+                >
                     <FontAwesomeIcon icon={faUserPlus} />
                     <span>Nuevo Cliente</span>
                 </button>
             </div>
 
+            {/* --- TARJETAS DE ESTADÍSTICAS (Ahora dinámicas) --- */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <div className="bg-pr-dark p-6 rounded-lg shadow-lg"><p className="text-sm text-pr-gray">Total de Clientes</p><p className="text-3xl font-bold text-white">0</p></div>
-                <div className="bg-pr-dark p-6 rounded-lg shadow-lg"><p className="text-sm text-pr-gray">Nuevos (Este Mes)</p><p className="text-3xl font-bold text-green-500">0</p></div>
-                <div className="bg-pr-dark p-6 rounded-lg shadow-lg"><p className="text-sm text-pr-gray">Cliente con Más Puntos</p><p className="text-xl font-bold text-white truncate">-</p></div>
-                <div className="bg-pr-dark p-6 rounded-lg shadow-lg"><p className="text-sm text-pr-gray">Total Puntos Canjeados</p><p className="text-3xl font-bold text-white">0</p></div>
+                <div className="bg-pr-dark p-6 rounded-lg shadow-lg border border-pr-gray/20">
+                    <p className="text-sm text-pr-gray">Total de Clientes</p>
+                    <p className="text-3xl font-bold text-white">{stats.totalClients}</p>
+                </div>
+                <div className="bg-pr-dark p-6 rounded-lg shadow-lg border border-pr-gray/20">
+                    <p className="text-sm text-pr-gray">Nuevos (Este Mes)</p>
+                    <p className="text-3xl font-bold text-green-500">{stats.newThisMonth}</p> {/* Placeholder */}
+                </div>
+                <div className="bg-pr-dark p-6 rounded-lg shadow-lg border border-pr-gray/20">
+                    <p className="text-sm text-pr-gray">Cliente con Más Puntos</p>
+                    <p className="text-lg font-bold text-white truncate pt-2">{stats.topClientName}</p> {/* Ajustado tamaño */}
+                </div>
+                <div className="bg-pr-dark p-6 rounded-lg shadow-lg border border-pr-gray/20">
+                    <p className="text-sm text-pr-gray">Total Puntos Canjeados</p>
+                    <p className="text-3xl font-bold text-white">{stats.totalPointsRedeemed}</p> {/* Placeholder */}
+                </div>
             </div>
 
-            <div className="mb-4">
-                <input type="text" id="table-search" className="w-full p-3 text-sm text-white border border-gray-600 rounded-lg bg-pr-dark-gray focus:ring-pr-yellow focus:border-pr-yellow" placeholder="Buscar por nombre, email o teléfono..." />
+            {/* --- BÚSQUEDA --- */}
+            <div className="relative mb-6">
+                <input
+                    type="text"
+                    id="table-search"
+                    className="w-full p-3 pl-10 text-sm text-white border border-gray-600 rounded-lg bg-pr-dark-gray focus:ring-pr-yellow focus:border-pr-yellow" // Añadido pl-10
+                    placeholder="Buscar por nombre, email, DNI o teléfono..." // Placeholder adaptado
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                 <FontAwesomeIcon
+                    icon={faSearch}
+                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" // Icono dentro
+                 />
             </div>
 
-            <div className="relative overflow-x-auto shadow-md rounded-lg">
+            {/* --- TABLA DE CLIENTES --- */}
+            <div className="relative overflow-x-auto shadow-md rounded-lg border border-gray-700">
                 <table className="w-full text-sm text-left text-gray-400">
-                    <thead className="text-xs text-white uppercase bg-pr-dark">
-                        <tr>
+                    <thead className="text-xs text-white uppercase bg-pr-dark border-b border-gray-700">
+                         <tr>
                             <th scope="col" className="px-6 py-3">Nombre Cliente</th>
                             <th scope="col" className="px-6 py-3 hidden sm:table-cell">Email</th>
                             <th scope="col" className="px-6 py-3 hidden md:table-cell">Teléfono</th>
@@ -43,175 +187,146 @@ const JefeCustomers = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {customers.map((customer, index) => (
-                            <tr key={index} className="border-b bg-pr-dark border-gray-700 hover:bg-pr-dark-gray">
-                                <th scope="row" className="px-6 py-4 font-medium text-white whitespace-nowrap">{customer.name}</th>
-                                <td className="px-6 py-4 hidden sm:table-cell">{customer.email}</td>
-                                <td className="px-6 py-4 hidden md:table-cell">{customer.phone}</td>
-                                <td className="px-6 py-4 hidden lg:table-cell"><div className="flex items-center gap-1 text-pr-yellow"><FontAwesomeIcon icon={faStar} /><span>{customer.points}</span></div></td>
-                                <td className="px-6 py-4 flex items-center gap-4"><a href="#" className="font-medium text-pr-yellow hover:underline">Ver</a><button onClick={() => setShowEditClientModal(true)} className="font-medium text-blue-500 hover:underline">Editar</button></td>
+                        {filteredClients.length > 0 ? (
+                            filteredClients.map((client) => (
+                                <tr key={client.id_cliente} className="border-b bg-pr-dark-gray border-gray-700 hover:bg-gray-800 transition-colors">
+                                    {/* Usamos los campos correctos */}
+                                    <th scope="row" className="px-6 py-4 font-medium text-white whitespace-nowrap">
+                                        {client.user_first_name || ''} {client.user_last_name || ''}
+                                    </th>
+                                    <td className="px-6 py-4 hidden sm:table-cell">{client.user_email || '-'}</td>
+                                    <td className="px-6 py-4 hidden md:table-cell">{client.telefono_cliente || '-'}</td>
+                                    <td className="px-6 py-4 hidden lg:table-cell">
+                                        <div className="flex items-center gap-1 text-pr-yellow">
+                                            <FontAwesomeIcon icon={faStar} />
+                                            <span>{client.puntos || 0}</span>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        {/* Botones de Acción */}
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={() => handleEditClick(client)}
+                                                className="text-sm text-pr-yellow border border-pr-yellow rounded-md px-3 py-1.5 font-semibold hover:bg-pr-yellow hover:text-pr-dark transition-colors flex items-center justify-center aspect-square"
+                                                title="Editar cliente"
+                                            >
+                                                <FontAwesomeIcon icon={faPen} className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeleteClick(client)}
+                                                className="text-sm text-red-500 border border-red-500 rounded-md px-3 py-1.5 font-semibold hover:bg-red-500 hover:text-pr-dark transition-colors flex items-center justify-center aspect-square"
+                                                title="Eliminar cliente"
+                                            >
+                                                <FontAwesomeIcon icon={faTrash} className="w-4 h-4"/>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))
+                        ) : (
+                             // --- ESTADO VACÍO ---
+                             <tr>
+                                <td colSpan="5" className="text-center p-12 text-pr-gray">
+                                    <FontAwesomeIcon icon={faInbox} className="text-4xl text-pr-gray/50 mb-4" />
+                                    <p className="font-bold text-white text-lg">
+                                        {searchTerm ? 'No se encontraron clientes con ese término.' : 'No hay clientes registrados.'}
+                                    </p>
+                                    {!searchTerm && <p className="text-sm">Puedes añadir uno usando el botón "Nuevo Cliente".</p>}
+                                </td>
                             </tr>
-                        ))}
+                        )}
                     </tbody>
                 </table>
             </div>
 
+            {/* --- SECCIÓN PROMOCIONES (Mantenida como estaba) --- */}
             <div className="mt-12">
                 <h2 className="text-2xl font-bold text-white mb-6">Promociones por Puntos</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {/* Tarjeta 10% Descuento */}
                     <div className="bg-pr-dark p-6 rounded-lg shadow-lg border border-pr-gray/20 text-center flex flex-col justify-between">
-                        <div>
-                            <div className="text-pr-yellow text-5xl mb-4"><FontAwesomeIcon icon={faPercent} /></div>
-                            <h3 className="text-xl font-bold text-white mb-2">10% de Descuento</h3>
-                            <p className="text-pr-gray mb-4">En tu próxima compra de vinos seleccionados.</p>
-                        </div>
-                        <div>
-                            <div className="text-2xl font-semibold text-pr-yellow mb-4">500 Puntos</div>
-                            <button onClick={() => setShowConditionsModal(true)} className="w-full bg-pr-dark-gray text-white font-bold py-2 px-4 rounded-lg hover:bg-pr-gray transition-colors">Ver Condiciones</button>
-                        </div>
+                         <div>
+                             <div className="text-pr-yellow text-5xl mb-4"><FontAwesomeIcon icon={faPercent} /></div>
+                             <h3 className="text-xl font-bold text-white mb-2">10% de Descuento</h3>
+                             <p className="text-pr-gray mb-4">En tu próxima compra de vinos seleccionados.</p>
+                         </div>
+                         <div>
+                             <div className="text-2xl font-semibold text-pr-yellow mb-4">500 Puntos</div>
+                             <button onClick={() => setShowConditionsModal(true)} className="w-full bg-pr-dark-gray text-white font-bold py-2 px-4 rounded-lg hover:bg-pr-gray transition-colors">Ver Condiciones</button>
+                         </div>
                     </div>
+                    {/* Tarjeta Botella Gratis */}
                     <div className="bg-pr-dark p-6 rounded-lg shadow-lg border border-pr-gray/20 text-center flex flex-col justify-between">
-                        <div>
-                            <div className="text-pr-yellow text-5xl mb-4"><FontAwesomeIcon icon={faWineBottle} /></div>
-                            <h3 className="text-xl font-bold text-white mb-2">Botella Gratis</h3>
-                            <p className="text-pr-gray mb-4">Lleva una botella de nuestro Malbec Clásico sin cargo.</p>
-                        </div>
-                        <div>
-                            <div className="text-2xl font-semibold text-pr-yellow mb-4">1500 Puntos</div>
-                            <button onClick={() => setShowConditionsModal(true)} className="w-full bg-pr-dark-gray text-white font-bold py-2 px-4 rounded-lg hover:bg-pr-gray transition-colors">Ver Condiciones</button>
-                        </div>
+                         <div>
+                             <div className="text-pr-yellow text-5xl mb-4"><FontAwesomeIcon icon={faWineBottle} /></div>
+                             <h3 className="text-xl font-bold text-white mb-2">Botella Gratis</h3>
+                             <p className="text-pr-gray mb-4">Lleva una botella de nuestro Malbec Clásico sin cargo.</p>
+                         </div>
+                         <div>
+                             <div className="text-2xl font-semibold text-pr-yellow mb-4">1500 Puntos</div>
+                             <button onClick={() => setShowConditionsModal(true)} className="w-full bg-pr-dark-gray text-white font-bold py-2 px-4 rounded-lg hover:bg-pr-gray transition-colors">Ver Condiciones</button>
+                         </div>
                     </div>
+                    {/* Tarjeta Cata Exclusiva */}
                     <div className="bg-pr-dark p-6 rounded-lg shadow-lg border border-pr-gray/20 text-center flex flex-col justify-between">
-                        <div>
-                            <div className="text-pr-yellow text-5xl mb-4"><FontAwesomeIcon icon={faGift} /></div>
-                            <h3 className="text-xl font-bold text-white mb-2">Cata Exclusiva</h3>
-                            <p className="text-pr-gray mb-4">Acceso para dos personas a nuestra próxima cata de vinos premium.</p>
-                        </div>
-                        <div>
-                            <div className="text-2xl font-semibold text-pr-yellow mb-4">3000 Puntos</div>
-                            <button onClick={() => setShowConditionsModal(true)} className="w-full bg-pr-dark-gray text-white font-bold py-2 px-4 rounded-lg hover:bg-pr-gray transition-colors">Ver Condiciones</button>
-                        </div>
+                         <div>
+                             <div className="text-pr-yellow text-5xl mb-4"><FontAwesomeIcon icon={faGift} /></div>
+                             <h3 className="text-xl font-bold text-white mb-2">Cata Exclusiva</h3>
+                             <p className="text-pr-gray mb-4">Acceso para dos personas a nuestra próxima cata de vinos premium.</p>
+                         </div>
+                         <div>
+                             <div className="text-2xl font-semibold text-pr-yellow mb-4">3000 Puntos</div>
+                             <button onClick={() => setShowConditionsModal(true)} className="w-full bg-pr-dark-gray text-white font-bold py-2 px-4 rounded-lg hover:bg-pr-gray transition-colors">Ver Condiciones</button>
+                         </div>
                     </div>
                 </div>
             </div>
 
-            {showNewClientModal && (
-                <div className="fixed top-0 right-0 left-0 z-50 flex justify-center items-center w-full h-full bg-black bg-opacity-50">
-                    <div className="relative p-4 w-full max-w-lg">
-                        <div className="relative rounded-lg shadow bg-pr-dark">
-                            <div className="flex items-center justify-between p-4 md:p-5 border-b rounded-t border-gray-600">
-                                <h3 className="text-xl font-semibold text-white">Registrar Nuevo Cliente</h3>
-                                <button type="button" onClick={() => setShowNewClientModal(false)} className="end-2.5 text-gray-400 bg-transparent rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center hover:bg-gray-600 hover:text-white">
-                                    <svg className="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/></svg>
-                                    <span className="sr-only">Cerrar</span>
-                                </button>
-                            </div>
-                            <div className="p-4 md:p-5">
-                                <form className="space-y-4" action="#">
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div>
-                                            <label htmlFor="client-name" className="block mb-2 text-sm font-medium text-white">Nombre y Apellido</label>
-                                            <input type="text" name="client-name" id="client-name" className="border text-sm rounded-lg block w-full p-2.5 bg-pr-dark-gray border-gray-500 placeholder-gray-400 text-white" required />
-                                        </div>
-                                        <div>
-                                            <label htmlFor="client-email" className="block mb-2 text-sm font-medium text-white">Email</label>
-                                            <input type="email" name="client-email" id="client-email" className="border text-sm rounded-lg block w-full p-2.5 bg-pr-dark-gray border-gray-500 placeholder-gray-400 text-white" />
-                                        </div>
-                                    </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div>
-                                            <label htmlFor="client-phone" className="block mb-2 text-sm font-medium text-white">Teléfono</label>
-                                            <input type="tel" name="client-phone" id="client-phone" className="border text-sm rounded-lg block w-full p-2.5 bg-pr-dark-gray border-gray-500 placeholder-gray-400 text-white" required />
-                                        </div>
-                                        <div>
-                                            <label htmlFor="client-dni" className="block mb-2 text-sm font-medium text-white">DNI / CUIT</label>
-                                            <input type="text" name="client-dni" id="client-dni" className="border text-sm rounded-lg block w-full p-2.5 bg-pr-dark-gray border-gray-500 placeholder-gray-400 text-white" />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label htmlFor="client-address" className="block mb-2 text-sm font-medium text-white">Dirección</label>
-                                        <input type="text" name="client-address" id="client-address" className="border text-sm rounded-lg block w-full p-2.5 bg-pr-dark-gray border-gray-500 placeholder-gray-400 text-white" />
-                                    </div>
-                                    <button type="submit" className="w-full text-pr-dark bg-pr-yellow hover:bg-yellow-400 font-bold rounded-lg text-sm px-5 py-2.5 text-center">Guardar Cliente</button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* --- RENDERIZADO DE MODALES --- */}
+            <NewClientModal
+                isOpen={showNewClientModal}
+                onClose={() => setShowNewClientModal(false)}
+                onSuccess={handleSuccess}
+            />
+            <EditClientModal
+                isOpen={showEditModal}
+                onClose={() => setShowEditModal(false)}
+                onSuccess={handleSuccess}
+                client={clientToEdit}
+            />
+            <ConfirmDeleteModal
+                isOpen={!!clientToDelete}
+                onClose={() => setClientToDelete(null)}
+                onConfirm={handleConfirmDelete}
+                itemName={`${clientToDelete?.user_first_name || ''} ${clientToDelete?.user_last_name || ''}`}
+                itemType="cliente"
+            />
 
-            {showEditClientModal && (
-                <div className="fixed top-0 right-0 left-0 z-50 flex justify-center items-center w-full h-full bg-black bg-opacity-50">
-                    <div className="relative p-4 w-full max-w-lg">
-                        <div className="relative rounded-lg shadow bg-pr-dark">
-                            <div className="flex items-center justify-between p-4 md:p-5 border-b rounded-t border-gray-600">
-                                <h3 className="text-xl font-semibold text-white">Editar Cliente</h3>
-                                <button type="button" onClick={() => setShowEditClientModal(false)} className="end-2.5 text-gray-400 bg-transparent rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center hover:bg-gray-600 hover:text-white">
-                                    <svg className="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/></svg>
-                                    <span className="sr-only">Cerrar</span>
-                                </button>
-                            </div>
-                            <div className="p-4 md:p-5">
-                                <form className="space-y-4" action="#">
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div>
-                                            <label htmlFor="client-name-edit" className="block mb-2 text-sm font-medium text-white">Nombre y Apellido</label>
-                                            <input type="text" name="client-name-edit" id="client-name-edit" value="Juan Pérez" className="border text-sm rounded-lg block w-full p-2.5 bg-pr-dark-gray border-gray-500" required />
-                                        </div>
-                                        <div>
-                                            <label htmlFor="client-email-edit" className="block mb-2 text-sm font-medium text-white">Email</label>
-                                            <input type="email" name="client-email-edit" id="client-email-edit" value="juan.perez@email.com" className="border text-sm rounded-lg block w-full p-2.5 bg-pr-dark-gray border-gray-500" />
-                                        </div>
-                                    </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div>
-                                            <label htmlFor="client-phone-edit" className="block mb-2 text-sm font-medium text-white">Teléfono</label>
-                                            <input type="tel" name="client-phone-edit" id="client-phone-edit" value="11-2345-6789" className="border text-sm rounded-lg block w-full p-2.5 bg-pr-dark-gray border-gray-500" required />
-                                        </div>
-                                        <div>
-                                            <label htmlFor="client-dni-edit" className="block mb-2 text-sm font-medium text-white">DNI / CUIT</label>
-                                            <input type="text" name="client-dni-edit" id="client-dni-edit" className="border text-sm rounded-lg block w-full p-2.5 bg-pr-dark-gray border-gray-500" />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label htmlFor="client-address-edit" className="block mb-2 text-sm font-medium text-white">Dirección</label>
-                                        <input type="text" name="client-address-edit" id="client-address-edit" className="border text-sm rounded-lg block w-full p-2.5 bg-pr-dark-gray border-gray-500" />
-                                    </div>
-                                    <button type="submit" className="w-full text-pr-dark bg-pr-yellow hover:bg-yellow-400 font-bold rounded-lg text-sm px-5 py-2.5 text-center">Guardar Cambios</button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
+            {/* Modal de Condiciones (Ejemplo simple) */}
+            {/* Necesitarás crear este componente si no existe */}
             {showConditionsModal && (
-                <div className="fixed top-0 right-0 left-0 z-50 flex justify-center items-center w-full h-full bg-black bg-opacity-50">
-                    <div className="relative p-4 w-full max-w-lg">
-                        <div className="relative rounded-lg shadow bg-pr-dark">
-                            <div className="flex items-center justify-between p-4 md:p-5 border-b rounded-t border-gray-600">
-                                <h3 className="text-xl font-semibold text-white">Términos y Condiciones</h3>
-                                <button type="button" onClick={() => setShowConditionsModal(false)} className="end-2.5 text-gray-400 bg-transparent rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center hover:bg-gray-600 hover:text-white">
-                                    <svg className="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/></svg>
-                                    <span className="sr-only">Cerrar</span>
-                                </button>
-                            </div>
-                            <div className="p-4 md:p-5 space-y-4">
-                                <h4 className="text-lg font-bold text-pr-yellow">Promo: 10% de Descuento</h4>
-                                <ul className="list-disc list-inside text-gray-400 space-y-2">
-                                    <li>Válido únicamente para la próxima compra.</li>
-                                    <li>Aplica solo a vinos de la categoría &quot;Selección Especial&quot;.</li>
-                                    <li>No acumulable con otras promociones.</li>
-                                    <li>El descuento se aplica sobre el precio de lista.</li>
-                                    <li>Promoción válida hasta el 31/12/2025.</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                 <div className="fixed top-0 right-0 left-0 z-50 flex justify-center items-center w-full h-full bg-black bg-opacity-70">
+                     <div className="relative p-4 w-full max-w-lg">
+                         <div className="relative rounded-lg shadow bg-pr-dark border border-gray-700">
+                             <div className="flex items-center justify-between p-4 md:p-5 border-b rounded-t border-gray-600">
+                                 <h3 className="text-xl font-semibold text-white">Términos y Condiciones</h3>
+                                 <button type="button" onClick={() => setShowConditionsModal(false)} className="end-2.5 text-gray-400 bg-transparent rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center hover:bg-gray-600 hover:text-white">
+                                     <svg className="w-3 h-3" /* ... icono X ... */></svg>
+                                 </button>
+                             </div>
+                             <div className="p-4 md:p-5 space-y-4 text-gray-300">
+                                 <p>Aquí irían los términos y condiciones detallados para cada promoción...</p>
+                                 <p><strong>Ejemplo (10% Descuento):</strong> Válido solo en vinos seleccionados, no acumulable, etc.</p>
+                             </div>
+                             <div className="flex items-center justify-end p-4 border-t border-gray-600">
+                                 <button onClick={() => setShowConditionsModal(false)} className="bg-pr-gray text-pr-dark font-bold py-2 px-4 rounded-lg">Cerrar</button>
+                             </div>
+                         </div>
+                     </div>
+                 </div>
             )}
         </>
     );
 };
 
-export default JefeCustomers;
+export default JefeCustomers; // Renombrado de vuelta a JefeCustomers

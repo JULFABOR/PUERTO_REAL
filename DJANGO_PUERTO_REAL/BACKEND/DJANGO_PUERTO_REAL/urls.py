@@ -20,6 +20,7 @@ from Fidelizar_CLIENTES.urls import api_urlpatterns as fidelizar_api_urls
 from Abrir_Cerrar_CAJA.urls import api_urlpatterns as caja_api_urls
 # --- FIN: Bloque comentado para depuración ---
 
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('auth/', include('autenticacion.urls')), # Rutas de autenticación

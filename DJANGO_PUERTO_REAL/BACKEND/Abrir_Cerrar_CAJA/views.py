@@ -3,23 +3,34 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.shortcuts import render, redirect
-from django.db.models.functions import TruncDate
+from django.db.models.functions import TruncDate, Coalesce
 from django.utils import timezone
+from django.db.models import Sum, Q, DecimalField
+from decimal import Decimal
+from django.db import transaction
+from django.core.exceptions import ObjectDoesNotExist
 
 # Third-party library imports
-from rest_framework import status, generics
+from rest_framework import status, generics, viewsets, filters
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from django.db import transaction
+from rest_framework.decorators import action
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.authentication import TokenAuthentication
+
+
 
 # Local application imports
 from .forms import AperturaCajaForm, RetiroEfectivoForm, RendirFondoForm
 from .models import Cajas, Historial_Caja, Tipo_Evento, Fondo_Pagos, Movimiento_Fondo
+from autenticacion.models import Empleados
+from Config_PR.models import Estados, Tipos_Movimientos
 from .serializers import (
     AperturaCajaInputSerializer, CajasSerializer, HistorialCajaSerializer,
     RetiroInputSerializer, RendirFondoInputSerializer, CerrarCajaInputSerializer,
-    MovimientoFondoInputSerializer, MovimientoFondoSerializer, AjusteCajaInputSerializer
+    MovimientoFondoInputSerializer, MovimientoFondoSerializer, AjusteCajaInputSerializer,
+    MovimientoCajaManualInputSerializer  # --- IMPORT AÑADIDO ---
 )
 from . import services
 from autenticacion.models import Empleados
@@ -177,29 +188,95 @@ class AbrirCajaAPIView(APIView):
             return Response({'detail': "Error de configuración: El tipo de evento 'APERTURA' no existe."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+# --- VISTA MODIFICADA ---
 class HistorialCajaListAPIView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = HistorialCajaSerializer
 
     def get_queryset(self):
-        empleado_actual = getattr(self.request.user, 'empleado', None)
-        if not empleado_actual:
+        user = self.request.user
+        empleado_actual = getattr(user, 'empleado', None)
+
+        # --- Lógica para buscar LA caja abierta ---
+        try:
+            estado_abierto = Estados.objects.get(nombre_estado='ABIERTA')
+            caja_abierta = Cajas.objects.filter(estado_caja=estado_abierto).first()
+            if not caja_abierta:
+                return Historial_Caja.objects.none() # No hay caja abierta
+        except Estados.DoesNotExist:
             return Historial_Caja.objects.none()
 
+        # --- Condición para Jefes ---
+        # Asume que tienes un grupo 'Jefes' o un permiso específico
+        is_jefe = user.groups.filter(name='Jefes').exists() # O user.is_staff, etc.
+
+        base_queryset = Historial_Caja.objects.filter(caja_hc=caja_abierta)
+
+        if not is_jefe and empleado_actual:
+            # Si NO es jefe Y es un empleado válido, filtra por empleado
+            queryset = base_queryset.filter(empleado_hc=empleado_actual)
+        elif is_jefe:
+            # Si ES jefe, NO filtra por empleado (muestra todo lo de la caja abierta)
+            queryset = base_queryset
+        else:
+             # Si no es jefe ni empleado (raro, pero seguro), no muestra nada
+             return Historial_Caja.objects.none()
+
+        # --- Filtrado por fecha (como antes) ---
         date_str = self.request.query_params.get('date', None)
-        
+        target_date = timezone.now().date()
         if date_str:
             try:
                 target_date = timezone.datetime.strptime(date_str, '%Y-%m-%d').date()
             except (ValueError, TypeError):
-                target_date = timezone.now().date() # Fallback a hoy si el formato es incorrecto
-        else:
-            target_date = timezone.now().date()
-
-        return Historial_Caja.objects.filter(
-            empleado_hc=empleado_actual,
+                pass # Usa la fecha de hoy si el formato es malo
+        
+        return queryset.filter(
             fecha_movimiento_hcaja__date=target_date
-        ).order_by('-fecha_movimiento_hcaja')
+        ).select_related(
+            'empleado_hc__user_empleado',
+            'tipo_event_caja'
+        ).order_by('-fecha_movimiento_hcaja') # Ordenar por fecha/hora
+
+    def list(self, request, *args, **kwargs):
+        # --- Obtener LA caja abierta (igual que en get_queryset) ---
+        try:
+            estado_abierto = Estados.objects.get(nombre_estado='ABIERTA')
+            caja_abierta = Cajas.objects.filter(estado_caja=estado_abierto).first()
+            if not caja_abierta:
+                 # Si no hay caja abierta, devuelve respuesta vacía estructurada
+                 return Response({"movimientos": [], "resumen": {"apertura": 0, "ventas": 0, "ingresos": 0, "egresos": 0}}, status=status.HTTP_200_OK)
+        except Estados.DoesNotExist:
+             return Response({"detail": "Error: Estado 'ABIERTA' no configurado."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+        # --- Obtener queryset y calcular resumen BASADO EN LA CAJA, NO EN EL EMPLEADO ---
+        queryset_base_caja = self.get_queryset() # get_queryset ya maneja el filtro jefe/empleado
+        
+        # Obtener todos los movimientos del día para esa caja (ignora filtro empleado para resumen)
+        target_date = queryset_base_caja.first().fecha_movimiento_hcaja.date() if queryset_base_caja.exists() else timezone.now().date()
+        todos_movimientos_caja_hoy = Historial_Caja.objects.filter(
+            caja_hc=caja_abierta,
+            fecha_movimiento_hcaja__date=target_date
+        )
+
+        serializer = self.get_serializer(queryset_base_caja, many=True) # Serializa según jefe/empleado
+        movimientos_data = serializer.data
+
+        # Calcula resumen usando TODOS los movimientos de la caja de hoy
+        agregados = todos_movimientos_caja_hoy.aggregate(
+             apertura=Coalesce(Sum('cantidad_movida_hcaja', filter=Q(tipo_event_caja__nombre_evento='APERTURA')), Decimal(0), output_field=DecimalField()),
+             ventas=Coalesce(Sum('cantidad_movida_hcaja', filter=Q(tipo_event_caja__nombre_evento='VENTA')), Decimal(0), output_field=DecimalField()),
+             ingresos=Coalesce(Sum('cantidad_movida_hcaja', filter=Q(tipo_event_caja__nombre_evento__in=['INGRESO_MANUAL', 'RENDICION_FONDO', 'TRANSFERENCIA_DESDE_FONDO'])), Decimal(0), output_field=DecimalField()), # Agregado TRANSFERENCIA_DESDE_FONDO
+             egresos=Coalesce(Sum('cantidad_movida_hcaja', filter=Q(tipo_event_caja__nombre_evento__in=['EGRESO_MANUAL', 'RETIRO_CAJA', 'RETIRO_FONDO', 'TRANSFERENCIA_A_FONDO'])), Decimal(0), output_field=DecimalField()) # Agregado TRANSFERENCIA_A_FONDO
+        )
+        resumen_data = {
+            "apertura": agregados['apertura'], "ventas": agregados['ventas'],
+            "ingresos": agregados['ingresos'], "egresos": agregados['egresos'],
+        }
+
+        response_data = {"movimientos": movimientos_data, "resumen": resumen_data}
+        return Response(response_data, status=status.HTTP_200_OK)
 
 class DistinctHistoryDatesAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -372,7 +449,8 @@ class MovimientoFondoAPIView(APIView):
         serializer.is_valid(raise_exception=True)
 
         monto = serializer.validated_data['monto']
-        motivo = serializer.validated_.get('motivo', '').strip()
+        # Corregido: 'motivo_mov_fp' a 'motivo' y 'validated_' a 'validated_data'
+        motivo = serializer.validated_data.get('motivo', '').strip() 
         tipo = serializer.validated_data['tipo']
 
         try:
@@ -394,8 +472,15 @@ class MovimientoFondoAPIView(APIView):
                 fondo.saldo_fp += monto
             fondo.save(update_fields=['saldo_fp'])
 
+            try:
+                tipo_mov_obj = Tipos_Movimientos.objects.get(nombre_movimiento=tipo)
+            except Tipos_Movimientos.DoesNotExist:
+                 return Response({'detail': f'Tipo de movimiento "{tipo}" no existe. Configurelo.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
             Movimiento_Fondo.objects.create(
-                fondo=fondo, tipo_mov_fp=tipo, monto_mov_fp=monto,
+                fondo_mov_fp=fondo, 
+                tipo_mov_fp=tipo_mov_obj, # Usamos el objeto
+                monto_mov_fp=monto,
                 motivo_mov_fp=motivo,
                 empleado_mov_fp=empleado_actual
             )
@@ -421,11 +506,8 @@ class MovimientoFondoListAPIView(generics.ListAPIView):
             'tipo_mov_fp'
         ).order_by('-fecha_mov_fp')
 
-from rest_framework import viewsets, filters
-from django_filters.rest_framework import DjangoFilterBackend
-
 # ==============================================================================
-# VIEWSET PARA LISTAR CAJAS (ESTO ES LO QUE TE FALTA)
+# VIEWSET PARA LISTAR CAJAS (AQUÍ AÑADIMOS LA ACCIÓN)
 # ==============================================================================
 
 class CajaViewSet(viewsets.ReadOnlyModelViewSet):
@@ -435,17 +517,19 @@ class CajaViewSet(viewsets.ReadOnlyModelViewSet):
     Permite filtrar por estado, por ejemplo:
     /api/cajas/?estado_caja__nombre_estado=ABIERTA
     /api/cajas/?estado_caja=1
+    
+    --- ACCIONES PERSONALIZADAS ---
+    POST /api/cajas/movimiento/ - Registra un ingreso/egreso manual.
     """
     permission_classes = [IsAuthenticated]
+    authentication_classes = [TokenAuthentication]
     
     # Usamos el CajasSerializer que ya tienes (lo vi en tus imports)
     serializer_class = CajasSerializer
     
-    # Optimizamos la consulta para incluir el estado y el empleado
+    # Optimizamos la consulta para incluir el estado
     queryset = Cajas.objects.select_related(
         'estado_caja',
-        # 'empleado_apertura_caja__user_empleado', # Estos campos no existen en el modelo Cajas
-        # 'empleado_cierre_caja__user_empleado'    # Estos campos no existen en el modelo Cajas
     ).all().order_by('-id_caja')
     
     # --- ESTA ES LA LÍNEA CLAVE QUE CORRIGE TU ERROR 500 ---
@@ -454,4 +538,92 @@ class CajaViewSet(viewsets.ReadOnlyModelViewSet):
         'estado_caja': ['exact'],
         'estado_caja__nombre_estado': ['exact'],
     }
-    ordering_fields = ['id_caja', 'monto_cierre_caja'] # 'monto_final_caja' no existe, se usa 'monto_cierre_caja'
+    # Corregido: 'monto_final_caja' no existe, se usa 'monto_cierre_caja'
+    ordering_fields = ['id_caja', 'monto_cierre_caja'] 
+    
+    
+    # --- ACCIÓN AÑADIDA (CON TRY/EXCEPT CORREGIDO) ---
+    @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated], url_path='movimiento')
+    def movimiento_manual(self, request):
+        """
+        Registra un INGRESO o EGRESO manual en la caja abierta.
+        Espera: { "monto": 100.00, "motivo": "pago proveedor", "tipo": "EGRESO" }
+        """
+        serializer = MovimientoCajaManualInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        validated_data = serializer.validated_data
+        monto = validated_data['monto']  # Es un monto positivo
+        motivo = validated_data['motivo']
+        tipo_movimiento = validated_data['tipo'] # "INGRESO" o "EGRESO"
+
+        # 1. Obtener empleado (BLOQUE CORREGIDO)
+        try:
+            # Intentamos acceder al empleado relacionado con el usuario
+            empleado_actual = request.user.empleado 
+            if not empleado_actual:
+                 raise ObjectDoesNotExist # Forzar el error si es None pero no falló
+                 
+        except ObjectDoesNotExist: 
+            # Esto captura si el 'related_name' es 'empleado' pero el objeto no existe
+            return Response({'detail': 'Tu usuario está autenticado, pero no está asociado a un perfil de empleado (ObjectDoesNotExist).'}, status=status.HTTP_403_FORBIDDEN)
+        except AttributeError:
+            # Esto captura si el 'related_name' en tu modelo Empleado NO se llama 'empleado'
+            return Response({'detail': "Error de configuración: El modelo User no tiene un atributo '.empleado'. Revisa el related_name en autenticacion/models.py."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception as e:
+            # Captura cualquier otro error
+             return Response({'detail': f'Error inesperado al buscar empleado: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+        # 2. Encontrar la caja abierta
+        try:
+            estado_abierto = Estados.objects.get(nombre_estado='ABIERTA')
+            caja_abierta = Cajas.objects.filter(estado_caja=estado_abierto).first()
+            if not caja_abierta:
+                raise Cajas.DoesNotExist
+        except (Estados.DoesNotExist, Cajas.DoesNotExist):
+            return Response({'detail': 'No se encontró ninguna caja abierta.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            with transaction.atomic():
+                # 3. Determinar montos y tipo de evento
+                saldo_anterior = caja_abierta.monto_teorico_caja
+                
+                if tipo_movimiento == "EGRESO":
+                    if monto > saldo_anterior:
+                        return Response({'detail': 'Fondos insuficientes en la caja para este egreso.'}, status=status.HTTP_400_BAD_REQUEST)
+                    
+                    cantidad_movida = -monto
+                    nuevo_saldo = saldo_anterior - monto
+                    tipo_evento_nombre = "EGRESO_MANUAL"
+                
+                else: # INGRESO
+                    cantidad_movida = monto
+                    nuevo_saldo = saldo_anterior + monto
+                    tipo_evento_nombre = "INGRESO_MANUAL"
+
+                # 4. Obtener el Tipo_Evento
+                tipo_evento = Tipo_Evento.objects.get(nombre_evento=tipo_evento_nombre)
+                
+                # 5. Actualizar la caja
+                caja_abierta.monto_teorico_caja = nuevo_saldo
+                caja_abierta.save(update_fields=['monto_teorico_caja'])
+
+                # 6. Crear el Historial_Caja
+                Historial_Caja.objects.create(
+                    caja_hc=caja_abierta,
+                    empleado_hc=empleado_actual,
+                    tipo_event_caja=tipo_evento,
+                    cantidad_movida_hcaja=cantidad_movida, # Guardamos el monto con signo
+                    saldo_anterior_hcaja=saldo_anterior,
+                    nuevo_saldo_hcaja=nuevo_saldo,
+                    descripcion_hcaja=motivo
+                )
+            
+            # 7. Devolver la caja actualizada
+            return Response(CajasSerializer(caja_abierta).data, status=status.HTTP_200_OK)
+
+        except Tipo_Evento.DoesNotExist:
+            return Response({'detail': f"Error de configuración: El tipo de evento '{tipo_evento_nombre}' no existe."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception as e:
+            return Response({'detail': f'Ocurrió un error inesperado: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

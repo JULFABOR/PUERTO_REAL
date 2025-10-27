@@ -4,7 +4,7 @@ import django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'DJANGO_PUERTO_REAL.settings')
 django.setup()
 
-from HOME.models import Tipos_Estados, Estados
+from Config_PR.models import Tipos_Estados, Estados
 
 def setup_proveedores():
     print("Configurando tipos de estado y estados para proveedores...")

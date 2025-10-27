@@ -1,140 +1,183 @@
 import React, { useState } from 'react';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTrash, faPenToSquare, faSave, faTimes } from '@fortawesome/free-solid-svg-icons';
+import PropTypes from 'prop-types';
 import { toast } from 'react-hot-toast';
 import apiClient from '@/api/apiClient';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTrash, faPen, faSave, faTimes } from '@fortawesome/free-solid-svg-icons';
 
 const CategoryManagerModal = ({ isOpen, onClose, categories, onDataChange }) => {
     const [newCategoryName, setNewCategoryName] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+
+    // Estados para la edición en línea
     const [editingCategoryId, setEditingCategoryId] = useState(null);
     const [editingCategoryName, setEditingCategoryName] = useState('');
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [categoryToDelete, setCategoryToDelete] = useState(null);
 
     const handleCreateCategory = async (e) => {
         e.preventDefault();
-        if (!newCategoryName.trim()) return toast.error("El nombre no puede estar vacío.");
-        setIsSubmitting(true);
+        if (newCategoryName.trim() === '') {
+            return toast.error('El nombre de la categoría no puede estar vacío.');
+        }
+        setIsLoading(true);
         try {
-            await apiClient('/api/stock/categorias/', { 
-                method: 'POST', 
-                // --- CORRECCIÓN AQUÍ ---
-                body: JSON.stringify({ nombre_categoria: newCategoryName }) 
+            await apiClient('/api/stock/categorias/', {
+                method: 'POST',
+                body: JSON.stringify({ nombre_categoria: newCategoryName }),
             });
-            setNewCategoryName('');
-            toast.success("Categoría creada.");
-            onDataChange();
+            toast.success('Categoría creada con éxito.');
+            setNewCategoryName(''); // Limpiar el input
+            onDataChange(); // Refrescar los datos en JefeStock
         } catch (error) {
-            toast.error("No se pudo crear la categoría.");
+            toast.error(error.data?.nombre_categoria || 'No se pudo crear la categoría.');
         } finally {
-            setIsSubmitting(false);
+            setIsLoading(false);
         }
     };
 
+    const handleDeleteCategory = async (categoryId) => {
+        const loadingToast = toast.loading('Eliminando categoría...');
+        setIsLoading(true);
+        try {
+            await apiClient(`/api/stock/categorias/${categoryId}/`, {
+                method: 'DELETE',
+            });
+            toast.success('Categoría eliminada.', { id: loadingToast });
+            onDataChange(); // Refrescar los datos
+        } catch (error) {
+            // Error común: no se puede borrar si tiene productos asociados
+            toast.error('No se pudo eliminar. Asegúrate de que no tenga productos asociados.', { id: loadingToast });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // Funciones para edición en línea
     const handleStartEdit = (category) => {
         setEditingCategoryId(category.id_categoria);
         setEditingCategoryName(category.nombre_categoria);
     };
 
-    const handleUpdateCategory = async (categoryId) => {
-        if (!editingCategoryName.trim()) return toast.error("El nombre no puede estar vacío.");
-        setIsSubmitting(true);
-        try {
-            await apiClient(`/api/stock/categorias/${categoryId}/`, { 
-                method: 'PATCH', 
-                // --- CORRECCIÓN AQUÍ ---
-                body: JSON.stringify({ nombre_categoria: editingCategoryName }) 
-            });
-            setEditingCategoryId(null);
-            setEditingCategoryName('');
-            toast.success("Categoría actualizada.");
-            onDataChange();
-        } catch (error) {
-            toast.error("No se pudo actualizar.");
-        } finally {
-            setIsSubmitting(false);
-        }
+    const handleCancelEdit = () => {
+        setEditingCategoryId(null);
+        setEditingCategoryName('');
     };
-    
-    const handleConfirmDelete = async () => {
-        if (!categoryToDelete) return;
+
+    const handleUpdateCategory = async (e) => {
+        e.preventDefault();
+        if (editingCategoryName.trim() === '') {
+            return toast.error('El nombre no puede estar vacío.');
+        }
+        setIsLoading(true);
         try {
-            await apiClient(`/api/stock/categorias/${categoryToDelete.id_categoria}/`, { method: 'DELETE' });
-            toast.success(`Categoría "${categoryToDelete.nombre_categoria}" eliminada.`);
-            onDataChange();
+            await apiClient(`/api/stock/categorias/${editingCategoryId}/`, {
+                method: 'PUT',
+                body: JSON.stringify({ nombre_categoria: editingCategoryName }),
+            });
+            toast.success('Categoría actualizada.');
+            handleCancelEdit(); // Salir del modo edición
+            onDataChange(); // Refrescar los datos
         } catch (error) {
-            toast.error("No se pudo eliminar.");
+            toast.error(error.data?.nombre_categoria || 'No se pudo actualizar.');
         } finally {
-            setCategoryToDelete(null);
+            setIsLoading(false);
         }
     };
 
     if (!isOpen) return null;
 
     return (
-        <>
-            <div className="fixed top-0 right-0 left-0 z-50 flex justify-center items-center w-full h-full bg-black bg-opacity-70">
-                <div className="relative p-4 w-full max-w-lg">
-                    <div className="relative rounded-lg shadow bg-pr-dark">
-                        <div className="flex items-center justify-between p-4 md:p-5 border-b rounded-t border-gray-600">
-                            <h3 className="text-xl font-semibold text-white">Gestionar Categorías</h3>
-                            <button type="button" onClick={() => { setEditingCategoryId(null); onClose(); }} className="text-gray-400 bg-transparent rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center hover:bg-gray-600 hover:text-white">
-                                <svg className="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/></svg>
+        <div className="fixed top-0 right-0 left-0 z-50 flex justify-center items-center w-full h-full bg-black bg-opacity-60">
+            <div className="relative p-4 w-full max-w-md">
+                <div className="relative rounded-lg shadow bg-pr-dark border border-gray-700">
+                    {/* --- Cabecera del Modal --- */}
+                    <div className="flex items-center justify-between p-4 md:p-5 border-b rounded-t border-gray-600">
+                        <h3 className="text-xl font-semibold text-white">Gestionar Categorías</h3>
+                        <button 
+                            type="button" 
+                            onClick={onClose} 
+                            disabled={isLoading}
+                            className="end-2.5 text-gray-400 bg-transparent rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center hover:bg-gray-600 hover:text-white"
+                        >
+                            <svg className="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/></svg>
+                        </button>
+                    </div>
+                    
+                    {/* --- Cuerpo del Modal --- */}
+                    <div className="p-4 md:p-5">
+                        
+                        {/* --- Formulario para Crear --- */}
+                        <form className="flex gap-2 mb-4" onSubmit={handleCreateCategory}>
+                            <input 
+                                type="text"
+                                value={newCategoryName}
+                                onChange={(e) => setNewCategoryName(e.target.value)}
+                                placeholder="Nombre de la nueva categoría" 
+                                className="flex-grow border text-sm rounded-lg block w-full p-2.5 bg-pr-dark-gray border-gray-500 text-white focus:ring-pr-yellow focus:border-pr-yellow" 
+                                disabled={isLoading}
+                            />
+                            <button 
+                                type="submit"
+                                disabled={isLoading}
+                                className="text-pr-dark bg-pr-yellow hover:bg-yellow-400 font-bold rounded-lg text-sm px-4 py-2 text-center disabled:bg-gray-700 disabled:text-gray-500"
+                            >
+                                Crear
                             </button>
-                        </div>
-                        
-                        <div className="p-4 md:p-5 max-h-96 overflow-y-auto">
-                            <ul className="space-y-3">
-                                {categories.map(cat => (
-                                    <li key={cat.id_categoria} className="flex items-center justify-between p-3 rounded-lg bg-pr-dark-gray">
-                                        {editingCategoryId === cat.id_categoria ? (
-                                            <input type="text" value={editingCategoryName} onChange={(e) => setEditingCategoryName(e.target.value)} className="w-full p-2 bg-gray-700 border border-gray-500 rounded-lg text-white" autoFocus />
-                                        ) : (
+                        </form>
+
+                        {/* --- Lista de Categorías Existentes --- */}
+                        <div className="space-y-2 max-h-64 overflow-y-auto pr-2">
+                            {categories.map((cat) => (
+                                <div key={cat.id_categoria} className="flex items-center justify-between p-3 bg-pr-dark-gray rounded-lg">
+                                    {editingCategoryId === cat.id_categoria ? (
+                                        // --- Modo Edición ---
+                                        <form className="flex-grow flex gap-2" onSubmit={handleUpdateCategory}>
+                                            <input
+                                                type="text"
+                                                value={editingCategoryName}
+                                                onChange={(e) => setEditingCategoryName(e.target.value)}
+                                                className="flex-grow border text-sm rounded-lg block w-full p-2 bg-pr-dark border-gray-500 text-white"
+                                                autoFocus
+                                            />
+                                            <button type="submit" disabled={isLoading} className="text-green-500 hover:text-green-400 w-8 h-8"><FontAwesomeIcon icon={faSave} /></button>
+                                            <button type="button" onClick={handleCancelEdit} disabled={isLoading} className="text-gray-500 hover:text-gray-400 w-8 h-8"><FontAwesomeIcon icon={faTimes} /></button>
+                                        </form>
+                                    ) : (
+                                        // --- Modo Vista ---
+                                        <>
                                             <span className="text-white">{cat.nombre_categoria}</span>
-                                        )}
-                                        <div className="flex items-center gap-3 ml-4">
-                                            {editingCategoryId === cat.id_categoria ? (
-                                                <>
-                                                    <button onClick={() => handleUpdateCategory(cat.id_categoria)} className="text-green-400 hover:text-green-300"><FontAwesomeIcon icon={faSave} /></button>
-                                                    <button onClick={() => setEditingCategoryId(null)} className="text-gray-400 hover:text-gray-300"><FontAwesomeIcon icon={faTimes} /></button>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <button onClick={() => handleStartEdit(cat)} className="text-pr-yellow hover:text-yellow-300"><FontAwesomeIcon icon={faPenToSquare} /></button>
-                                                    <button onClick={() => setCategoryToDelete(cat)} className="text-red-500 hover:text-red-400"><FontAwesomeIcon icon={faTrash} /></button>
-                                                </>
-                                            )}
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                        
-                        <div className="p-4 md:p-5 border-t border-gray-600">
-                            <form onSubmit={handleCreateCategory} className="flex items-center gap-3">
-                                <input type="text" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} placeholder="Nueva categoría" className="flex-grow p-2.5 bg-pr-dark-gray border border-gray-500 rounded-lg text-white placeholder-gray-400" />
-                                <button type="submit" disabled={isSubmitting} className="text-pr-dark bg-pr-yellow hover:bg-yellow-400 font-bold rounded-lg text-sm px-5 py-2.5 text-center disabled:bg-yellow-800">{isSubmitting ? '...' : 'Agregar'}</button>
-                            </form>
+                                            <div className="flex gap-3">
+                                                <button 
+                                                    onClick={() => handleStartEdit(cat)} 
+                                                    disabled={isLoading} 
+                                                    className="text-pr-yellow hover:text-yellow-400 disabled:text-gray-600"
+                                                >
+                                                    <FontAwesomeIcon icon={faPen} />
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleDeleteCategory(cat.id_categoria)} 
+                                                    disabled={isLoading} 
+                                                    className="text-red-500 hover:text-red-400 disabled:text-gray-600"
+                                                >
+                                                    <FontAwesomeIcon icon={faTrash} />
+                                                </button>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </div>
             </div>
-
-            {categoryToDelete && (
-                <div className="fixed top-0 right-0 left-0 z-[60] flex justify-center items-center w-full h-full bg-black bg-opacity-70">
-                    <div className="relative p-4 w-full max-w-md">
-                        <div className="relative rounded-lg shadow bg-pr-dark border border-gray-700">
-                            <div className="p-6 text-center">
-                                <h3 className="mb-5 text-lg font-normal text-gray-300">¿Eliminar categoría <span className="font-bold text-white">"{categoryToDelete.nombre_categoria}"</span>?</h3>
-                                <button onClick={handleConfirmDelete} type="button" className="text-white bg-red-600 hover:bg-red-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center mr-2">Sí, eliminar</button>
-                                <button onClick={() => setCategoryToDelete(null)} type="button" className="text-gray-300 bg-pr-dark-gray hover:bg-gray-700 rounded-lg border border-gray-500 text-sm px-5 py-2.5">Cancelar</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </>
+        </div>
     );
+};
+
+CategoryManagerModal.propTypes = {
+    isOpen: PropTypes.bool.isRequired,
+    onClose: PropTypes.func.isRequired,
+    categories: PropTypes.array.isRequired,
+    onDataChange: PropTypes.func.isRequired,
 };
 
 export default CategoryManagerModal;

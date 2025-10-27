@@ -51,7 +51,7 @@ const EmpleadoLayout = () => {
                         <span className="self-center text-2xl font-bold whitespace-nowrap text-pr-yellow">PUERTO REAL</span>
                     </Link>
                     <div className="flex items-center md:order-2 space-x-3 rtl:space-x-reverse">
-                        <button onClick={toggleSidebar} type="button" className="p-2 text-sm text-gray-400 rounded-lg md:hidden hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-600">
+                        <button onClick={toggleSidebar} type="button" className="p-2 text-sm text-gray-400 rounded-lg md:hidden hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-600 ">
                             <span className="sr-only">Toggle sidebar</span>
                             <FontAwesomeIcon icon={faBars} className="text-xl" />
                         </button>

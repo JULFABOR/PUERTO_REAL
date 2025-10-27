@@ -1,8 +1,8 @@
 from django.db import transaction
 from rest_framework import serializers
-from HOME.models import Stocks, Historial_Stock, Tipos_Movimientos, Estados, Detalle_Compras
 from Auditoria.services import crear_registro
-
+from Control_STOCK.models import Stocks, Historial_Stock
+from Config_PR.models import Tipos_Movimientos
 
 def _get_or_create_stock(producto):
     stock, created = Stocks.objects.get_or_create(

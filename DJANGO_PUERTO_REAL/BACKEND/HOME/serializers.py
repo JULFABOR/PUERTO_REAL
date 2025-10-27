@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Empleados, Estados
+from autenticacion.models import Empleados
+from Config_PR.models import Estados
 
 class EstadoSerializer(serializers.ModelSerializer):
     class Meta:

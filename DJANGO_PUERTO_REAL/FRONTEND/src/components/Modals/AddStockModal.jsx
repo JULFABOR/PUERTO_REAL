@@ -10,7 +10,7 @@ const FormInput = ({ name, label, value, onChange, error, type = 'text', require
         <input
             type={type}
             name={name}
-            id={`adjust_${name}`}
+            id={name}
             value={value}
             onChange={onChange}
             required={required}
@@ -24,7 +24,7 @@ const FormInput = ({ name, label, value, onChange, error, type = 'text', require
             placeholder=" " 
         />
         <label
-            htmlFor={`adjust_${name}`}
+            htmlFor={name}
             className={`
                 absolute text-sm duration-300 transform -translate-y-4 scale-75 top-5 z-10 origin-[0]
                 left-2.5 text-gray-400 peer-placeholder-shown:scale-100 
@@ -38,17 +38,17 @@ const FormInput = ({ name, label, value, onChange, error, type = 'text', require
     </div>
 );
 
-const initialAdjustStockState = { searchTerm: '', selectedProduct: null, quantity: '', reason: '' };
+const initialAddStockState = { searchTerm: '', selectedProduct: null, quantity: '', reason: 'Compra a proveedor' };
 
-const AdjustStockModal = ({ isOpen, onClose, onSuccess, allProducts, userData }) => {
-    const [adjustStockState, setAdjustStockState] = useState(initialAdjustStockState);
+const AddStockModal = ({ isOpen, onClose, onSuccess, allProducts, userData }) => {
+    const [addStockState, setAddStockState] = useState(initialAddStockState);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errors, setErrors] = useState({});
 
     // Resetea el formulario cuando el modal se cierra
     useEffect(() => {
         if (!isOpen) {
-            setAdjustStockState(initialAdjustStockState);
+            setAddStockState(initialAddStockState);
             setErrors({});
             setIsSubmitting(false);
         }
@@ -56,10 +56,10 @@ const AdjustStockModal = ({ isOpen, onClose, onSuccess, allProducts, userData })
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setAdjustStockState(prev => ({ 
+        setAddStockState(prev => ({ 
             ...prev, 
             [name]: value, 
-            ...(name === 'searchTerm' && { selectedProduct: null }) 
+            ...(name === 'searchTerm' && { selectedProduct: null }) // Resetea producto si busca de nuevo
         }));
         if (errors[name]) {
             setErrors(prev => ({ ...prev, [name]: null }));
@@ -67,28 +67,28 @@ const AdjustStockModal = ({ isOpen, onClose, onSuccess, allProducts, userData })
     };
 
     const handleSelectProduct = (product) => {
-        setAdjustStockState(prev => ({ 
+        setAddStockState(prev => ({ 
             ...prev, 
             selectedProduct: product, 
             searchTerm: `${product.nombre_producto} (SKU: ${product.barcode})` 
         }));
     };
-    
+
     const filteredSearch = useMemo(() => {
-        if (!adjustStockState.searchTerm) return [];
-        const searchLower = adjustStockState.searchTerm.toLowerCase();
+        if (!addStockState.searchTerm) return [];
+        const searchLower = addStockState.searchTerm.toLowerCase();
         return allProducts.filter(p => 
             p.nombre_producto.toLowerCase().includes(searchLower) || 
             (p.barcode && p.barcode.includes(searchLower))
-        ).slice(0, 5);
-    }, [allProducts, adjustStockState.searchTerm]);
+        ).slice(0, 5); // Limita a 5 resultados
+    }, [allProducts, addStockState.searchTerm]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setErrors({});
 
-        if (!adjustStockState.selectedProduct || !adjustStockState.quantity || !adjustStockState.reason) {
-            return toast.error("Debes seleccionar producto, cantidad y motivo.");
+        if (!addStockState.selectedProduct || !addStockState.quantity) {
+            return toast.error("Debes seleccionar un producto y especificar una cantidad.");
         }
         if (!userData || !userData.empleado_id) {
             return toast.error("No se pudo identificar al empleado. Por favor, inicie sesión de nuevo.");
@@ -96,22 +96,21 @@ const AdjustStockModal = ({ isOpen, onClose, onSuccess, allProducts, userData })
         
         setIsSubmitting(true);
         const payload = {
-            product_id: adjustStockState.selectedProduct.id_producto,
-            quantity: parseInt(adjustStockState.quantity, 10),
-            reason: adjustStockState.reason,
-            movement_type: 'MOV_STOCK_AJUSTE', // Hardcoded como en tu original
+            product_id: addStockState.selectedProduct.id_producto,
+            quantity: parseInt(addStockState.quantity, 10),
+            reason: addStockState.reason,
             employee: userData.empleado_id,
         };
         try {
-            await apiClient('/api/stock/stock/adjust/', { method: 'POST', body: JSON.stringify(payload) });
-            toast.success('¡Stock ajustado correctamente!');
+            await apiClient('/api/stock/add-stock/', { method: 'POST', body: JSON.stringify(payload) });
+            toast.success('¡Stock agregado correctamente!');
             onSuccess(); // Llama al success handler del padre
         } catch (error) {
             if (error.data && typeof error.data === 'object') {
                 setErrors(error.data);
                 toast.error('Corrige los errores del formulario.');
             } else {
-                toast.error(error.data?.detail || 'No se pudo ajustar el stock.');
+                toast.error(error.data?.detail || 'No se pudo agregar el stock.');
             }
         } finally {
             setIsSubmitting(false);
@@ -136,7 +135,7 @@ const AdjustStockModal = ({ isOpen, onClose, onSuccess, allProducts, userData })
             >
                 <div className="relative rounded-lg shadow bg-pr-dark border border-pr-gray/20">
                     <div className="flex items-center justify-between p-4 md:p-5 border-b rounded-t border-gray-600">
-                        <h3 className="text-xl font-semibold text-white">Ajustar Stock de Inventario</h3>
+                        <h3 className="text-xl font-semibold text-white">Agregar Stock a Inventario</h3>
                         <button type="button" onClick={onClose} className="end-2.5 text-gray-400 bg-transparent rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center hover:bg-gray-600 hover:text-white">
                             <svg className="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/></svg>
                         </button>
@@ -147,12 +146,12 @@ const AdjustStockModal = ({ isOpen, onClose, onSuccess, allProducts, userData })
                                 <FormInput
                                     name="searchTerm"
                                     label="Buscar Producto (Nombre o SKU)"
-                                    value={adjustStockState.searchTerm}
+                                    value={addStockState.searchTerm}
                                     onChange={handleChange}
                                     error={errors.product_id}
                                     required
                                 />
-                                {filteredSearch.length > 0 && !adjustStockState.selectedProduct && (
+                                {filteredSearch.length > 0 && !addStockState.selectedProduct && (
                                     <div className="absolute z-10 w-full mt-1 bg-pr-dark-gray border border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
                                         <ul>
                                             {filteredSearch.map(p => (
@@ -168,19 +167,18 @@ const AdjustStockModal = ({ isOpen, onClose, onSuccess, allProducts, userData })
                             <FormInput
                                 type="number"
                                 name="quantity"
-                                label="Cantidad a Ajustar (+/-)"
-                                value={adjustStockState.quantity}
+                                label="Cantidad a Agregar"
+                                value={addStockState.quantity}
                                 onChange={handleChange}
                                 error={errors.quantity}
                                 required
                             />
                             <FormInput
                                 name="reason"
-                                label="Motivo del Ajuste"
-                                value={adjustStockState.reason}
+                                label="Motivo"
+                                value={addStockState.reason}
                                 onChange={handleChange}
                                 error={errors.reason}
-                                required
                             />
                         </div>
                         <div className="flex items-center justify-end space-x-4">
@@ -195,15 +193,15 @@ const AdjustStockModal = ({ isOpen, onClose, onSuccess, allProducts, userData })
                             <button 
                                 type="submit" 
                                 disabled={isSubmitting} 
-                                className="w-auto text-pr-dark bg-pr-yellow hover:bg-yellow-400 font-bold rounded-lg text-sm px-5 py-2.5 text-center disabled:bg-yellow-700 disabled:opacity-70 flex items-center justify-center min-w-[170px]"
+                                className="w-auto text-pr-dark bg-pr-yellow hover:bg-yellow-400 font-bold rounded-lg text-sm px-5 py-2.5 text-center disabled:bg-yellow-700 disabled:opacity-70 flex items-center justify-center min-w-[150px]"
                             >
                                 {isSubmitting ? (
                                     <>
                                         <FontAwesomeIcon icon={faSpinner} className="animate-spin mr-2" />
-                                        Ajustando...
+                                        Agregando...
                                     </>
                                 ) : (
-                                    'Confirmar Ajuste'
+                                    'Agregar Stock'
                                 )}
                             </button>
                         </div>
@@ -214,4 +212,4 @@ const AdjustStockModal = ({ isOpen, onClose, onSuccess, allProducts, userData })
     );
 };
 
-export default AdjustStockModal;
+export default AddStockModal;
