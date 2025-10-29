@@ -3,6 +3,8 @@
 from rest_framework import serializers
 from django.db import transaction # Import transaction
 from django.utils import timezone
+# --- AÑADIDO: Imports para manejar errores de BD durante migraciones ---
+from django.db.utils import OperationalError, ProgrammingError
 
 # Import models from this app
 from .models import Proveedores, Compras, Detalle_Compras, Compra_MetodoPago
@@ -16,6 +18,27 @@ from Control_STOCK.models import Stocks, Historial_Stock, Productos
 # Import services
 from Auditoria.services import crear_registro
 from .services import receive_purchase_stock, adjust_stock_on_purchase_edit
+
+
+# --- AÑADIDO: Función segura para obtener el estado por defecto ---
+def get_default_estado_pendiente():
+    """
+    Obtiene el estado 'Pendiente' por defecto.
+    Maneja de forma segura el error de que la tabla no exista 
+    (lo que ocurre durante makemigrations).
+    """
+    try:
+        # Intenta obtener el estado
+        return Estados.objects.get(nombre_estado='Pendiente')
+    except Estados.DoesNotExist:
+        # La tabla existe, pero el estado 'Pendiente' no.
+        # Esto debería solucionarse con una migración de datos (data migration).
+        return None
+    except (OperationalError, ProgrammingError):
+        # ¡IMPORTANTE! La tabla 'config_pr_estados' AÚN NO EXISTE.
+        # Esto es normal durante 'makemigrations' o 'migrate'.
+        return None
+# --- FIN DE LO AÑADIDO ---
 
 
 # ==================================================================
@@ -129,20 +152,15 @@ class CompraWriteSerializer(serializers.ModelSerializer):
     detalles = DetalleCompraWriteSerializer(many=True)
     metodos_pago = CompraMetodoPagoSerializer(many=True, required=False)
 
-    # --- 1. Fetch default 'Pendiente' state ---
-    try:
-        # Ensure 'Pendiente' matches the exact name in your Estados table
-        estado_pendiente_default = Estados.objects.get(nombre_estado='Pendiente')
-    except Estados.DoesNotExist:
-        # Critical error if the default state doesn't exist. The application setup should ensure this.
-        raise RuntimeError("Default purchase state 'Pendiente' not found in database. Please configure it.")
-
-    # --- 2. Define estado_compra field with default ---
+    # --- MODIFICADO: Bloque 'try/except' eliminado ---
+    # Se reemplazó la consulta directa por una función 'default' segura.
     estado_compra = serializers.PrimaryKeyRelatedField(
         queryset=Estados.objects.all(),
-        default=estado_pendiente_default, # Apply default only on create if not provided
-        required=False # Don't require it in the input payload for creation
+        default=get_default_estado_pendiente, # <-- USA LA FUNCIÓN (sin paréntesis)
+        required=False,
+        allow_null=True # Permite que el valor sea None temporalmente
     )
+    # --- FIN DE LA MODIFICACIÓN ---
 
     # Use PrimaryKeyRelatedField for proveedor_compra when writing
     proveedor_compra = serializers.PrimaryKeyRelatedField(queryset=Proveedores.objects.all())
@@ -172,10 +190,18 @@ class CompraWriteSerializer(serializers.ModelSerializer):
         detalles_data = validated_data.pop('detalles')
         metodos_pago_data = validated_data.pop('metodos_pago', [])
 
-        # --- 3. Ensure estado_compra is set ---
-        # The 'default' on the field handles this automatically if 'estado_compra'
-        # is not present in the initial request data passed to the serializer.
-        # validated_data will contain the default state ID here.
+        # --- AÑADIDO: Verificación del estado por defecto ---
+        # Si el estado no vino en la data o la función default devolvió None
+        if 'estado_compra' not in validated_data or validated_data.get('estado_compra') is None:
+            try:
+                # Búscalo de nuevo. Ahora la DB YA DEBERÍA EXISTIR.
+                validated_data['estado_compra'] = Estados.objects.get(nombre_estado='Pendiente')
+            except Estados.DoesNotExist:
+                # Si AHORA no existe, es un error real de configuración
+                raise serializers.ValidationError({
+                    "estado_compra": "Error crítico: El estado por defecto 'Pendiente' no se encuentra en la base de datos."
+                })
+        # --- FIN DE LA VERIFICACIÓN ---
 
         compra = Compras.objects.create(**validated_data)
 
@@ -314,25 +340,25 @@ class CompraWriteSerializer(serializers.ModelSerializer):
 
         # Audit Log for Update
         try:
-             user = self.context['request'].user if 'request' in self.context else None
-             if user and user.is_authenticated:
-                 crear_registro(
-                     usuario=user,
-                     accion='COMPRA_UPDATE',
-                     detalles={
-                         'compra_id': instance.id_compra,
-                         'proveedor_id': instance.proveedor_compra_id,
-                         'total': str(instance.total_compra),
-                         'estado_anterior_id': original_estado.id_estado if original_estado else None,
-                         'estado_anterior_nombre': original_estado.nombre_estado if original_estado else None,
-                         'estado_nuevo_id': instance.estado_compra_id,
-                         'estado_nuevo_nombre': instance.estado_compra.nombre_estado if instance.estado_compra else None,
-                         'items_count': instance.detalles.count(),
-                         # Include details if needed, similar to create log
-                     }
-                 )
+            user = self.context['request'].user if 'request' in self.context else None
+            if user and user.is_authenticated:
+                crear_registro(
+                    usuario=user,
+                    accion='COMPRA_UPDATE',
+                    detalles={
+                        'compra_id': instance.id_compra,
+                        'proveedor_id': instance.proveedor_compra_id,
+                        'total': str(instance.total_compra),
+                        'estado_anterior_id': original_estado.id_estado if original_estado else None,
+                        'estado_anterior_nombre': original_estado.nombre_estado if original_estado else None,
+                        'estado_nuevo_id': instance.estado_compra_id,
+                        'estado_nuevo_nombre': instance.estado_compra.nombre_estado if instance.estado_compra else None,
+                        'items_count': instance.detalles.count(),
+                        # Include details if needed, similar to create log
+                    }
+                )
         except Exception as e:
-             print(f"Error creating audit log for updated purchase {instance.id_compra}: {e}")
+            print(f"Error creating audit log for updated purchase {instance.id_compra}: {e}")
 
         # Refresh instance from DB before returning to ensure all updates reflected
         instance.refresh_from_db()

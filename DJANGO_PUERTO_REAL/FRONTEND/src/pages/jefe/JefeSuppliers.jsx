@@ -23,7 +23,7 @@ import useDebounce from '../../hooks/useDebounce'; // Ensure path is correct
 import NewProviderModal from '../../components/Modals/NewProviderModal';
 import EditProviderModal from '../../components/Modals/EditProviderModal';
 import ConfirmDeleteModal from '../../components/Modals/ConfirmDeleteModal';
-import NewOrdenCompraModal from '../../components/Modals/NewOrdenCompraModal'; // <-- Modal for new order
+import NewOrdenCompraModal from '../../components/Modals/NewOrdenCompraModal';
 
 // --- HELPER COMPONENT: SORT INDICATOR ---
 const SortIndicator = ({ direction }) => {
@@ -75,6 +75,7 @@ const JefeSuppliers = () => {
     const [sortConfig, setSortConfig] = useState({ key: 'nombre_proveedor', direction: 'ascending' });
     const [supplierStates, setSupplierStates] = useState([]);
     const [selectedStatus, setSelectedStatus] = useState('');
+    const [isNewProviderModalOpen, setIsNewProviderModalOpen] = useState(false);
     const [showNewProviderModal, setShowNewProviderModal] = useState(false);
     const [showEditProviderModal, setShowEditProviderModal] = useState(false);
     const [editingProvider, setEditingProvider] = useState(null);
@@ -185,6 +186,9 @@ const JefeSuppliers = () => {
 
     // --- MODAL & ACTION HANDLERS ---
     // Suppliers
+    const handleAddProvider = () => {
+        setIsNewProviderModalOpen(true);
+    };
     const handleSupplierSuccess = () => { fetchSuppliersAndStates(); setShowNewProviderModal(false); setShowEditProviderModal(false); };
     const handleEditClick = (provider) => { setEditingProvider(provider); setShowEditProviderModal(true); };
     const handleDeleteRequest = (provider) => { setProviderToDelete(provider); };
@@ -271,6 +275,13 @@ const JefeSuppliers = () => {
                             </option>
                         ))}
                     </select>
+                    <button
+                        onClick={handleAddProvider}
+                        className="bg-pr-yellow text-pr-dark font-bold py-2 px-4 rounded-lg hover:bg-opacity-80 transition-colors flex items-center shrink-0 ml-4" // Añadido shrink-0 y ml-4
+                    >
+                        <FontAwesomeIcon icon={faPlus} className="mr-2" />
+                        Añadir Proveedor
+                    </button>
                 </div>
 
                 {/* Suppliers Table */}
@@ -359,9 +370,6 @@ const JefeSuppliers = () => {
              <div>
                  {/* Button New Order & Search */}
                  <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
-                       <button onClick={() => setShowNewOrderModal(true)} className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-sm px-5 py-2.5 text-center flex items-center justify-center gap-2">
-                            <FontAwesomeIcon icon={faFileInvoiceDollar} className="mr-2" /> Nueva Orden
-                       </button>
                        <div className="relative w-full sm:w-1/2 mt-4 sm:mt-0">
                            <input
                                 value={searchTermOrders}
@@ -371,6 +379,9 @@ const JefeSuppliers = () => {
                            />
                             <FontAwesomeIcon icon={faSearch} className="absolute left-3 top-1/2 -translate-y-1/2 text-pr-gray"/>
                        </div>
+                       <button onClick={() => setShowNewOrderModal(true)} className="bg-pr-yellow text-pr-dark font-bold py-2 px-4 rounded-lg hover:bg-opacity-80 transition-colors flex items-center shrink-0 ml-4">
+                            <FontAwesomeIcon icon={faFileInvoiceDollar} className="mr-2" /> Nueva Orden
+                       </button>
                  </div>
                  {/* Orders Table */}
                  {filteredOrders.length > 0 ? (
@@ -451,10 +462,27 @@ const JefeSuppliers = () => {
 
 
             {/* --- Modals --- */}
-            <NewProviderModal isOpen={showNewProviderModal} onClose={() => setShowNewProviderModal(false)} onSuccess={handleSupplierSuccess} supplierStates={supplierStates} />
-            <EditProviderModal isOpen={showEditProviderModal} onClose={() => setShowEditProviderModal(false)} onSuccess={handleSupplierSuccess} provider={editingProvider} supplierStates={supplierStates} />
-            <ConfirmDeleteModal isOpen={!!providerToDelete} onClose={() => setProviderToDelete(null)} onConfirm={handleConfirmDeleteSupplier} itemName={providerToDelete?.nombre_proveedor} itemType="proveedor"/>
-            <NewOrdenCompraModal isOpen={showNewOrderModal} onClose={() => setShowNewOrderModal(false)} onSuccess={handleOrderSuccess} suppliers={providers} />
+            <NewProviderModal 
+            isOpen={showNewProviderModal} onClose={() => setShowNewProviderModal(false)} 
+            onSuccess={handleSupplierSuccess} 
+            supplierStates={supplierStates} 
+            />
+            <EditProviderModal 
+            isOpen={showEditProviderModal} onClose={() => setShowEditProviderModal(false)} 
+            onSuccess={handleSupplierSuccess} 
+            provider={editingProvider} 
+            supplierStates={supplierStates} 
+            />
+            <ConfirmDeleteModal 
+            isOpen={!!providerToDelete} 
+            onClose={() => setProviderToDelete(null)} 
+            onConfirm={handleConfirmDeleteSupplier} itemName={providerToDelete?.nombre_proveedor} itemType="proveedor"
+            />
+            <NewOrdenCompraModal 
+            isOpen={showNewOrderModal} 
+            onClose={() => setShowNewOrderModal(false)} onSuccess={handleOrderSuccess} 
+            suppliers={providers} 
+            />
         </>
     );
 };
