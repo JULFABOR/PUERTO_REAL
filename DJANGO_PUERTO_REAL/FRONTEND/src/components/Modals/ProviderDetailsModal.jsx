@@ -44,7 +44,7 @@ const ProviderDetailsModal = ({ isOpen, onClose, provider }) => {
     if (!isOpen || !provider) return null;
 
     // Lógica del estado (basada en tu código original)
-    const isActivo = provider.estado_proveedor === 7;
+const isActivo = provider.estado_proveedor.id_estado == 7;
 
     return (
         <div
@@ -106,7 +106,7 @@ const ProviderDetailsModal = ({ isOpen, onClose, provider }) => {
                                 )}
                             </DetailItem>
                             
-                            <DetailItem icon={isActivo ? faCircle : faCircle} label="Estado">
+                            <DetailItem icon={faCircle} label="Estado">
                                 <StatusBadge isActivo={isActivo} />
                             </DetailItem>
                         </dl>

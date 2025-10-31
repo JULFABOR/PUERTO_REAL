@@ -160,6 +160,7 @@ class CompraWriteSerializer(serializers.ModelSerializer):
         required=False,
         allow_null=True # Permite que el valor sea None temporalmente
     )
+    
     # --- FIN DE LA MODIFICACIÓN ---
 
     # Use PrimaryKeyRelatedField for proveedor_compra when writing

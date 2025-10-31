@@ -6,20 +6,43 @@ import {
     faPlus,
     faSpinner,
     faExclamationTriangle,
-    faInbox
+    faInbox,
+    faSort,         // --- AÑADIDO ---
+    faSortUp,       // --- AÑADIDO ---
+    faSortDown,     // --- AÑADIDO ---
+    faCircle,       // --- AÑADIDO ---
+    faEye           // --- AÑADIDO ---
 } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-hot-toast';
 import apiClient from '@/api/apiClient';
 import useDebounce from '../../hooks/useDebounce'; // Asegúrate que la ruta sea correcta
 
-// --- Importa los modales ---
-import AddStockModal from '../../components/modals/AddStockModal'; // Asumiendo que está en la misma carpeta ahora
-import AdjustStockModal from '../../components/modals/AdjustStockModal'; // Asumiendo que está en la misma carpeta ahora
+// --- Modales ---
+import AddStockModal from '../../components/modals/AddStockModal'; 
+import AdjustStockModal from '../../components/modals/AdjustStockModal';
+import StockHistoryModal from '../../components/Modals/StockHistoryModal';
+
+// --- AÑADIDO: HELPER COMPONENT SORT INDICATOR ---
+const SortIndicator = ({ direction }) => {
+    if (!direction) return <FontAwesomeIcon icon={faSort} className="ml-1 text-gray-600 opacity-50" />;
+    return direction === 'ascending'
+        ? <FontAwesomeIcon icon={faSortUp} className="ml-1" />
+        : <FontAwesomeIcon icon={faSortDown} className="ml-1" />;
+};
+
+// --- AÑADIDO: HELPER COMPONENT STATUS BADGE ---
+// Este componente está diseñado para usar el objeto de getStatus
+const StatusBadge = ({ status }) => (
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${status.className} whitespace-nowrap`}>
+        <FontAwesomeIcon icon={faCircle} className="w-2 h-2 mr-1.5" />
+        {status.text}
+    </span>
+);
 
 // --- FUNCIÓN getStatus ---
+// (Esta función ya la tenías y es perfecta)
 const getStatus = (product) => {
     const stock = product.total_stock || 0;
-    // Usamos un valor por defecto seguro para low_stock_threshold si no existe
     const lowStockThreshold = product.low_stock_threshold || 10;
     if (stock === 0) return { text: 'Sin Stock', className: 'bg-red-600/20 text-red-300', value: 'out' };
     if (stock > 0 && stock <= lowStockThreshold) return { text: 'Stock Bajo', className: 'bg-yellow-600/20 text-yellow-300', value: 'low' };
@@ -28,8 +51,8 @@ const getStatus = (product) => {
 
 const JefeControlStock = () => {
     // --- ESTADOS ---
-    const [products, setProducts] = useState([]); // Productos para la tabla (puede ser paginado/filtrado por API)
-    const [allProducts, setAllProducts] = useState([]); // Todos los productos para stats y modales
+    const [products, setProducts] = useState([]); 
+    const [allProducts, setAllProducts] = useState([]); 
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -38,12 +61,18 @@ const JefeControlStock = () => {
     // Estados para modales
     const [showAddStockModal, setShowAddStockModal] = useState(false);
     const [showAdjustStockModal, setShowAdjustStockModal] = useState(false);
+    // --- AÑADIDO: Estado para modal de historial ---
+    const [showHistoryModal, setShowHistoryModal] = useState(false);
+    const [selectedProductForHistory, setSelectedProductForHistory] = useState(null);
 
     // Estados para filtros y búsqueda
     const [tableSearchTerm, setTableSearchTerm] = useState('');
     const [tableSelectedCategory, setTableSelectedCategory] = useState('');
-    const [tableSelectedStatus, setTableSelectedStatus] = useState(''); // Filtro frontend
-    const debouncedSearchTerm = useDebounce(tableSearchTerm, 500); // Búsqueda backend
+    const [tableSelectedStatus, setTableSelectedStatus] = useState(''); 
+    const debouncedSearchTerm = useDebounce(tableSearchTerm, 500); 
+
+    // --- AÑADIDO: Estado para Ordenamiento ---
+    const [sortConfig, setSortConfig] = useState({ key: 'nombre_producto', direction: 'ascending' });
 
     // Estado para el modal AddStock
     const initialAddStockState = { searchTerm: '', selectedProduct: null, quantity: '', reason: 'Compra a proveedor' };
@@ -52,48 +81,36 @@ const JefeControlStock = () => {
 
     // --- LÓGICA DE DATOS ---
     const fetchData = useCallback(async () => {
-        // Solo muestra spinner en la carga inicial
         setError(null);
         try {
-             // Parámetros para la API (búsqueda y categoría)
              const params = new URLSearchParams();
              if (debouncedSearchTerm) params.append('search', debouncedSearchTerm);
              if (tableSelectedCategory) params.append('categoria_producto', tableSelectedCategory);
 
-            // Peticiones en paralelo
             const [productsData, categoriesData] = await Promise.all([
                 apiClient(`/api/stock/productos/?${params.toString()}`),
                 apiClient('/api/stock/categorias/')
             ]);
 
-            // Procesamiento de productos
-            // Asumimos que la API puede devolver paginación ({results: [], count: X}) o una lista simple ([])
-            let productList = [];
-            if (productsData && Array.isArray(productsData.results)) {
+             let productList = [];
+             if (productsData && Array.isArray(productsData.results)) {
                  productList = productsData.results;
-                 // TODO: Si tu API devuelve paginación, necesitarás usar `productsData.count`
-                 // y lógica de paginación aquí si quieres mostrarla.
-            } else if (productsData && Array.isArray(productsData)) {
+             } else if (productsData && Array.isArray(productsData)) {
                  productList = productsData;
-            }
-            setProducts(productList); // Para la tabla
-            // Necesitamos *todos* los productos para las stats si la API está paginada
-            // Si la API NO pagina con filtros, podemos usar productList directamente
-            // Si SÍ pagina, necesitaríamos otra llamada sin paginación para las stats,
-            // o calcularlas en el backend. Por ahora, asumimos que `products` tiene todo.
-            setAllProducts(productList); // Para stats y modales
+             }
+             setProducts(productList); 
+             setAllProducts(productList); // Asumiendo que esto es correcto por ahora
 
-            // Procesamiento de categorías
             setCategories(categoriesData.results || categoriesData || []);
 
         } catch (err) {
-            console.error("Fetch Error:", err); // Log detallado del error
+            console.error("Fetch Error:", err); 
             toast.error("Error al cargar los datos. Revisa la consola.");
             setError(err.message || 'Error desconocido');
         } finally {
             setLoading(false);
         }
-    }, [debouncedSearchTerm, tableSelectedCategory]); // Dependencias del fetch
+    }, [debouncedSearchTerm, tableSelectedCategory]); 
 
     // Efecto para cargar datos iniciales y cuando cambian los filtros de backend
     useEffect(() => {
@@ -108,11 +125,21 @@ const JefeControlStock = () => {
         }
     }, []);
 
+    // --- AÑADIDO: Función de Ordenamiento ---
+    const requestSort = (key) => {
+        let direction = 'ascending';
+        if (sortConfig.key === key && sortConfig.direction === 'ascending') {
+            direction = 'descending';
+        }
+        setSortConfig({ key, direction });
+    };
+
     // --- MANEJO DE MODALES ---
     const handleSuccess = () => {
         setShowAddStockModal(false);
         setShowAdjustStockModal(false);
-        fetchData(); // Refresca los datos después de una operación exitosa
+        setShowHistoryModal(false); // <-- AÑADIDO
+        fetchData(); // Refresca los datos
     };
 
     const openAddStockModal = (product) => {
@@ -120,19 +147,26 @@ const JefeControlStock = () => {
             setAddStockState({
                 ...initialAddStockState,
                 selectedProduct: product,
-                searchTerm: `${product.nombre_producto} (SKU: ${product.barcode || 'N/A'})`, // Muestra SKU si existe
+                searchTerm: `${product.nombre_producto} (SKU: ${product.barcode || 'N/A'})`,
             });
         } else {
-            setAddStockState(initialAddStockState); // Abre modal vacío
+            setAddStockState(initialAddStockState);
         }
         setShowAddStockModal(true);
+    };
+
+    // --- AÑADIDO: Handler para modal de historial ---
+    const openHistoryModal = (product) => {
+        setSelectedProductForHistory(product);
+        setShowHistoryModal(true);
     };
 
     // --- LÓGICA AUXILIAR ---
 
     // Cálculo de Estadísticas
     const stats = useMemo(() => {
-        const productList = allProducts; // Usa la lista completa
+        // ... (tu lógica de stats existente, está bien)
+        const productList = allProducts; 
         const inventoryValue = productList.reduce((acc, p) => acc + ((p.precio_unitario_venta_producto || 0) * (p.total_stock || 0)), 0);
         const uniqueProducts = productList.length;
         const lowStockAlerts = productList.filter(p => getStatus(p).value === 'low').length;
@@ -140,19 +174,51 @@ const JefeControlStock = () => {
         return { inventoryValue, uniqueProducts, lowStockAlerts, outOfStockProducts };
     }, [allProducts]);
 
-     // Filtrado Frontend (solo por estado, ya que backend maneja search/cat)
-     const tableFilteredProducts = useMemo(() => {
-         return products.filter(p => {
-             const statusMatch = !tableSelectedStatus || getStatus(p).value === tableSelectedStatus;
-             return statusMatch;
-         });
-     }, [products, tableSelectedStatus]);
+    // --- MODIFICADO: Filtrado Frontend ahora incluye Ordenamiento ---
+    const tableFilteredProducts = useMemo(() => {
+        // 1. Filtrado (como ya lo tenías)
+        let filtered = products.filter(p => {
+            const statusMatch = !tableSelectedStatus || getStatus(p).value === tableSelectedStatus;
+            return statusMatch;
+        });
+        
+        // 2. Ordenamiento (Nuevo)
+        if (sortConfig.key) {
+           filtered.sort((a, b) => {
+                let aValue = a[sortConfig.key];
+                let bValue = b[sortConfig.key];
+                
+                // Manejo de valores anidados (como categoría)
+                if (sortConfig.key === 'categoria_producto') {
+                    aValue = a.categoria_producto?.nombre_categoria || '';
+                    bValue = b.categoria_producto?.nombre_categoria || '';
+                }
+                // Manejo de valores numéricos (como stock o precio)
+                if (['precio_unitario_venta_producto', 'total_stock'].includes(sortConfig.key)) {
+                    aValue = aValue || 0;
+                    bValue = bValue || 0;
+                    return sortConfig.direction === 'ascending' ? aValue - bValue : bValue - aValue;
+                }
+                // Manejo de estado
+                if (sortConfig.key === 'estado') {
+                    aValue = getStatus(a).text;
+                    bValue = getStatus(b).text;
+                }
+
+                // Comparación de texto
+                const comparison = (aValue || '').toString().localeCompare((bValue || '').toString(), undefined, { numeric: true, sensitivity: 'base' });
+                return sortConfig.direction === 'ascending' ? comparison : -comparison;
+            });
+        }
+
+        return filtered;
+    }, [products, tableSelectedStatus, sortConfig]); // <-- Añadir sortConfig
 
     // Formateo de moneda
     const formatCurrency = (value) => `$${(value || 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
     // --- RENDERIZADO ---
-    if (loading && products.length === 0) { // Muestra spinner solo en carga inicial
+    if (loading && products.length === 0) { 
         return (
             <div className="flex justify-center items-center h-64 text-pr-yellow">
                 <FontAwesomeIcon icon={faSpinner} className="animate-spin text-4xl" />
@@ -161,7 +227,7 @@ const JefeControlStock = () => {
     }
 
     if (error) {
-         return (
+       return (
              <div className="bg-red-900/20 border border-red-500 text-red-300 px-4 py-3 rounded-lg flex items-center" role="alert">
                  <FontAwesomeIcon icon={faExclamationTriangle} className="mr-3 text-red-400" />
                  <div>
@@ -169,15 +235,16 @@ const JefeControlStock = () => {
                      <span className="block sm:inline ml-2">{error}</span>
                  </div>
              </div>
-         );
+       );
     }
 
     return (
         <>
             {/* --- CABECERA --- */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
-                 <h1 className="text-3xl font-bold text-white mb-4 sm:mb-0">Gestión de Inventario</h1>
-                 <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            {/* ... (Tu cabecera con botones está bien) ... */}
+             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+                <h1 className="text-3xl font-bold text-white mb-4 sm:mb-0">Gestión de Inventario</h1>
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                     <button
                         onClick={() => openAddStockModal(null)}
                         className="w-full sm:w-auto text-pr-dark bg-pr-yellow hover:bg-yellow-400 font-bold rounded-lg text-sm px-5 py-2.5 text-center flex items-center justify-center gap-2 transition-colors"
@@ -192,8 +259,8 @@ const JefeControlStock = () => {
                         <FontAwesomeIcon icon={faExchangeAlt} />
                         <span>Ajustar Stock</span>
                     </button>
-                 </div>
-            </div>
+                </div>
+             </div>
 
             {/* --- TARJETAS DE ESTADÍSTICAS --- */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -248,17 +315,44 @@ const JefeControlStock = () => {
             {/* --- Tabla de Productos --- */}
             <div className="relative overflow-x-auto shadow-md rounded-lg border border-gray-700">
                 <table className="w-full text-sm text-left text-gray-400">
+                    
+                    {/* --- MODIFICADO: Encabezado de Tabla con Ordenamiento --- */}
                     <thead className="text-xs text-white uppercase bg-pr-dark border-b border-gray-700">
-                         <tr>
-                            <th scope="col" className="px-6 py-3">SKU</th>
-                            <th scope="col" className="px-6 py-3">Producto</th>
-                            <th scope="col" className="px-6 py-3">Categoría</th>
-                            <th scope="col" className="px-6 py-3">Precio Venta</th>
-                            <th scope="col" className="px-6 py-3">Stock Total</th>
-                            <th scope="col" className="px-6 py-3">Estado</th>
+                        <tr>
+                            <th scope="col" className="px-6 py-3 cursor-pointer hover:bg-gray-700" onClick={() => requestSort('barcode')}>
+                                <div className="flex items-center">
+                                    SKU <SortIndicator direction={sortConfig.key === 'barcode' ? sortConfig.direction : null} />
+                                </div>
+                            </th>
+                            <th scope="col" className="px-6 py-3 cursor-pointer hover:bg-gray-700" onClick={() => requestSort('nombre_producto')}>
+                                <div className="flex items-center">
+                                    Producto <SortIndicator direction={sortConfig.key === 'nombre_producto' ? sortConfig.direction : null} />
+                                </div>
+                            </th>
+                            <th scope="col" className="px-6 py-3 cursor-pointer hover:bg-gray-700" onClick={() => requestSort('categoria_producto')}>
+                                <div className="flex items-center">
+                                    Categoría <SortIndicator direction={sortConfig.key === 'categoria_producto' ? sortConfig.direction : null} />
+                                </div>
+                            </th>
+                            <th scope="col" className="px-6 py-3 cursor-pointer hover:bg-gray-700" onClick={() => requestSort('precio_unitario_venta_producto')}>
+                                <div className="flex items-center">
+                                    Precio Venta <SortIndicator direction={sortConfig.key === 'precio_unitario_venta_producto' ? sortConfig.direction : null} />
+                                </div>
+                            </th>
+                            <th scope="col" className="px-6 py-3 cursor-pointer hover:bg-gray-700" onClick={() => requestSort('total_stock')}>
+                                <div className="flex items-center">
+                                    Stock Total <SortIndicator direction={sortConfig.key === 'total_stock' ? sortConfig.direction : null} />
+                                </div>
+                            </th>
+                            <th scope="col" className="px-6 py-3 cursor-pointer hover:bg-gray-700" onClick={() => requestSort('estado')}>
+                                <div className="flex items-center">
+                                    Estado <SortIndicator direction={sortConfig.key === 'estado' ? sortConfig.direction : null} />
+                                </div>
+                            </th>
                             <th scope="col" className="px-6 py-3"><span className="sr-only">Acciones</span></th>
                         </tr>
                     </thead>
+                    
                     <tbody>
                         {tableFilteredProducts.length > 0 ? (
                             tableFilteredProducts.map((product) => {
@@ -270,41 +364,54 @@ const JefeControlStock = () => {
                                         <td className="px-6 py-4 text-gray-300">{product.categoria_producto?.nombre_categoria || 'Sin Cat.'}</td>
                                         <td className="px-6 py-4 font-medium text-white">{formatCurrency(product.precio_unitario_venta_producto)}</td>
                                         <td className={`px-6 py-4 font-bold ${status.value === 'low' ? 'text-yellow-400' : status.value === 'out' ? 'text-red-500' : 'text-white'}`}>{product.total_stock || 0}</td>
-                                        <td className="px-6 py-4"><span className={`text-xs font-medium me-2 px-2.5 py-0.5 rounded ${status.className}`}>{status.text}</span></td>
+                                        
+                                        {/* --- MODIFICADO: Usando StatusBadge --- */}
+                                        <td className="px-6 py-4"><StatusBadge status={status} /></td>
+                                        
+                                        {/* --- MODIFICADO: Columna de Acciones --- */}
                                         <td className="px-6 py-4 text-right">
-                                            <button
-                                                onClick={() => openAddStockModal(product)}
-                                                className="p-2 w-9 h-9 flex items-center justify-center bg-pr-dark rounded-lg text-pr-yellow hover:bg-gray-700 transition-colors"
-                                                title="Agregar stock a este producto"
-                                            >
-                                                <FontAwesomeIcon icon={faPlus} />
-                                            </button>
+                                            <div className="flex items-center justify-end space-x-2">
+                                                {/* Botón "Ver Historial" */}
+                                                <button
+                                                    onClick={() => openHistoryModal(product)}
+                                                    className="p-2 w-9 h-9 flex items-center justify-center bg-pr-gray/10 text-cyan-400 rounded-lg hover:bg-cyan-400 hover:text-pr-dark transition-colors"
+                                                    title="Ver historial de stock"
+                                                >
+                                                    <FontAwesomeIcon icon={faEye} />
+                                                </button>
+                                                
+                                                {/* Botón "Agregar Stock" */}
+                                                <button
+                                                    onClick={() => openAddStockModal(product)}
+                                                    className="p-2 w-9 h-9 flex items-center justify-center bg-pr-gray/10 text-pr-yellow rounded-lg hover:bg-pr-yellow hover:text-pr-dark transition-colors"
+                                                    title="Agregar stock a este producto"
+                                                >
+                                                    <FontAwesomeIcon icon={faPlus} />
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 );
                             })
                         ) : (
                              <tr>
-                                <td colSpan="7" className="text-center p-12 text-pr-gray">
-                                    <FontAwesomeIcon icon={faInbox} className="text-4xl text-pr-gray/50 mb-4" />
-                                    <p className="font-bold text-white text-lg">No se encontraron productos</p>
-                                    <p className="text-sm">Intenta con otros filtros.</p>
-                                </td>
-                            </tr>
+                                 <td colSpan="7" className="text-center p-12 text-pr-gray">
+                                     <FontAwesomeIcon icon={faInbox} className="text-4xl text-pr-gray/50 mb-4" />
+                                     <p className="font-bold text-white text-lg">No se encontraron productos</p>
+                                     <p className="text-sm">Intenta con otros filtros.</p>
+                                 </td>
+                             </tr>
                         )}
                     </tbody>
                 </table>
             </div>
 
-            {/* --- Modales --- */}
-            {/* Asegúrate que las props userData y allProducts se pasen correctamente */}
             <AddStockModal
                 isOpen={showAddStockModal}
                 onClose={() => setShowAddStockModal(false)}
                 onSuccess={handleSuccess}
                 allProducts={allProducts}
                 userData={userData}
-                // Pasamos el estado local para que el modal lo use
                 initialState={addStockState}
                 setInitialState={setAddStockState}
             />
@@ -316,6 +423,13 @@ const JefeControlStock = () => {
                 allProducts={allProducts}
                 userData={userData}
             />
+
+            <StockHistoryModal
+                isOpen={showHistoryModal}
+                onClose={() => setShowHistoryModal(false)}
+                product={selectedProductForHistory}
+            /> 
+            
         </>
     );
 };

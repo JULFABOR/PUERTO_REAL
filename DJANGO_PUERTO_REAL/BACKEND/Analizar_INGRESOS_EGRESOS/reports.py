@@ -153,10 +153,38 @@ def generate_financial_report(start_date, end_date):
     if not operational_df.empty:
         operational_df['day'] = pd.to_datetime(operational_df['day'])
         operational_df = operational_df.set_index('day')
-
+    
+    # Concatenar los DataFrames
     financial_data = pd.concat([income_df, purchase_df, operational_df], axis=1).fillna(0)
-    financial_data['total_expenses'] = financial_data['purchase_expenses'] + financial_data['operational_expenses_caja']
-    financial_data['net_income'] = financial_data['income'] - financial_data['total_expenses']
+
+    print("Columnas disponibles:", financial_data.columns) # (Puedes borrar esta línea de debug si quieres)
+    
+    # Comprueba si la columna 'purchase_expenses' existe, si no, usa 0
+    if 'purchase_expenses' in financial_data:
+        gastos_compra = financial_data['purchase_expenses']
+    else:
+        gastos_compra = 0
+
+    # Comprueba si la columna 'operational_expenses_caja' existe, si no, usa 0
+    if 'operational_expenses_caja' in financial_data:
+        gastos_caja = financial_data['operational_expenses_caja']
+    else:
+        gastos_caja = 0
+
+    # Ahora la suma es segura
+    financial_data['total_expenses'] = gastos_compra + gastos_caja
+    
+    # --- INICIO DE LA CORRECCIÓN ---
+    # Añade la misma comprobación para 'income'
+    if 'income' in financial_data:
+        ingresos = financial_data['income']
+    else:
+        ingresos = 0
+
+    # Ahora el cálculo de 'net_income' es seguro
+    financial_data['net_income'] = ingresos - financial_data['total_expenses']
+    # --- FIN DE LA CORRECCIÓN ---
+    
     time_series_data = financial_data.reset_index().rename(columns={'index': 'date'}).to_dict(orient='records')
 
     return {

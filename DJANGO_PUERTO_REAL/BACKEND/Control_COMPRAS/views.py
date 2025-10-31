@@ -133,3 +133,23 @@ class EstadoProveedorListAPIView(generics.ListAPIView):
     serializer_class = EstadoSerializer # Use the correct serializer for Estados
     permission_classes = [IsAuthenticated] # Adjust permissions as needed
     pagination_class = None # Return all relevant states in one list
+
+class EstadoCompraListAPIView(generics.ListAPIView):
+    """
+    Vista API para listar todos los posibles estados de una compra
+    (ej: Pendiente, Recibida, Cancelada).
+    """
+    # Esto re-utiliza tu modelo genérico 'Estados' de la app Config_PR
+    nombres_necesarios = [
+        'PENDIENTE', 
+        'RECIBIDA', 
+        'CANCELADA'
+    ]
+    queryset = Estados.objects.filter(nombre_estado__in=nombres_necesarios)
+    
+    # Esto re-utiliza el serializer que ya importaste
+    # (EstadoSimpleSerializer as EstadoSerializer)
+    serializer_class = EstadoSerializer
+    
+    permission_classes = [IsAuthenticated]
+    pagination_class = None # Devuelve todos los estados en una sola lista

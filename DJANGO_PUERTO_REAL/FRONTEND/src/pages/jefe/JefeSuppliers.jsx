@@ -11,19 +11,21 @@ import {
     faSort,
     faSortUp,
     faSortDown,
-    faCircle, // Needed for StatusBadge
-    faFileInvoiceDollar, // Icon for Orders button
-    faCheck              // Icon for Mark as Received button
+    faCircle,
+    faFileInvoiceDollar,
+    faEye 
 } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-hot-toast';
-import apiClient from '@/api/apiClient'; // Ensure path is correct
-import useDebounce from '../../hooks/useDebounce'; // Ensure path is correct
+import apiClient from '@/api/apiClient'; 
+import useDebounce from '../../hooks/useDebounce'; 
 
-// --- Modals --- (Ensure paths are correct)
+// --- Modals --- 
 import NewProviderModal from '../../components/Modals/NewProviderModal';
 import EditProviderModal from '../../components/Modals/EditProviderModal';
 import ConfirmDeleteModal from '../../components/Modals/ConfirmDeleteModal';
 import NewOrdenCompraModal from '../../components/Modals/NewOrdenCompraModal';
+import OrderDetailsModal from '../../components/Modals/OrderDetailsModal'; 
+import EditOrderModal from '../../components/Modals/EditOrderModal';
 
 // --- HELPER COMPONENT: SORT INDICATOR ---
 const SortIndicator = ({ direction }) => {
@@ -50,7 +52,6 @@ const StatusBadge = ({ estado }) => {
         bgColor = 'bg-red-600/20';
         textColor = 'text-red-300';
     }
-    // Add more 'else if' for other states if needed
 
     return (
         <span
@@ -75,7 +76,6 @@ const JefeSuppliers = () => {
     const [sortConfig, setSortConfig] = useState({ key: 'nombre_proveedor', direction: 'ascending' });
     const [supplierStates, setSupplierStates] = useState([]);
     const [selectedStatus, setSelectedStatus] = useState('');
-    const [isNewProviderModalOpen, setIsNewProviderModalOpen] = useState(false);
     const [showNewProviderModal, setShowNewProviderModal] = useState(false);
     const [showEditProviderModal, setShowEditProviderModal] = useState(false);
     const [editingProvider, setEditingProvider] = useState(null);
@@ -87,26 +87,37 @@ const JefeSuppliers = () => {
     const [orderError, setOrderError] = useState(null);
     const [searchTermOrders, setSearchTermOrders] = useState('');
     const [showNewOrderModal, setShowNewOrderModal] = useState(false);
+    const [orderToView, setOrderToView] = useState(null);
+    const [orderToEdit, setOrderToEdit] = useState(null);
+    const [orderStates, setOrderStates] = useState([]);
     const debouncedSearchTermOrders = useDebounce(searchTermOrders, 300);
+
+    // --- MEJORA: Estado de ordenamiento para Órdenes ---
+    const [sortConfigOrders, setSortConfigOrders] = useState({ key: 'fecha_compra', direction: 'descending' });
+
 
     // --- DATA FETCHING ---
     const fetchSuppliersAndStates = useCallback(async () => {
-        setLoadingSuppliers(true); // Siempre poner loading al iniciar
+        setLoadingSuppliers(true);
         setSupplierError(null);
         try {
-            const [suppliersData, statesData] = await Promise.all([
+            // --- MODIFICADO: Añadimos la 3ra llamada ---
+            const [suppliersData, supStatesData, ordStatesData] = await Promise.all([
                 apiClient('/api/compras/proveedores/'),
-                apiClient('/api/compras/estados-proveedor/')
+                apiClient('/api/compras/estados-proveedor/'),
+                apiClient('/api/compras/estados_compra/') // <-- ¡NUEVA API CALL!
             ]);
             setProviders(suppliersData || []);
-            setSupplierStates(statesData || []);
+            setSupplierStates(supStatesData || []);
+            setOrderStates(ordStatesData || []); // <-- ¡NUEVO ESTADO!
         } catch (err) {
             setSupplierError(err.message || 'Error desconocido al cargar datos.');
             toast.error("No se pudieron cargar proveedores o estados.");
             setProviders([]);
             setSupplierStates([]);
+            setOrderStates([]); // <-- Limpia en caso de error
         } finally {
-            setLoadingSuppliers(false); // Siempre quitar loading al final
+            setLoadingSuppliers(false);
         }
     }, []);
 
@@ -135,14 +146,13 @@ const JefeSuppliers = () => {
 
     useEffect(() => {
         if (viewMode === 'orders') {
-            fetchOrders(); // Load orders when switching or searching
+            fetchOrders(); 
         }
-    }, [viewMode, fetchOrders]); // fetchOrders depends on debouncedSearchTermOrders
+    }, [viewMode, fetchOrders]); 
 
     // --- FILTERING & SORTING ---
     const sortedAndFilteredSuppliers = useMemo(() => {
         let filtered = [...providers];
-        // 1. Filter by Search Term
         if (searchTermSuppliers) {
             const lowerSearch = searchTermSuppliers.toLowerCase();
             filtered = filtered.filter(supplier =>
@@ -153,13 +163,11 @@ const JefeSuppliers = () => {
                 (supplier.telefono_proveedor && supplier.telefono_proveedor.includes(lowerSearch))
             );
         }
-        // 2. Filter by Status
         if (selectedStatus) {
             filtered = filtered.filter(p => p.estado_proveedor?.id_estado == selectedStatus);
         }
-        // 3. Sorting
         if (sortConfig.key) {
-           filtered.sort((a, b) => {
+        filtered.sort((a, b) => {
                 let aValue = sortConfig.key === 'estado_proveedor' ? (a.estado_proveedor?.nombre_estado || '') : (a[sortConfig.key] || '');
                 let bValue = sortConfig.key === 'estado_proveedor' ? (b.estado_proveedor?.nombre_estado || '') : (b[sortConfig.key] || '');
                 const comparison = aValue.toString().localeCompare(bValue.toString(), undefined, { numeric: true, sensitivity: 'base' });
@@ -169,10 +177,42 @@ const JefeSuppliers = () => {
         return filtered;
     }, [providers, searchTermSuppliers, sortConfig, selectedStatus]);
 
+    // --- MEJORA: Lógica de ordenamiento para Órdenes ---
     const filteredOrders = useMemo(() => {
-        // Assuming backend handles search, potentially add frontend filters later if needed
-        return orders;
-    }, [orders]);
+        let sortedOrders = [...orders]; 
+        
+        if (sortConfigOrders.key) {
+            sortedOrders.sort((a, b) => {
+                let aValue = a[sortConfigOrders.key];
+                let bValue = b[sortConfigOrders.key];
+
+                // Manejo especial para objetos anidados (como proveedor o estado)
+                if (sortConfigOrders.key === 'proveedor_compra') {
+                    aValue = a.proveedor_compra?.nombre_proveedor || '';
+                    bValue = b.proveedor_compra?.nombre_proveedor || '';
+                }
+                if (sortConfigOrders.key === 'estado_compra') {
+                    aValue = a.estado_compra?.nombre_estado || '';
+                    bValue = b.estado_compra?.nombre_estado || '';
+                }
+
+                // Lógica de comparación
+                if (aValue === null || aValue === undefined) return 1;
+                if (bValue === null || bValue === undefined) return -1;
+                
+                // Comparación numérica para el total
+                if (sortConfigOrders.key === 'total_compra') {
+                    return sortConfigOrders.direction === 'ascending' ? aValue - bValue : bValue - aValue;
+                }
+
+                // Comparación de texto/fecha
+                const comparison = aValue.toString().localeCompare(bValue.toString(), undefined, { numeric: true, sensitivity: 'base' });
+                return sortConfigOrders.direction === 'ascending' ? comparison : -comparison;
+            });
+        }
+
+        return sortedOrders;
+    }, [orders, sortConfigOrders]);
 
     // --- HELPER FUNCTIONS ---
     const requestSort = (key) => {
@@ -182,12 +222,25 @@ const JefeSuppliers = () => {
         }
         setSortConfig({ key, direction });
     };
+
+    // --- MEJORA: Nueva función de ordenamiento para Órdenes ---
+    const requestSortOrders = (key) => {
+        let direction = 'ascending';
+        if (sortConfigOrders.key === key && sortConfigOrders.direction === 'ascending') {
+            direction = 'descending';
+        } else if (sortConfigOrders.key === key) {
+            direction = 'ascending';
+        }
+        setSortConfigOrders({ key, direction });
+    };
+
     const formatCurrency = (value) => `$${(value || 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
     // --- MODAL & ACTION HANDLERS ---
     // Suppliers
     const handleAddProvider = () => {
-        setIsNewProviderModalOpen(true);
+        // --- CORRECCIÓN: Usar el setter correcto ---
+        setShowNewProviderModal(true);
     };
     const handleSupplierSuccess = () => { fetchSuppliersAndStates(); setShowNewProviderModal(false); setShowEditProviderModal(false); };
     const handleEditClick = (provider) => { setEditingProvider(provider); setShowEditProviderModal(true); };
@@ -198,7 +251,7 @@ const JefeSuppliers = () => {
         try {
             await apiClient(`/api/compras/proveedores/${providerToDelete.id_proveedor}/`, { method: 'DELETE' });
             toast.success(`Proveedor "${providerToDelete.nombre_proveedor}" eliminado.`, { id: loadingToast });
-            fetchSuppliersAndStates(); // Refresh suppliers list
+            fetchSuppliersAndStates(); 
         } catch (error) {
             toast.error(error.data?.detail || 'Error al eliminar el proveedor.', { id: loadingToast });
         } finally {
@@ -207,10 +260,13 @@ const JefeSuppliers = () => {
     };
 
     // Orders
-    const handleOrderSuccess = () => { setShowNewOrderModal(false); fetchOrders(); };
+    const handleOrderSuccess = () => { 
+        setShowNewOrderModal(false); 
+        setOrderToEdit(null); 
+        fetchOrders(); 
+    };
     const handleMarkAsReceived = async (orderId) => {
-        // --- !!! IMPORTANT: Replace '5' with the actual ID for the "Recibida" state !!! ---
-        const receivedStatusId = 5;
+        const receivedStatusId = 10; 
 
         const loadingToast = toast.loading('Marcando como recibida...');
         try {
@@ -222,23 +278,23 @@ const JefeSuppliers = () => {
             toast.success('Orden marcada como recibida.', { id: loadingToast });
             fetchOrders(); // Refresh orders list
         } catch (err) {
-             toast.error(err.data?.detail || 'No se pudo actualizar la orden.', { id: loadingToast });
+            toast.error(err.data?.detail || 'No se pudo actualizar la orden.', { id: loadingToast });
         }
     };
 
     // --- RENDER FUNCTIONS FOR VIEWS ---
     const renderSuppliersView = () => {
         // Loading State
-         if (loadingSuppliers) {
-             return (
+        if (loadingSuppliers) {
+            return (
                 <div className="flex justify-center items-center h-64 text-pr-yellow">
                     <FontAwesomeIcon icon={faSpinner} className="animate-spin text-4xl" />
                 </div>
             );
-         }
-         // Error State
-         if (supplierError) {
-             return (
+        }
+        // Error State
+        if (supplierError) {
+            return (
                 <div className="bg-red-900/20 border border-red-500 text-red-300 px-4 py-3 rounded-lg flex items-center" role="alert">
                     <FontAwesomeIcon icon={faExclamationTriangle} className="mr-3 text-red-400" />
                     <div>
@@ -247,10 +303,10 @@ const JefeSuppliers = () => {
                     </div>
                 </div>
             );
-         }
-         // Main Content
-         return (
-             <div>
+        }
+        // Main Content
+        return (
+            <div>
                 {/* Search & Filter Bar */}
                 <div className="flex flex-col md:flex-row gap-4 mb-6">
                     <div className="relative flex-grow">
@@ -287,13 +343,13 @@ const JefeSuppliers = () => {
                 {/* Suppliers Table */}
                 <div className="bg-pr-dark p-6 rounded-lg shadow-lg overflow-x-auto border border-pr-gray/20">
                     <table className="w-full text-sm text-left text-gray-400">
-                         <thead className="text-xs text-white uppercase bg-pr-dark border-b border-gray-700">
-                             <tr>
+                        <thead className="text-xs text-white uppercase bg-pr-dark border-b border-gray-700">
+                            <tr>
                                 <th scope="col" className="px-6 py-3 cursor-pointer hover:bg-gray-700 transition-colors" onClick={() => requestSort('nombre_proveedor')}>
                                     <div className="flex items-center">Nombre Proveedor<SortIndicator direction={sortConfig.key === 'nombre_proveedor' ? sortConfig.direction : null} /></div>
                                 </th>
                                 <th scope="col" className="px-6 py-3 cursor-pointer hover:bg-gray-700 transition-colors hidden sm:table-cell" onClick={() => requestSort('razon_social_proveedor')}>
-                                   <div className="flex items-center">Razón Social<SortIndicator direction={sortConfig.key === 'razon_social_proveedor' ? sortConfig.direction : null} /></div>
+                                    <div className="flex items-center">Razón Social<SortIndicator direction={sortConfig.key === 'razon_social_proveedor' ? sortConfig.direction : null} /></div>
                                 </th>
                                 <th scope="col" className="px-6 py-3 cursor-pointer hover:bg-gray-700 transition-colors hidden md:table-cell" onClick={() => requestSort('correo_proveedor')}>
                                     <div className="flex items-center">Email<SortIndicator direction={sortConfig.key === 'correo_proveedor' ? sortConfig.direction : null} /></div>
@@ -321,10 +377,10 @@ const JefeSuppliers = () => {
                                         <td className="px-6 py-4 hidden xl:table-cell">{provider.cuit_proveedor || '-'}</td>
                                         <td className="px-6 py-4"><StatusBadge estado={provider.estado_proveedor} /></td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                             <div className="flex items-center space-x-2">
-                                                 <button onClick={() => handleEditClick(provider)} className="bg-pr-gray/10 text-cyan-400 py-1 px-3 rounded-md text-sm font-medium hover:bg-cyan-400 hover:text-pr-dark transition-colors" title="Editar proveedor"><FontAwesomeIcon icon={faEdit} /></button>
-                                                 <button onClick={() => handleDeleteRequest(provider)} className="bg-pr-gray/10 text-red-500 py-1 px-3 rounded-md text-sm font-medium hover:bg-red-500 hover:text-pr-dark transition-colors" title="Eliminar proveedor"><FontAwesomeIcon icon={faTrash} /></button>
-                                             </div>
+                                            <div className="flex items-center space-x-2">
+                                                <button onClick={() => handleEditClick(provider)} className="bg-pr-gray/10 text-cyan-400 py-1 px-3 rounded-md text-sm font-medium hover:bg-cyan-400 hover:text-pr-dark transition-colors" title="Editar proveedor"><FontAwesomeIcon icon={faEdit} /></button>
+                                                <button onClick={() => handleDeleteRequest(provider)} className="bg-pr-gray/10 text-red-500 py-1 px-3 rounded-md text-sm font-medium hover:bg-red-500 hover:text-pr-dark transition-colors" title="Eliminar proveedor"><FontAwesomeIcon icon={faTrash} /></button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))
@@ -340,61 +396,81 @@ const JefeSuppliers = () => {
                         </tbody>
                     </table>
                 </div>
-             </div>
-         );
+            </div>
+        );
     };
 
     const renderOrdersView = () => {
-         // Loading State
-         if (loadingOrders) {
-             return (
-                 <div className="flex justify-center items-center h-64 text-pr-yellow">
-                     <FontAwesomeIcon icon={faSpinner} className="animate-spin text-4xl" />
-                 </div>
-             );
-         }
-         // Error State
-         if (orderError) {
-              return (
-                 <div className="bg-red-900/20 border border-red-500 text-red-300 px-4 py-3 rounded-lg flex items-center" role="alert">
+        // Loading State
+        if (loadingOrders) {
+            return (
+                <div className="flex justify-center items-center h-64 text-pr-yellow">
+                    <FontAwesomeIcon icon={faSpinner} className="animate-spin text-4xl" />
+                </div>
+            );
+        }
+        // Error State
+        if (orderError) {
+            return (
+                <div className="bg-red-900/20 border border-red-500 text-red-300 px-4 py-3 rounded-lg flex items-center" role="alert">
                     <FontAwesomeIcon icon={faExclamationTriangle} className="mr-3 text-red-400" />
                     <div>
                         <strong className="font-bold">Error al cargar órdenes:</strong>
                         <span className="block sm:inline ml-2">{orderError}</span>
                     </div>
-                 </div>
-             );
-         }
-         // Main Content
-         return (
-             <div>
-                 {/* Button New Order & Search */}
-                 <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
-                       <div className="relative w-full sm:w-1/2 mt-4 sm:mt-0">
-                           <input
-                                value={searchTermOrders}
-                                onChange={(e) => setSearchTermOrders(e.target.value)}
-                                placeholder="Buscar Orden (ID, Proveedor, Estado)..."
-                                className="w-full bg-pr-dark-gray border border-pr-gray/20 rounded-lg py-2 px-4 pl-10 text-white focus:ring-pr-yellow focus:border-pr-yellow"
-                           />
-                            <FontAwesomeIcon icon={faSearch} className="absolute left-3 top-1/2 -translate-y-1/2 text-pr-gray"/>
-                       </div>
-                       <button onClick={() => setShowNewOrderModal(true)} className="bg-pr-yellow text-pr-dark font-bold py-2 px-4 rounded-lg hover:bg-opacity-80 transition-colors flex items-center shrink-0 ml-4">
-                            <FontAwesomeIcon icon={faFileInvoiceDollar} className="mr-2" /> Nueva Orden
-                       </button>
-                 </div>
-                 {/* Orders Table */}
-                 {filteredOrders.length > 0 ? (
+                </div>
+            );
+        }
+        // Main Content
+        return (
+            <div>
+                {/* Button New Order & Search */}
+                <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
+                    <div className="relative w-full sm:w-1/2 mt-4 sm:mt-0">
+                        <input
+                            value={searchTermOrders}
+                            onChange={(e) => setSearchTermOrders(e.target.value)}
+                            placeholder="Buscar Orden (ID, Proveedor, Estado)..."
+                            className="w-full bg-pr-dark-gray border border-pr-gray/20 rounded-lg py-2 px-4 pl-10 text-white focus:ring-pr-yellow focus:border-pr-yellow"
+                        />
+                        <FontAwesomeIcon icon={faSearch} className="absolute left-3 top-1/2 -translate-y-1/2 text-pr-gray"/>
+                    </div>
+                    <button onClick={() => setShowNewOrderModal(true)} className="bg-pr-yellow text-pr-dark font-bold py-2 px-4 rounded-lg hover:bg-opacity-80 transition-colors flex items-center shrink-0 ml-4">
+                        <FontAwesomeIcon icon={faFileInvoiceDollar} className="mr-2" /> Nueva Orden
+                    </button>
+                </div>
+                {/* Orders Table */}
+                {filteredOrders.length > 0 ? (
                     <div className="bg-pr-dark p-6 rounded-lg shadow-lg overflow-x-auto border border-pr-gray/20">
                         <table className="w-full text-sm text-left text-gray-400">
-                             <thead className="text-xs text-white uppercase bg-pr-dark border-b border-gray-700">
+                            {/* --- MEJORA: Encabezados de Órdenes clickeables --- */}
+                            <thead className="text-xs text-white uppercase bg-pr-dark border-b border-gray-700">
                                 <tr>
-                                    {/* Consider adding sorting for orders too */}
-                                    <th className="px-4 py-2">ID Orden</th>
-                                    <th className="px-4 py-2">Fecha</th>
-                                    <th className="px-4 py-2">Proveedor</th>
-                                    <th className="px-4 py-2 text-right">Total</th> {/* Align right */}
-                                    <th className="px-4 py-2">Estado</th>
+                                    <th className="px-4 py-2 cursor-pointer hover:bg-gray-700 transition-colors" onClick={() => requestSortOrders('id_compra')}>
+                                        <div className="flex items-center">
+                                            ID Orden <SortIndicator direction={sortConfigOrders.key === 'id_compra' ? sortConfigOrders.direction : null} />
+                                        </div>
+                                    </th>
+                                    <th className="px-4 py-2 cursor-pointer hover:bg-gray-700 transition-colors" onClick={() => requestSortOrders('fecha_compra')}>
+                                        <div className="flex items-center">
+                                            Fecha <SortIndicator direction={sortConfigOrders.key === 'fecha_compra' ? sortConfigOrders.direction : null} />
+                                        </div>
+                                    </th>
+                                    <th className="px-4 py-2 cursor-pointer hover:bg-gray-700 transition-colors" onClick={() => requestSortOrders('proveedor_compra')}>
+                                        <div className="flex items-center">
+                                            Proveedor <SortIndicator direction={sortConfigOrders.key === 'proveedor_compra' ? sortConfigOrders.direction : null} />
+                                        </div>
+                                    </th>
+                                    <th className="px-4 py-2 text-right cursor-pointer hover:bg-gray-700 transition-colors" onClick={() => requestSortOrders('total_compra')}>
+                                        <div className="flex items-center justify-end">
+                                            Total <SortIndicator direction={sortConfigOrders.key === 'total_compra' ? sortConfigOrders.direction : null} />
+                                        </div>
+                                    </th>
+                                    <th className="px-4 py-2 cursor-pointer hover:bg-gray-700 transition-colors" onClick={() => requestSortOrders('estado_compra')}>
+                                        <div className="flex items-center">
+                                            Estado <SortIndicator direction={sortConfigOrders.key === 'estado_compra' ? sortConfigOrders.direction : null} />
+                                        </div>
+                                    </th>
                                     <th className="px-4 py-2">Acciones</th>
                                 </tr>
                             </thead>
@@ -402,39 +478,53 @@ const JefeSuppliers = () => {
                                 {filteredOrders.map(order => (
                                     <tr key={order.id_compra} className="bg-pr-dark-gray hover:bg-gray-800 transition-colors">
                                         <td className="px-4 py-2 font-mono text-xs">{order.id_compra}</td>
-                                        <td className="px-4 py-2">{new Date(order.fecha_compra).toLocaleDateString()}</td>
+                                        {/* --- MEJORA: Formato de Fecha --- */}
+                                        <td className="px-4 py-2 whitespace-nowrap">
+                                            {new Date(order.fecha_compra).toLocaleDateString('es-AR', {
+                                                day: '2-digit',
+                                                month: 'short',
+                                                year: 'numeric'
+                                            })}
+                                        </td>
                                         <td className="px-4 py-2 text-white">{order.proveedor_compra?.nombre_proveedor || '-'}</td>
                                         <td className="px-4 py-2 text-white font-medium text-right">{formatCurrency(order.total_compra)}</td>
                                         <td className="px-4 py-2"><StatusBadge estado={order.estado_compra} /></td>
+                                        
+                                        {/* --- MEJORA: Columna de Acciones --- */}
                                         <td className="px-4 py-2">
-                                            {/* Adjust 'Recibida' if state name is different */}
-                                            {order.estado_compra?.nombre_estado !== 'Recibida' ? (
-                                                <button
-                                                    onClick={() => handleMarkAsReceived(order.id_compra)}
-                                                    className="text-xs bg-green-600 hover:bg-green-700 text-white py-1 px-2 rounded flex items-center gap-1 transition-colors"
-                                                    title="Marcar como Recibida"
+                                            <div className="flex items-center space-x-2">
+                                                <button 
+                                                    onClick={() => setOrderToView(order)}
+                                                    className="bg-pr-gray/10 text-cyan-400 py-1 px-2 rounded-md text-sm font-medium hover:bg-cyan-400 hover:text-pr-dark transition-colors" 
+                                                    title="Ver detalles de la orden"
                                                 >
-                                                    <FontAwesomeIcon icon={faCheck} size="sm"/> Recibida
+                                                    <FontAwesomeIcon icon={faEye} />
                                                 </button>
-                                            ) : (
-                                                 <span className="text-xs text-green-400 italic">Completada</span>
-                                            )}
+                                                <button 
+                                                    onClick={() => setOrderToEdit(order)} // <-- Función que crearemos
+                                                    className="bg-pr-gray/10 text-pr-yellow py-1 px-2 rounded-md text-sm font-medium hover:bg-pr-yellow hover:text-pr-dark transition-colors" 
+                                                    title="Editar estado de la orden"
+                                                >
+                                                    <FontAwesomeIcon icon={faEdit} />
+                                                </button>
+
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
                     </div>
-                 ) : (
+                ) : (
                     // Empty State Orders
-                     <div className="text-center p-12 text-pr-gray bg-pr-dark rounded-lg border border-pr-gray/20">
+                    <div className="text-center p-12 text-pr-gray bg-pr-dark rounded-lg border border-pr-gray/20">
                         <FontAwesomeIcon icon={faInbox} className="text-4xl text-pr-gray/50 mb-4" />
                         <p className="font-bold text-white text-lg">{searchTermOrders ? 'No se encontraron órdenes con ese término.' : 'No hay órdenes de compra registradas.'}</p>
                         {!searchTermOrders && <p className="text-sm">Puedes crear una usando el botón "Nueva Orden".</p>}
                     </div>
-                 )}
-            </div>
-         );
+                )}
+                </div>
+            );
     };
 
     return (
@@ -463,25 +553,42 @@ const JefeSuppliers = () => {
 
             {/* --- Modals --- */}
             <NewProviderModal 
-            isOpen={showNewProviderModal} onClose={() => setShowNewProviderModal(false)} 
-            onSuccess={handleSupplierSuccess} 
-            supplierStates={supplierStates} 
+                isOpen={showNewProviderModal} // Corregido para usar la variable correcta
+                onClose={() => setShowNewProviderModal(false)} 
+                onSuccess={handleSupplierSuccess} 
+                supplierStates={supplierStates} 
             />
             <EditProviderModal 
-            isOpen={showEditProviderModal} onClose={() => setShowEditProviderModal(false)} 
-            onSuccess={handleSupplierSuccess} 
-            provider={editingProvider} 
-            supplierStates={supplierStates} 
+                isOpen={showEditProviderModal} 
+                onClose={() => setShowEditProviderModal(false)} 
+                onSuccess={handleSupplierSuccess} 
+                provider={editingProvider} 
+                supplierStates={supplierStates} 
             />
             <ConfirmDeleteModal 
-            isOpen={!!providerToDelete} 
-            onClose={() => setProviderToDelete(null)} 
-            onConfirm={handleConfirmDeleteSupplier} itemName={providerToDelete?.nombre_proveedor} itemType="proveedor"
+                isOpen={!!providerToDelete} 
+                onClose={() => setProviderToDelete(null)} 
+                onConfirm={handleConfirmDeleteSupplier} 
+                itemName={providerToDelete?.nombre_proveedor} 
+                itemType="proveedor"
             />
             <NewOrdenCompraModal 
-            isOpen={showNewOrderModal} 
-            onClose={() => setShowNewOrderModal(false)} onSuccess={handleOrderSuccess} 
-            suppliers={providers} 
+                isOpen={showNewOrderModal} 
+                onClose={() => setShowNewOrderModal(false)} 
+                onSuccess={handleOrderSuccess} 
+                suppliers={providers} 
+            />
+            <OrderDetailsModal
+                isOpen={!!orderToView}
+                onClose={() => setOrderToView(null)}
+                order={orderToView}
+            />
+            <EditOrderModal
+                isOpen={!!orderToEdit}
+                onClose={() => setOrderToEdit(null)}
+                onSuccess={handleOrderSuccess}
+                order={orderToEdit}
+                orderStates={orderStates} // <-- Pasa la lista de estados
             />
         </>
     );

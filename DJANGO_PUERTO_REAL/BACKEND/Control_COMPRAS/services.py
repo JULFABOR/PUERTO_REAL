@@ -22,9 +22,9 @@ def receive_purchase_stock(compra, empleado):
     Increases stock for all items in the purchase.
     """
     try:
-        mov_compra = Tipos_Movimientos.objects.get(nombre_movimiento='COMPRA A PROVEEDOR')
+        mov_compra = Tipos_Movimientos.objects.get(nombre_movimiento='COMP_A_PROVEEDOR')
     except Tipos_Movimientos.DoesNotExist:
-        raise serializers.ValidationError("Tipo de movimiento 'COMPRA A PROVEEDOR' no encontrado.")
+        raise serializers.ValidationError("Tipo de movimiento 'COMP_A_PROVEEDOR' no encontrado.")
 
     for detalle in compra.detalles.all():
         stock = _get_or_create_stock(detalle.producto_dt_comp)

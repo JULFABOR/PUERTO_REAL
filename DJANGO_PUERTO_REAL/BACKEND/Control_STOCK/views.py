@@ -12,7 +12,7 @@ from django.views.generic import CreateView, DeleteView, TemplateView, UpdateVie
 
 # Third-party
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters, generics, status, viewsets
+from rest_framework import filters, generics, status, viewsets, permissions
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -32,6 +32,7 @@ from .serializers import (
     StockAdjustmentSerializer,
     StockSerializer,
     StockUpdateSerializer,
+    HistorialStockSerializer,
 )
 
 
@@ -303,7 +304,7 @@ class StockAdjustmentAPIView(APIView):
             stock_entry.save()
 
             Historial_Stock.objects.create(
-                cantidad_hstock=str(abs(quantity_change)),
+                cantidad_hstock=str(quantity_change),
                 stock_hs=stock_entry,
                 empleado_hs=employee,
                 tipo_movimiento_hs=tipo_movimiento,
@@ -333,12 +334,20 @@ class StockAddAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
+        # --- 1. LEEMOS TODOS LOS DATOS DEL REQUEST ---
         product_id = request.data.get('product_id')
         quantity_to_add = request.data.get('quantity')
         reason = request.data.get('reason', 'Entrada de stock manual')
+        employee_id = request.data.get('employee') 
         
+        # --- 2. VALIDAMOS LOS DATOS ---
         if not product_id or quantity_to_add is None:
             return Response({"detail": "Se requiere ID del producto y cantidad."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not employee_id:
+            print(f"ID de empleado RECIBIDO POR LA API: {employee_id}")
+            # Este error saltará si el modal no envía el ID
+            return Response({"detail": "Se requiere ID de empleado."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             quantity_to_add = int(quantity_to_add)
@@ -347,16 +356,24 @@ class StockAddAPIView(APIView):
         except ValueError:
             return Response({"detail": "La cantidad debe ser un número."}, status=status.HTTP_400_BAD_REQUEST)
 
+        # --- 3. BUSCAMOS LOS OBJETOS EN LA BD ---
         try:
             producto = Productos.objects.get(id_producto=product_id)
         except Productos.DoesNotExist:
             return Response({"detail": "Producto no encontrado."}, status=status.HTTP_404_NOT_FOUND)
+        
+        try:
+            empleado = Empleados.objects.get(id_empleado=employee_id) 
+        except Empleados.DoesNotExist:
+            return Response({"detail": "Empleado no encontrado."}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            # Captura otros errores, como si el PK fuera incorrecto
+            return Response({"detail": f"Error al buscar empleado: {e}"}, status=status.HTTP_400_BAD_REQUEST)
 
+        # --- 4. GUARDAMOS EN LA BD (CON EL EMPLEADO CORRECTO) ---
         with transaction.atomic():
-            # Buscamos una entrada de stock existente o creamos una nueva
             stock_entry, created = Stocks.objects.get_or_create(
                 producto_en_stock=producto,
-                # Aquí podrías añadir lógica de lotes si la tuvieras
                 defaults={'cantidad_actual_stock': 0, 'lote_stock': 'LOTE-INICIAL'}
             )
             
@@ -364,21 +381,51 @@ class StockAddAPIView(APIView):
             stock_entry.cantidad_actual_stock += quantity_to_add
             stock_entry.save()
 
-            # (Opcional pero recomendado) Registrar en el historial
-            # Asumiendo que tienes un tipo de movimiento 'MOV_STOCK_ENTRADA'
             try:
                 tipo_movimiento_entrada = Tipos_Movimientos.objects.get(nombre_movimiento='MOV_STOCK_ENTRADA')
+            except Tipos_Movimientos.DoesNotExist:
+                # Este es el error que probablemente tenías antes y que causaba "Sistema"
+                print("--- ERROR CRÍTICO: No se encontró el Tipo de Movimiento 'MOV_STOCK_ENTRADA' ---")
+                # No detenemos la transacción, pero el historial no se creará
+                tipo_movimiento_entrada = None
+
+            if tipo_movimiento_entrada:
                 Historial_Stock.objects.create(
                     cantidad_hstock=str(quantity_to_add),
                     stock_hs=stock_entry,
-                    empleado_hs=request.user.empleado, # Asumiendo relación User -> Empleado
+                    empleado_hs=empleado, 
                     tipo_movimiento_hs=tipo_movimiento_entrada,
                     stock_anterior_hstock=stock_anterior,
                     stock_nuevo_hstock=stock_entry.cantidad_actual_stock,
                     observaciones_hstock=reason
                 )
-            except Exception as e:
-                # Si falla el historial, no detenemos la operación principal, pero lo notificamos
-                print(f"No se pudo crear el registro de historial: {e}")
 
         return Response({"detail": f"Se agregaron {quantity_to_add} unidades al stock de {producto.nombre_producto}."}, status=status.HTTP_200_OK)
+
+class StockHistoryAPIView(generics.ListAPIView):
+    """
+    API View para devolver el historial de stock de un producto específico.
+    Se accede a través de la URL: /api/stock/historial-producto/<id_producto>/
+    """
+    
+    # --- Usa tu serializer existente ---
+    serializer_class = HistorialStockSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    pagination_class = None # Devuelve todos los resultados
+
+    def get_queryset(self):
+        """
+        Filtra el historial basado en el ID del producto de la URL.
+        """
+        product_id = self.kwargs.get('id_producto')
+        if not product_id:
+            return Historial_Stock.objects.none()
+
+        # Filtra Historial_Stock por el ID del producto anidado
+        # (Historial_Stock -> stock_hs -> producto_en_stock -> id_producto)
+        return Historial_Stock.objects.filter(
+            stock_hs__producto_en_stock__id_producto=product_id
+        ).select_related(
+            'empleado_hs', 
+            'tipo_movimiento_hs'
+        ).order_by('-fecha_movimiento_hstock')

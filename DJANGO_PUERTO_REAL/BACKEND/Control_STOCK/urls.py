@@ -7,14 +7,7 @@ from .views import (
     StockDecrementAPIView, 
     StockAdjustmentAPIView, 
     StockAddAPIView,
-
-    # Vistas de Páginas Web (Templates)
-    # StockDashboardView,
-    # ControlStockView,
-    # CatalogoProductosView,
-    # ProductoCreateView,
-    # ProductoUpdateView,
-    # ProductoDeleteView,
+    StockHistoryAPIView,
 )
 
 app_name = 'stock'
@@ -34,15 +27,5 @@ api_urlpatterns = router.urls + [
     path('stock/decrement/', StockDecrementAPIView.as_view(), name='stock-decrement'),
     path('stock/adjust/', StockAdjustmentAPIView.as_view(), name='stock-adjust'),
     path('add-stock/', StockAddAPIView.as_view(), name='add-stock'),
-]
-
-# --- 3. Definimos las URLs de las Páginas Web ---
-# Estas son solo para las vistas que renderizan plantillas HTML.
-urlpatterns = [
-    # path('dashboard/', StockDashboardView.as_view(), name='stock_dashboard'),
-    # path('control/', ControlStockView.as_view(), name='control'),
-    # path('catalogo/', CatalogoProductosView.as_view(), name='catalogo'),
-    # path('producto/nuevo/', ProductoCreateView.as_view(), name='producto_create'),
-    # path('producto/<int:pk>/editar/', ProductoUpdateView.as_view(), name='producto_update'),
-    # path('producto/<int:pk>/eliminar/', ProductoDeleteView.as_view(), name='producto_delete'),
+    path("historial-producto/<int:id_producto>/", StockHistoryAPIView.as_view(), name="api_historial_producto"),
 ]

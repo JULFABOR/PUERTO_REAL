@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 # --- IMPORTA LA NUEVA VISTA DE ESTADOS ---
-from .views import CompraViewSet, ProveedorViewSet, ProveedorListView, EstadoProveedorListAPIView
+from .views import CompraViewSet, ProveedorViewSet, ProveedorListView, EstadoProveedorListAPIView, EstadoCompraListAPIView
 
 # Router para la API (Mantenemos ViewSets)
 router = DefaultRouter()
@@ -21,6 +21,15 @@ api_urlpatterns = [
     path("estados-proveedor/", EstadoProveedorListAPIView.as_view(), name="api_estados_proveedor"),
 ]
 
+# URLs para la API
+api_urlpatterns = [
+    path('', include(router.urls)), 
+
+    path("estados-proveedor/", EstadoProveedorListAPIView.as_view(), name="api_estados_proveedor"),
+    
+    # --- AÑADE ESTA NUEVA RUTA ---
+    path("estados_compra/", EstadoCompraListAPIView.as_view(), name="api_estados_compra"),
+]
 # --- IMPORTANTE ---
 # Asegúrate de que este archivo `urls.py` esté incluido correctamente
 # en el `urls.py` principal de tu proyecto, usualmente bajo un prefijo como 'api/compras/'.

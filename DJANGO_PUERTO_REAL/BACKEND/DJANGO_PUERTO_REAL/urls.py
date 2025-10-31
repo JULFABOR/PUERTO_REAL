@@ -27,8 +27,7 @@ urlpatterns = [
     path('', include('HOME.urls')),
 
     # Rutas de la App de Análisis (exclusivo para Staff)
-    path('analisis/', include('Analizar_INGRESOS_EGRESOS.urls')),
-
+    path('api/analisis/', include('Analizar_INGRESOS_EGRESOS.urls')),
     # --- INICIO: Bloque comentado para depuración ---
     # # Rutas de las páginas web de las apps
     # path('ventas/', include((ventas_web_urls, 'ventas'), namespace='ventas')),
@@ -43,7 +42,8 @@ urlpatterns = [
     path('api/compras/', include(compras_api_urls)),
     path('api/stock/', include(stock_api_urls)),
     path('api/fidelizacion/', include(fidelizar_api_urls)),
-    path('api/caja/', include(caja_api_urls)), # CORREGIDO: Añadido prefijo /caja/ para evitar conflictos.
+    path('api/caja/', include(caja_api_urls)),
+
     # --- FIN: Bloque comentado para depuración ---
     
     # Nueva ruta para la app de Auditoria

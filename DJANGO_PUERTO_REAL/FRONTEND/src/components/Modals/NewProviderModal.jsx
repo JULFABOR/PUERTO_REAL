@@ -11,7 +11,8 @@ const initialNewProviderState = {
     cuit_proveedor: '',
     telefono_proveedor: '',
     correo_proveedor: '',
-    estado_proveedor: 7, // Default state
+    estado_proveedor_id: 7,
+     // Default state
 };
 
 // --- Componente de Input Reutilizable con Etiqueta Flotante ---
