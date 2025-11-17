@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, Outlet, useNavigate } from 'react-router-dom';
+import { Link, Outlet } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
     faBars, 
@@ -11,36 +11,19 @@ import {
     faChartPie,
 } from '@fortawesome/free-solid-svg-icons';
 import { initFlowbite } from 'flowbite';
-import { Toaster } from 'react-hot-toast'; // <-- 1. IMPORTAR EL TOASTER
-
-const getUserData = () => {
-    try {
-        const userDataString = localStorage.getItem('userData');
-        return userDataString ? JSON.parse(userDataString) : null;
-    } catch (error) {
-        console.error("Error parsing user data from localStorage", error);
-        return null;
-    }
-};
+import { Toaster } from 'react-hot-toast';
+import { useAuth } from '@/hooks/useAuth'; // <-- 1. IMPORTAR HOOK
 
 const JefeLayout = () => {
+    const { user, logout } = useAuth(); // <-- 2. USAR EL CONTEXTO
     const [isSidebarOpen, setSidebarOpen] = useState(false);
-    const [userData, setUserData] = useState(null);
-    const navigate = useNavigate();
 
     useEffect(() => {
         initFlowbite();
-        setUserData(getUserData());
     }, []);
 
     const toggleSidebar = () => {
         setSidebarOpen(!isSidebarOpen);
-    };
-
-    const handleLogout = () => {
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('userData');
-        navigate('/');
     };
 
     return (
@@ -62,11 +45,13 @@ const JefeLayout = () => {
                         </button>
                         <div className="z-50 hidden my-4 text-base list-none bg-pr-dark divide-y divide-gray-600 rounded-lg shadow" id="user-dropdown">
                             <div className="px-4 py-3">
-                                <span className="block text-sm text-white">{userData?.rol || 'Jefe'}</span>
-                                <span className="block text-sm text-gray-400 truncate">{userData?.email || ''}</span>
+                                {/* 3. USAR DATOS DEL CONTEXTO */}
+                                <span className="block text-sm text-white">{user?.rol || 'Jefe'}</span>
+                                <span className="block text-sm text-gray-400 truncate">{user?.email || ''}</span>
                             </div>
                             <ul className="py-2" aria-labelledby="user-menu-button">
-                                <li><button onClick={handleLogout} className="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-pr-dark-gray">Cerrar Sesión</button></li>
+                                {/* 4. USAR FUNCIÓN LOGOUT DEL CONTEXTO */}
+                                <li><button onClick={logout} className="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-pr-dark-gray">Cerrar Sesión</button></li>
                             </ul>
                         </div>
                     </div>

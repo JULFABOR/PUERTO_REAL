@@ -1,8 +1,11 @@
+// src/App.jsx
 import { Routes, Route } from 'react-router-dom';
 import AuthPage from './pages/AuthPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import ProtectedRoute from './auth/ProtectedRoute';
 import RoleBasedRedirect from './auth/RoleBasedRedirect';
+
+import { CajaProvider } from './contexts/CajaContext'; // <-- 1. IMPORTAMOS EL PROVIDER
 
 // Layouts
 import EmpleadoLayout from './components/empleado/EmpleadoLayout';
@@ -29,6 +32,7 @@ import JefeSettings from './pages/jefe/JefeSettings';
 
 function App() {
   return (
+    <CajaProvider>
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<AuthPage />} />
@@ -54,12 +58,12 @@ function App() {
           }
         >
           <Route path="home" element={<EmpleadoHome />} />
-          <Route path="pos" element={<VentasPOS />} />
+          <Route path="pos" element={<VentasPOS />} /> {/* <--- Esta podrá actualizar la caja */}
           <Route path="control-stock" element={<EmpleadoControlStock />} />
           <Route path="stock" element={<Stock />} />
           <Route path="clientes" element={<Clientes />} />
           <Route path="proveedores" element={<Proveedores />} />
-          <Route path="caja" element={<Caja />} />
+          <Route path="caja" element={<Caja />} /> {/* <--- Esta leerá la caja */}
         </Route>
 
         {/* Jefe Routes */}
@@ -73,7 +77,7 @@ function App() {
         >
           <Route path="home" element={<JefeHome />} />
           <Route path="analysis" element={<JefeAnalysis />} />
-          <Route path="caja" element={<JefeCaja />} />
+          <Route path="caja" element={<JefeCaja />} /> {/* <--- Esta TAMBIÉN leerá la caja */}
           <Route path="control-stock" element={<JefeControlStock />} />
           <Route path="customers" element={<JefeCustomers />} />
           <Route path="stock" element={<JefeStock />} />
@@ -94,6 +98,7 @@ function App() {
         </Route>
 
       </Routes>
+    </CajaProvider>
   );
 }
 

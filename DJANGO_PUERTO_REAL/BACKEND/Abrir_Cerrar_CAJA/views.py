@@ -192,83 +192,59 @@ class AbrirCajaAPIView(APIView):
 class HistorialCajaListAPIView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = HistorialCajaSerializer
+    pagination_class = None # Devolver todo en una página
 
-    def get_queryset(self):
-        user = self.request.user
+    def get_queryset(self, request, target_date):
+        """
+        Obtiene el queryset filtrado por fecha Y por permisos de usuario.
+        """
+        # 1. Obtener el queryset base por fecha
+        base_queryset = Historial_Caja.objects.filter(
+            fecha_movimiento_hcaja__date=target_date
+        )
+
+        # 2. Filtrar por empleado si no es Jefe
+        user = request.user
+        # (Asegúrate de que tu grupo de admin se llame 'Jefes')
+        is_jefe = user.groups.filter(name='Jefes').exists() or user.is_staff
         empleado_actual = getattr(user, 'empleado', None)
 
-        # --- Lógica para buscar LA caja abierta ---
-        try:
-            estado_abierto = Estados.objects.get(nombre_estado='ABIERTA')
-            caja_abierta = Cajas.objects.filter(estado_caja=estado_abierto).first()
-            if not caja_abierta:
-                return Historial_Caja.objects.none() # No hay caja abierta
-        except Estados.DoesNotExist:
+        if not is_jefe and empleado_actual:
+            # Si NO es jefe Y es un empleado, filtra por empleado
+            return base_queryset.filter(empleado_hc=empleado_actual)
+        elif is_jefe:
+            # Si ES jefe, muestra todo lo de esa fecha
+            return base_queryset
+        else:
+            # Si no es nada, no muestra nada
             return Historial_Caja.objects.none()
 
-        # --- Condición para Jefes ---
-        # Asume que tienes un grupo 'Jefes' o un permiso específico
-        is_jefe = user.groups.filter(name='Jefes').exists() # O user.is_staff, etc.
-
-        base_queryset = Historial_Caja.objects.filter(caja_hc=caja_abierta)
-
-        if not is_jefe and empleado_actual:
-            # Si NO es jefe Y es un empleado válido, filtra por empleado
-            queryset = base_queryset.filter(empleado_hc=empleado_actual)
-        elif is_jefe:
-            # Si ES jefe, NO filtra por empleado (muestra todo lo de la caja abierta)
-            queryset = base_queryset
-        else:
-             # Si no es jefe ni empleado (raro, pero seguro), no muestra nada
-             return Historial_Caja.objects.none()
-
-        # --- Filtrado por fecha (como antes) ---
+    def list(self, request, *args, **kwargs):
+        # 1. Determinar la fecha
         date_str = self.request.query_params.get('date', None)
-        target_date = timezone.now().date()
+        target_date = timezone.now().date() # Default a hoy
         if date_str:
             try:
                 target_date = timezone.datetime.strptime(date_str, '%Y-%m-%d').date()
             except (ValueError, TypeError):
                 pass # Usa la fecha de hoy si el formato es malo
-        
-        return queryset.filter(
-            fecha_movimiento_hcaja__date=target_date
-        ).select_related(
-            'empleado_hc__user_empleado',
-            'tipo_event_caja'
-        ).order_by('-fecha_movimiento_hcaja') # Ordenar por fecha/hora
 
-    def list(self, request, *args, **kwargs):
-        # --- Obtener LA caja abierta (igual que en get_queryset) ---
-        try:
-            estado_abierto = Estados.objects.get(nombre_estado='ABIERTA')
-            caja_abierta = Cajas.objects.filter(estado_caja=estado_abierto).first()
-            if not caja_abierta:
-                 # Si no hay caja abierta, devuelve respuesta vacía estructurada
-                 return Response({"movimientos": [], "resumen": {"apertura": 0, "ventas": 0, "ingresos": 0, "egresos": 0}}, status=status.HTTP_200_OK)
-        except Estados.DoesNotExist:
-             return Response({"detail": "Error: Estado 'ABIERTA' no configurado."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        # 2. Obtener el queryset filtrado (por fecha Y empleado)
+        queryset = self.get_queryset(request, target_date)
+        serializer = self.get_serializer(queryset, many=True)
+        movimientos_data = serializer.data
 
-
-        # --- Obtener queryset y calcular resumen BASADO EN LA CAJA, NO EN EL EMPLEADO ---
-        queryset_base_caja = self.get_queryset() # get_queryset ya maneja el filtro jefe/empleado
-        
-        # Obtener todos los movimientos del día para esa caja (ignora filtro empleado para resumen)
-        target_date = queryset_base_caja.first().fecha_movimiento_hcaja.date() if queryset_base_caja.exists() else timezone.now().date()
+        # 3. Calcular el resumen para TODOS los movimientos de ESE DÍA
+        #    (El resumen ignora el filtro de empleado, es de toda la caja)
         todos_movimientos_caja_hoy = Historial_Caja.objects.filter(
-            caja_hc=caja_abierta,
             fecha_movimiento_hcaja__date=target_date
         )
 
-        serializer = self.get_serializer(queryset_base_caja, many=True) # Serializa según jefe/empleado
-        movimientos_data = serializer.data
-
-        # Calcula resumen usando TODOS los movimientos de la caja de hoy
         agregados = todos_movimientos_caja_hoy.aggregate(
-             apertura=Coalesce(Sum('cantidad_movida_hcaja', filter=Q(tipo_event_caja__nombre_evento='APERTURA')), Decimal(0), output_field=DecimalField()),
-             ventas=Coalesce(Sum('cantidad_movida_hcaja', filter=Q(tipo_event_caja__nombre_evento='VENTA')), Decimal(0), output_field=DecimalField()),
-             ingresos=Coalesce(Sum('cantidad_movida_hcaja', filter=Q(tipo_event_caja__nombre_evento__in=['INGRESO_MANUAL', 'RENDICION_FONDO', 'TRANSFERENCIA_DESDE_FONDO'])), Decimal(0), output_field=DecimalField()), # Agregado TRANSFERENCIA_DESDE_FONDO
-             egresos=Coalesce(Sum('cantidad_movida_hcaja', filter=Q(tipo_event_caja__nombre_evento__in=['EGRESO_MANUAL', 'RETIRO_CAJA', 'RETIRO_FONDO', 'TRANSFERENCIA_A_FONDO'])), Decimal(0), output_field=DecimalField()) # Agregado TRANSFERENCIA_A_FONDO
+            apertura=Coalesce(Sum('cantidad_movida_hcaja', filter=Q(tipo_event_caja__nombre_evento='APERTURA')), Decimal(0), output_field=DecimalField()),
+            ventas=Coalesce(Sum('cantidad_movida_hcaja', filter=Q(tipo_event_caja__nombre_evento='VENTA')), Decimal(0), output_field=DecimalField()),
+            ingresos=Coalesce(Sum('cantidad_movida_hcaja', filter=Q(tipo_event_caja__nombre_evento__in=['INGRESO_MANUAL', 'RENDICION_FONDO', 'TRANSFERENCIA_DESDE_FONDO'])), Decimal(0), output_field=DecimalField()),
+            egresos=Coalesce(Sum('cantidad_movida_hcaja', filter=Q(tipo_event_caja__nombre_evento__in=['EGRESO_MANUAL', 'RETIRO_CAJA', 'RETIRO_FONDO', 'TRANSFERENCIA_A_FONDO'])), Decimal(0), output_field=DecimalField())
         )
         resumen_data = {
             "apertura": agregados['apertura'], "ventas": agregados['ventas'],

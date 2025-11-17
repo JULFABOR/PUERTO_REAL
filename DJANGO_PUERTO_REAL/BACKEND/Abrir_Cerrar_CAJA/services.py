@@ -345,3 +345,39 @@ def ajustar_caja_service(monto_ajuste: Decimal, motivo_ajuste: str, empleado_act
         # --- FIN REGISTRO ---
 
     return caja_activa
+
+
+def registrar_ingreso_venta_service(caja_activa, empleado, monto_ingreso, venta_id):
+    """
+    Registra el ingreso de una venta en la caja correspondiente.
+    Llamado desde el serializador de Ventas.
+    """
+    if not caja_activa or not hasattr(caja_activa, 'estado_caja') or caja_activa.estado_caja.nombre_estado != 'ABIERTA':
+        # Comprobación de seguridad para asegurar que la caja es válida y está abierta.
+        raise ValueError(f"La caja para la venta #{venta_id} no es válida o no está abierta.")
+
+    # No es necesario un with transaction.atomic() aquí, porque esta función
+    # será llamada desde DENTRO de la transacción del serializador de ventas.
+
+    saldo_anterior = caja_activa.monto_teorico_caja
+    nuevo_saldo = saldo_anterior + monto_ingreso
+
+    # 1. Actualizar el saldo teórico de la caja
+    caja_activa.monto_teorico_caja = nuevo_saldo
+    caja_activa.save(update_fields=['monto_teorico_caja'])
+
+    # 2. Obtener el tipo de evento 'VENTA', creándolo si no existe
+    tipo_evento_venta, _ = Tipo_Evento.objects.get_or_create(nombre_evento='VENTA')
+
+    # 3. Crear el registro en el historial de la caja
+    historial = Historial_Caja.objects.create(
+        cantidad_movida_hcaja=monto_ingreso,
+        caja_hc=caja_activa,
+        empleado_hc=empleado,
+        tipo_event_caja=tipo_evento_venta,
+        saldo_anterior_hcaja=saldo_anterior,
+        nuevo_saldo_hcaja=nuevo_saldo,
+        descripcion_hcaja=f"Ingreso por Venta #{venta_id}"
+    )
+    
+    return historial

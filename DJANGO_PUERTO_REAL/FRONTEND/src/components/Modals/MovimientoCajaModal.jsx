@@ -1,50 +1,43 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { toast } from 'react-hot-toast';
-import apiClient from '@/api/apiClient';
+// No se necesita toast ni apiClient, el hook se encarga.
 
-const MovimientoCajaModal = ({ isOpen, onClose, onSuccess, tipoMovimiento }) => {
+const MovimientoCajaModal = ({ 
+    isOpen, 
+    onClose, 
+    // onSuccess, <-- ELIMINADO
+    tipoMovimiento, 
+    registerMovement, 
+    isSubmitting     
+}) => {
     const [monto, setMonto] = useState('');
     const [motivo, setMotivo] = useState('');
-    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const isIngreso = tipoMovimiento === 'INGRESO';
     const title = isIngreso ? 'Registrar Ingreso Manual' : 'Registrar Egreso Manual';
     const buttonColor = isIngreso ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700';
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        const montoNum = parseFloat(monto);
-        if (isNaN(montoNum) || montoNum <= 0) {
-            return toast.error("El monto debe ser un número positivo.");
-        }
-        if (!motivo.trim()) {
-            return toast.error("Debe ingresar un motivo.");
-        }
-
-        setIsSubmitting(true);
-        const loadingToast = toast.loading('Registrando movimiento...');
-
-        try {
-            // Este es el NUEVO endpoint que debes crear en Django
-            await apiClient('/api/caja/movimiento/', {
-                method: 'POST',
-                body: JSON.stringify({
-                    monto: montoNum,
-                    motivo: motivo,
-                    tipo: tipoMovimiento // 'INGRESO' o 'EGRESO'
-                }),
-            });
-            toast.success('¡Movimiento registrado!', { id: loadingToast });
+    useEffect(() => {
+        if (isOpen) {
             setMonto('');
             setMotivo('');
-            onSuccess(); // Refresca los datos en la página de Caja
-            onClose();   // Cierra este modal
-        } catch (err) {
-            toast.error(err.message || 'No se pudo registrar el movimiento.', { id: loadingToast });
-        } finally {
-            setIsSubmitting(false);
         }
+    }, [isOpen]);
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        
+        // 1. Llama a la función del hook
+        const success = await registerMovement(monto, motivo, tipoMovimiento);
+
+        if (success) {
+            // 2. 'onSuccess()' se eliminó.
+            
+            // 3. Cierra el modal. ¡Esto es todo!
+            onClose(); 
+        }
+        // Si 'success' es false, el hook ya mostró un toast de error
+        // y el modal simplemente se queda abierto.
     };
 
     if (!isOpen) return null;
@@ -55,8 +48,15 @@ const MovimientoCajaModal = ({ isOpen, onClose, onSuccess, tipoMovimiento }) => 
                 <div className="relative rounded-lg shadow bg-pr-dark border border-gray-700">
                     <div className="flex items-center justify-between p-4 md:p-5 border-b rounded-t border-gray-600">
                         <h3 className="text-xl font-semibold text-white">{title}</h3>
-                        <button type="button" onClick={onClose} disabled={isSubmitting} className="end-2.5 text-gray-400 bg-transparent rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center hover:bg-gray-600 hover:text-white">
-                            <svg className="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/></svg>
+                        <button 
+                            type="button" 
+                            onClick={onClose} 
+                            disabled={isSubmitting} // Controlado por el hook
+                            className="end-2.5 text-gray-400 bg-transparent rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center hover:bg-gray-600 hover:text-white"
+                        >
+                            <svg className="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                                <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                            </svg>
                         </button>
                     </div>
                     <form className="p-4 md:p-5" onSubmit={handleSubmit}>
@@ -69,6 +69,7 @@ const MovimientoCajaModal = ({ isOpen, onClose, onSuccess, tipoMovimiento }) => 
                                 placeholder="Monto"
                                 className="border text-sm rounded-lg block w-full p-2.5 bg-pr-dark-gray border-gray-500 text-white focus:ring-pr-yellow focus:border-pr-yellow"
                                 required
+                                disabled={isSubmitting} // Controlado por el hook
                             />
                             <textarea
                                 value={motivo}
@@ -77,11 +78,12 @@ const MovimientoCajaModal = ({ isOpen, onClose, onSuccess, tipoMovimiento }) => 
                                 className="border text-sm rounded-lg block w-full p-2.5 bg-pr-dark-gray border-gray-500 text-white focus:ring-pr-yellow focus:border-pr-yellow"
                                 rows="3"
                                 required
+                                disabled={isSubmitting} // Controlado por el hook
                             ></textarea>
                         </div>
                         <button 
                             type="submit" 
-                            disabled={isSubmitting} 
+                            disabled={isSubmitting} // Controlado por el hook
                             className={`w-full mt-4 text-white ${buttonColor} font-bold rounded-lg text-sm px-5 py-2.5 text-center disabled:bg-gray-700 disabled:cursor-not-allowed`}
                         >
                             {isSubmitting ? 'Registrando...' : 'Confirmar'}
@@ -96,8 +98,9 @@ const MovimientoCajaModal = ({ isOpen, onClose, onSuccess, tipoMovimiento }) => 
 MovimientoCajaModal.propTypes = {
     isOpen: PropTypes.bool.isRequired,
     onClose: PropTypes.func.isRequired,
-    onSuccess: PropTypes.func.isRequired,
     tipoMovimiento: PropTypes.oneOf(['INGRESO', 'EGRESO']).isRequired,
+    registerMovement: PropTypes.func.isRequired,
+    isSubmitting: PropTypes.bool.isRequired,
 };
 
 export default MovimientoCajaModal;
