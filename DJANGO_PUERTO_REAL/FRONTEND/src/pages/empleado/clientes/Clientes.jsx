@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import apiClient from '@/api/apiClient';
-import { toast } from 'react-hot-toast'; // <-- ADD: Necesario para los toasts de borrado
+import apiClient from '@/api/apiClient'; // <-- Nuestra instancia de Axios
+import { toast } from 'react-hot-toast';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
     faSearch, 
@@ -8,19 +8,17 @@ import {
     faUsersSlash,
     faSpinner,
     faExclamationTriangle,
-    faPen,  // <-- ADD: Icono de editar
-    faTrash // <-- ADD: Icono de borrar
+    faPen, 
+    faTrash 
 } from '@fortawesome/free-solid-svg-icons';
 
 // --- Modales ---
-import NewClientModal from '../../../components/Modals/NewClientModal';
-import EditClientModal from '../../../components/Modals/EditClientModal'; // <-- ADD: Modal de edición
-import ConfirmDeleteModal from '../../../components/Modals/ConfirmDeleteModal'; // <-- ADD: Modal de borrado (reutilizado)
+import NewClientModal from '@/components/Modals/Clientes/NewClientModal';
+import EditClientModal from '@/components/Modals/Clientes/EditClientModal';
+import ConfirmDeleteModal from '@/components/Modals/ConfirmDeleteModal'; 
 
 
-// (Función helper para iniciales)
 const getInitials = (client) => {
-    // --- FIX: Usar los nuevos campos del serializer ---
     const firstName = client.user_first_name || '';
     const lastName = client.user_last_name || '';
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
@@ -32,38 +30,43 @@ const Clientes = () => {
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     
-    // Estados para modales
     const [showNewClientModal, setShowNewClientModal] = useState(false);
-    
-    // --- ADD: Estados para editar y borrar ---
     const [showEditModal, setShowEditModal] = useState(false);
     const [clientToEdit, setClientToEdit] = useState(null);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [clientToDelete, setClientToDelete] = useState(null);
 
-    // (fetchClients - sin cambios)
+    // --- CAMBIO 1: fetchClients con sintaxis Axios ---
     const fetchClients = useCallback(async () => {
         setLoading(true);
         try {
-            const data = await apiClient('/api/fidelizacion/clientes/');
+            // Antes: const data = await apiClient('/api/fidelizacion/clientes/');
+            // Ahora:
+            const response = await apiClient.get('/fidelizacion/clientes/');
+            const data = response.data; // Los datos están en response.data
+            
             setClients(data.results || data); 
+        
         } catch (err) {
-            setError(err.message);
+            // Mejoramos el mensaje de error
+            const errorMsg = err.response?.data?.detail || err.message;
+            setError(errorMsg);
+            toast.error(`Error al cargar clientes: ${errorMsg}`);
+        
         } finally {
             setLoading(false);
         }
     }, []);
 
-    // (useEffect para carga inicial - sin cambios)
     useEffect(() => {
         fetchClients();
     }, [fetchClients]);
 
-    // (filteredClients)
+    // (filteredClients - sin cambios)
     const filteredClients = useMemo(() => {
+        // ... (tu lógica de filtro es correcta)
         const search = searchTerm.toLowerCase();
         return clients.filter(client =>
-            // --- FIX: Usar los nuevos campos del serializer ---
             (client.user_first_name?.toLowerCase().includes(search)) ||
             (client.user_last_name?.toLowerCase().includes(search)) ||
             (client.user_email?.toLowerCase().includes(search)) ||
@@ -71,57 +74,71 @@ const Clientes = () => {
         );
     }, [clients, searchTerm]);
     
-    // (handleAddClient - sin cambios)
-    const handleAddClient = () => {
-        setShowNewClientModal(true);
-    };
-
-    // (handleModalSuccess - renombrado y mejorado)
+    // (Handlers de modales - sin cambios)
+    const handleAddClient = () => setShowNewClientModal(true);
     const handleSuccess = () => {
-        fetchClients(); // Refresca la lista
+        fetchClients(); 
         setShowNewClientModal(false);
         setShowEditModal(false);
     };
-
-    // --- ADD: Handlers para Editar ---
     const handleEditClick = (client) => {
         setClientToEdit(client);
         setShowEditModal(true);
     };
-
-    // --- ADD: Handlers para Borrar ---
     const handleDeleteClick = (client) => {
         setClientToDelete(client);
         setShowDeleteModal(true);
     };
 
+    // --- CAMBIO 2: handleConfirmDelete con sintaxis Axios ---
     const handleConfirmDelete = async () => {
         if (!clientToDelete) return;
         
         const loadingToast = toast.loading('Eliminando cliente...');
         try {
-            await apiClient(`/api/fidelizacion/clientes/${clientToDelete.id_cliente}/`, { 
-                method: 'DELETE' 
-            });
+            // Antes: await apiClient(url, { method: 'DELETE' });
+            // Ahora:
+            await apiClient.delete(`/fidelizacion/clientes/${clientToDelete.id_cliente}/`);
+            
             toast.success('Cliente eliminado con éxito', { id: loadingToast });
             setClientToDelete(null);
             setShowDeleteModal(false);
             fetchClients(); // Refrescar la lista
+        
         } catch (err) {
-            toast.error('No se pudo eliminar el cliente.', { id: loadingToast });
+            // Mejoramos el error
+            const errorMsg = err.response?.data?.detail || 'No se pudo eliminar el cliente.';
+            toast.error(errorMsg, { id: loadingToast });
         }
     };
 
 
-    // (Estados de Carga y Error - sin cambios)
-    if (loading) { /* ... */ }
-    if (error) { /* ... */ }
+    // (Render - sin cambios)
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center h-64 text-pr-yellow">
+                <FontAwesomeIcon icon={faSpinner} className="animate-spin text-4xl" />
+            </div>
+        );
+    }
+    
+    if (error) {
+        return (
+            <div className="text-center text-red-400 p-10 bg-pr-dark rounded-lg border border-red-900">
+                <FontAwesomeIcon icon={faExclamationTriangle} size="3x" className="mb-4" />
+                <h3 className="text-xl font-bold">Error al cargar datos</h3>
+                <p>{error}</p>
+            </div>
+        );
+    }
 
     return (
         <div>
-            {/* (Barra de Búsqueda y Botón - sin cambios) */}
+            {/* ... (Todo tu JSX de renderizado estaba perfecto) ... */}
+            
             <h1 className="text-3xl font-bold text-white mb-6">Gestión de Clientes</h1>
             <div className="flex justify-between items-center mb-6">
+                {/* ... (Barra de búsqueda y botón) ... */}
                 <div className="relative w-full md:w-1/2">
                     <input 
                         type="text" 
@@ -141,7 +158,6 @@ const Clientes = () => {
                 </button>
             </div>
 
-            {/* (Cuadrícula de Clientes) */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredClients.length > 0 ? (
                     filteredClients.map((client) => (
@@ -152,7 +168,6 @@ const Clientes = () => {
                                         {getInitials(client)}
                                     </div>
                                     <div>
-                                        {/* --- FIX: Usar los nuevos campos del serializer --- */}
                                         <h3 className="font-bold text-lg text-white">
                                             {client.user_first_name} {client.user_last_name}
                                         </h3>
@@ -164,14 +179,11 @@ const Clientes = () => {
                                     <p><strong>Tel:</strong> {client.telefono_cliente || 'No provisto'}</p>
                                 </div>
                             </div>
-
                             <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-700">
                                 <div>
                                     <span className="text-3xl font-bold text-pr-yellow">{client.puntos || 0}</span>
                                     <span className="ml-2 text-gray-400">puntos</span>
                                 </div>
-                                
-                                {/* --- ADD: Botones de Editar y Borrar --- */}
                                 <div className="flex gap-2">
                                     <button 
                                         onClick={() => handleEditClick(client)}
@@ -204,20 +216,17 @@ const Clientes = () => {
                 onClose={() => setShowNewClientModal(false)}
                 onSuccess={handleSuccess}
             />
-
-            {/* --- ADD: Renderizar nuevos modales --- */}
             <EditClientModal
                 isOpen={showEditModal}
                 onClose={() => setShowEditModal(false)}
                 onSuccess={handleSuccess}
                 client={clientToEdit}
             />
-
             <ConfirmDeleteModal
                 isOpen={showDeleteModal}
                 onClose={() => setShowDeleteModal(false)}
                 onConfirm={handleConfirmDelete}
-                itemName={clientToDelete?.user_first_name} // <-- FIX: Usar el campo correcto
+                itemName={clientToDelete?.user_first_name}
                 itemType="cliente"
             />
         </div>

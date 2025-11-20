@@ -23,7 +23,7 @@ from Abrir_Cerrar_CAJA.urls import api_urlpatterns as caja_api_urls
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('auth/', include('autenticacion.urls')), # Rutas de autenticación
+    path('api/auth/', include('autenticacion.urls')), # Rutas de autenticación
     path('', include('HOME.urls')),
 
     # Rutas de la App de Análisis (exclusivo para Staff)

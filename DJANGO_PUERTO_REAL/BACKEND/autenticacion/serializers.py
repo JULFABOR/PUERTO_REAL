@@ -3,6 +3,45 @@ from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from .models import Empleados
 from .models import Perfil
+from django.contrib.auth import authenticate
+
+
+class AuthEmailOrUsernameSerializer(serializers.Serializer):
+    username = serializers.CharField(label="Username or Email")
+    password = serializers.CharField(style={'input_type': 'password'})
+
+    def validate(self, attrs):
+        username = attrs.get('username')
+        password = attrs.get('password')
+
+        user = None
+        # Obtain request from context (may be present when called from views)
+        request = self.context.get('request') if hasattr(self, 'context') else None
+
+        # Try authenticate directly (username). Pass request when available so
+        # authentication backends that expect it don't receive None.
+        if username and password:
+            if request is not None:
+                user = authenticate(request=request, username=username, password=password)
+            else:
+                user = authenticate(username=username, password=password)
+
+        # If direct auth failed and input looks like an email, try to find by email
+        if user is None and username and '@' in username:
+            try:
+                u = User.objects.get(email__iexact=username)
+                if request is not None:
+                    user = authenticate(request=request, username=u.username, password=password)
+                else:
+                    user = authenticate(username=u.username, password=password)
+            except User.DoesNotExist:
+                user = None
+
+        if user is None:
+            raise serializers.ValidationError('Credenciales inválidas para username/email y contraseña.')
+
+        attrs['user'] = user
+        return attrs
 
 class UserRegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])

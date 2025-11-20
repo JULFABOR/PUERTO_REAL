@@ -1,13 +1,6 @@
 """
 Configuración de Django para el proyecto DJANGO_PUERTO_REAL.
-
-Generado por 'django-admin startproject' usando Django 5.2.1.
-
-Para más información sobre este archivo, consulta:
-https://docs.djangoproject.com/en/5.2/topics/settings/
-
-Para la lista completa de configuraciones y sus valores, consulta:
-https://docs.djangoproject.com/en/5.2/ref/settings/
+CORREGIDO PARA SOPORTE DE REACT + AXIOS + CORS
 """
 
 from pathlib import Path
@@ -23,16 +16,30 @@ if str(BASE_DIR.parent) not in sys.path:
 
 load_dotenv(os.path.join(BASE_DIR, '.env'))
 
-# Configuración de desarrollo de inicio rápido - no apta para producción
-# Consulta https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
-
 # ADVERTENCIA DE SEGURIDAD: ¡mantén en secreto la clave secreta utilizada en producción!
 SECRET_KEY = os.getenv('SECRET_KEY')
 
 # ADVERTENCIA DE SEGURIDAD: ¡no ejecutes con el modo depuración activado en producción!
-DEBUG = True
+DEBUG = os.getenv('DJANGO_DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = []
+# URLs del frontend y backend
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173')
+BACKEND_URL = os.getenv('BACKEND_URL', 'http://localhost:8000')
+
+# ALLOWED_HOSTS
+FRONTEND_HOSTNAME = FRONTEND_URL.split('//')[-1].split(':')[0]
+BACKEND_HOSTNAME = BACKEND_URL.split('//')[-1].split(':')[0]
+
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    FRONTEND_HOSTNAME,
+    BACKEND_HOSTNAME,
+]
+
+ADDITIONAL_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS')
+if ADDITIONAL_HOSTS:
+    ALLOWED_HOSTS.extend(ADDITIONAL_HOSTS.split(','))
 
 
 # Definición de la aplicación
@@ -45,11 +52,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles', 
-    'rest_framework', # Para construir APIs RESTful
-    'django_filters', # Para filtrado avanzado
-    'rest_framework.authtoken', # Para autenticación por token
-    'corsheaders', # Para manejar CORS 
-    'HOME', # Aplicación principal
+    'rest_framework', 
+    'django_filters', 
+    'rest_framework.authtoken', 
+    'corsheaders', # IMPORTANTE: Debe estar aquí
+    'HOME', 
     'Abrir_Cerrar_CAJA', 
     'Control_COMPRAS', 
     'Control_VENTAS',
@@ -70,11 +77,14 @@ REST_FRAMEWORK = {
     ]
 }
 
+# --- CORRECCIÓN 1: ORDEN DEL MIDDLEWARE ---
+# CorsMiddleware debe ir lo más arriba posible para interceptar las pre-flight requests
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware', # <--- MOVIDO AQUÍ (ARRIBA)
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
+    # 'corsheaders.middleware.CorsMiddleware', <--- ELIMINADO DE AQUÍ (ESTABA MAL POSICIONADO)
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -84,14 +94,12 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'DJANGO_PUERTO_REAL.urls'
 
-
 WSGI_APPLICATION = 'DJANGO_PUERTO_REAL.wsgi.application'
-
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR.parent, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -104,10 +112,7 @@ TEMPLATES = [
     },
 ]
 
-
 # Base de datos
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -119,26 +124,15 @@ DATABASES = {
     }
 }
 
-
 # Validación de contraseña
-# https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
-
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    { 'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator', },
+    { 'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator', },
+    { 'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator', },
+    { 'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator', },
 ]
 
-# Configuración de Email para producción (usando Gmail)
+# Configuración de Email
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
@@ -148,77 +142,58 @@ EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 # Internacionalización
-# https://docs.djangoproject.com/en/5.2/topics/i18n/
-
 LANGUAGE_CODE = 'en-us'
-
 TIME_ZONE = 'UTC'
-
 USE_I18N = True
-
 USE_TZ = True
 
-
-# Archivos estáticos (CSS, JavaScript, Imágenes)
-# https://docs.djangoproject.com/en/5.2/howto/static-files/
-
+# Archivos estáticos
 STATIC_URL = 'static/'
-
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR.parent.parent, 'FRONTEND', 'dist', 'assets')
 ]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-
-# Tipo de campo de clave primaria predeterminado
-# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Configuraciones personalizadas
 PESOS_POR_PUNTO = 110
-FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173') # Añadimos un valor por defecto
-
-# Redirecciones de Login/Logout
 LOGIN_REDIRECT_URL = 'home:index_privado_staff'
 LOGOUT_REDIRECT_URL = 'home:index_publico'
 
-# Configuración de CORS
-# Define qué orígenes de frontend tienen permitido acceder a esta API.
-# En producción, esto debería ser la URL de tu frontend, p. ej., 'https://yourfrontend.com'
-FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173')
-CORS_ALLOWED_ORIGINS = os.getenv(
-    'DJANGO_CORS_ALLOWED_ORIGINS',
-    'http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000'
-).split(',')
+# --- CORRECCIÓN 2 Y 3: CONFIGURACIÓN CORS Y CSRF ---
 
-# Si necesitas permitir credenciales (cookies, encabezados de autenticación) desde el frontend.
-# CORS_ALLOW_CREDENTIALS = True
+# Habilita el envío de cookies y credenciales (Soluciona el error de la foto)
+CORS_ALLOW_CREDENTIALS = True 
 
-# Orígenes de confianza para CSRF, importante para POST, PUT, DELETE requests.
-CSRF_TRUSTED_ORIGINS = os.getenv(
-    'DJANGO_CSRF_TRUSTED_ORIGINS',
-    'http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000'
-).split(',')
+# Orígenes permitidos explícitamente (Incluyendo tu React en Vite)
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
+# Orígenes de confianza para CSRF (Necesario para POST/PUT/DELETE)
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
+# Headers permitidos (Opcional, pero recomendado para evitar bloqueos de tokens)
+from corsheaders.defaults import default_headers
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    "x-csrftoken",
+    "authorization",
+]
 
 JAZZMIN_SETTINGS = {
-    # Título de la ventana (se verá en la pestaña del navegador)
     "site_title": "Puerto Real Admin",
-
-    # Título en la pantalla de login
     "site_header": "Puerto Real",
-
-    # Título en la barra de navegación
     "site_brand": "Puerto Real",
-
-    # Texto de bienvenida en la esquina superior derecha
     "welcome_sign": "Bienvenido a Puerto Real",
-
-    # Copyright en el pie de página
     "copyright": "Puerto Real Ltd.",
-
-    # Tema
-    # Puedes encontrar más temas en la documentación de Jazzmin
     "theme": "darkly",
-    
 }

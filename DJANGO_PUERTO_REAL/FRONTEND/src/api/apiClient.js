@@ -1,52 +1,70 @@
-const getAuthToken = () => localStorage.getItem('authToken');
+import axios from 'axios';
+import { toast } from 'react-hot-toast'; 
 
-const apiClient = async (url, options = {}) => {
-    const token = getAuthToken();
-
-    const headers = {
-        'Content-Type': 'application/json',
-        ...options.headers,
-    };
-
-    if (token) {
-        // Cambia la palabra 'Bearer' por 'Token'
-        headers['Authorization'] = `Token ${token}`;
-    }
-
-
-    try {
-        const fetchOptions = {
-            ...options,
-            headers,
-        };
-
-        // For GET requests, disable caching to ensure fresh data
-        if (!options.method || options.method.toUpperCase() === 'GET') {
-            fetchOptions.cache = 'no-cache';
-        }
-
-        const response = await fetch(url, fetchOptions);
-
-        if (!response.ok) {
-            // Intenta parsear la respuesta de error del backend
-            const errorData = await response.json().catch(() => ({ message: response.statusText }));
-            const error = new Error('API request failed');
-            error.response = response;
-            error.data = errorData;
-            throw error;
-        }
-
-        // Si la respuesta no tiene contenido, devuelve null, de lo contrario, parsea el JSON
-        if (response.status === 204 /* No Content */) {
-            return null;
-        }
-        return response.json();
-
-    } catch (error) {
-        console.error('API Client Error:', error);
-        // Re-lanza el error para que el componente pueda manejarlo
-        throw error;
-    }
+const getAuthToken = () => {
+  // Compatibilidad: algunas partes antiguas guardaban el token en 'token'
+  return localStorage.getItem('authToken') || localStorage.getItem('token');
 };
+
+const apiClient = axios.create({
+  // Aseguramos que apunte al puerto de Django
+  baseURL: 'http://127.0.0.1:8000/api', 
+  timeout: 10000, 
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  },
+  // Configuración necesaria para que Django acepte la conexión
+  withCredentials: true, 
+  xsrfCookieName: 'csrftoken', 
+  xsrfHeaderName: 'X-CSRFToken', 
+});
+
+// --- INTERCEPTOR DE PETICIONES ---
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = getAuthToken();
+    if (token) {
+      // CORRECCIÓN CRÍTICA: 
+      // Tu settings.py usa 'TokenAuthentication', por lo tanto 
+      // el prefijo OBLIGATORIO aquí es 'Token'. 
+      // (Si pusiéramos 'Bearer', Django rechazaría la conexión -> Error 401 -> Recarga).
+      config.headers['Authorization'] = `Token ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// --- INTERCEPTOR DE RESPUESTAS ---
+apiClient.interceptors.response.use(
+  (response) => response, 
+  (error) => {
+    const { status, config } = error.response || {};
+
+    // LÓGICA ANTIBUCLE DE RECARGA:
+    // Si falla el Login o la validación del usuario (/me/), NO recargamos la página.
+    // Solo recargamos si falla una petición normal (como ver productos) por token vencido.
+    const isLoginEndpoint = config?.url?.includes('/auth/login/');
+    const isUserEndpoint = config?.url?.includes('/auth/user/me/');
+
+    if (status === 401 && !isLoginEndpoint && !isUserEndpoint) { 
+      
+      console.warn("Sesión expirada, cerrando sesión...");
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('user'); 
+      
+      toast.error('Tu sesión ha expirado. Por favor, inicia sesión de nuevo.');
+      
+      // Forzamos la salida al login
+      window.location.href = '/'; 
+    }
+    
+    // Devolvemos el error para que el componente pueda mostrar el mensaje "Contraseña incorrecta"
+    return Promise.reject(error);
+  }
+);
 
 export default apiClient;

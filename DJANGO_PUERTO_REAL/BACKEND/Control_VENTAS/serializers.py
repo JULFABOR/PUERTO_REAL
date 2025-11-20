@@ -185,4 +185,17 @@ class VentaWriteSerializer(serializers.ModelSerializer):
             venta.qr_token = uuid.uuid4().hex
             venta.save(update_fields=['qr_token'])
 
+            # Registrar ingreso en caja si la venta fue en efectivo
+            metodo_pago_venta = validated_data.get('metodo_pago') or getattr(venta, 'metodo_pago', None)
+            try:
+                if metodo_pago_venta and 'efect' in metodo_pago_venta.lower():
+                    # Importar el servicio localmente para evitar importaciones circulares
+                    from Abrir_Cerrar_CAJA.services import registrar_ingreso_venta_service
+                    caja_obj = validated_data.get('caja_venta') or venta.caja_venta
+                    registrar_ingreso_venta_service(caja_obj, venta.empleado_venta, venta.total_venta, venta.id_venta)
+            except Exception as e:
+                # Si por alguna razón la caja no puede actualizarse, fallamos la creación de la venta
+                # para mantener consistencia financiera.
+                raise serializers.ValidationError(str(e))
+
         return venta

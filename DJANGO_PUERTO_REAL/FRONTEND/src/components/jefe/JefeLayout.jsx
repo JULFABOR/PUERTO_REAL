@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, Outlet } from 'react-router-dom';
+import { Link, Outlet, useNavigate } from 'react-router-dom'; // Agregué useNavigate por si acaso
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
     faBars, 
@@ -9,27 +9,56 @@ import {
     faTruckField, 
     faMoneyBillWave,
     faChartPie,
+    faSpinner,
+    faCog // Agregamos el icono de configuración
 } from '@fortawesome/free-solid-svg-icons';
 import { initFlowbite } from 'flowbite';
-import { Toaster } from 'react-hot-toast';
-import { useAuth } from '@/hooks/useAuth'; // <-- 1. IMPORTAR HOOK
+import { useAuth } from '@/hooks/useAuth';
 
 const JefeLayout = () => {
-    const { user, logout } = useAuth(); // <-- 2. USAR EL CONTEXTO
+    // 1. IMPORTANTE: Extraemos 'loading' del contexto
+    const { user, logout, loading } = useAuth(); 
     const [isSidebarOpen, setSidebarOpen] = useState(false);
+    const navigate = useNavigate();
 
     useEffect(() => {
-        initFlowbite();
-    }, []);
+        // Solo inicializamos Flowbite si NO estamos cargando
+        if (!loading) {
+            initFlowbite();
+        }
+    }, [loading]);
 
     const toggleSidebar = () => {
         setSidebarOpen(!isSidebarOpen);
     };
 
+    // --- 2. EL BLINDAJE CONTRA PANTALLA BLANCA ---
+    // Si el AuthProvider dice que está cargando, mostramos esto en lugar de explotar
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-pr-dark-gray flex items-center justify-center">
+                <div className="text-center">
+                    <FontAwesomeIcon icon={faSpinner} spin className="text-pr-yellow text-4xl mb-4" />
+                    <p className="text-gray-300">Cargando sistema...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Protección adicional: Si terminó de cargar y no hay usuario, fuera de aquí
+    if (!loading && !user) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center bg-pr-dark text-white gap-4">
+                <h2>No se encontró información de usuario.</h2>
+                <button onClick={() => navigate('/')} className="text-pr-yellow underline">Volver al Login</button>
+            </div>
+        );
+    }
+
+    // --- 3. Renderizado normal (Tu código original) ---
     return (
         <div className="bg-pr-dark-gray font-sans text-gray-300 min-h-screen">
             <nav className="bg-pr-dark border-b border-pr-gray/20 fixed w-full z-20 top-0 start-0">
-                {/* ... tu código de la barra de navegación no cambia ... */}
                 <div className="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
                     <Link to="/jefe/home" className="flex items-center space-x-3 rtl:space-x-reverse">
                         <span className="self-center text-2xl font-bold whitespace-nowrap text-pr-yellow">PUERTO REAL</span>
@@ -45,12 +74,11 @@ const JefeLayout = () => {
                         </button>
                         <div className="z-50 hidden my-4 text-base list-none bg-pr-dark divide-y divide-gray-600 rounded-lg shadow" id="user-dropdown">
                             <div className="px-4 py-3">
-                                {/* 3. USAR DATOS DEL CONTEXTO */}
-                                <span className="block text-sm text-white">{user?.rol || 'Jefe'}</span>
-                                <span className="block text-sm text-gray-400 truncate">{user?.email || ''}</span>
+                                {/* Aquí ya es seguro usar user porque pasamos el loading check */}
+                                <span className="block text-sm text-white">{user?.username || 'Usuario'}</span>
+                                <span className="block text-sm text-gray-400 truncate">{user?.email || user?.rol || 'Staff'}</span>
                             </div>
                             <ul className="py-2" aria-labelledby="user-menu-button">
-                                {/* 4. USAR FUNCIÓN LOGOUT DEL CONTEXTO */}
                                 <li><button onClick={logout} className="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-pr-dark-gray">Cerrar Sesión</button></li>
                             </ul>
                         </div>
@@ -60,7 +88,6 @@ const JefeLayout = () => {
 
             <div className="flex mt-16">
                 <aside id="sidebar-jefe" className={`fixed top-16 left-0 z-40 w-64 h-[calc(100vh-4rem)] bg-pr-dark p-4 space-y-6 shrink-0 transition-transform md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-                    {/* ... tu código del menú lateral no cambia ... */}
                     <div>
                         <h3 className="font-bold text-white text-lg mb-4">Gestión de Tienda</h3>
                         <ul className="space-y-2">
@@ -69,6 +96,7 @@ const JefeLayout = () => {
                             <li><Link to="/jefe/customers" className="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><FontAwesomeIcon icon={faUsers} className="w-5 text-center text-lg" /> Clientes</Link></li>
                             <li><Link to="/jefe/suppliers" className="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><FontAwesomeIcon icon={faTruckField} className="w-5 text-center text-lg" /> Proveedores</Link></li>
                             <li><Link to="/jefe/caja" className="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><FontAwesomeIcon icon={faMoneyBillWave} className="w-5 text-center text-lg" /> Control de Caja</Link></li>
+                            <li><Link to="/jefe/settings" className="flex items-center gap-3 text-gray-300 hover:text-pr-yellow py-2 px-3 rounded-lg hover:bg-pr-dark-gray transition-colors"><FontAwesomeIcon icon={faCog} className="w-5 text-center text-lg" /> Configuración</Link></li>
                         </ul>
                     </div>
                     <div>
@@ -86,18 +114,7 @@ const JefeLayout = () => {
                 </main>
             </div>
 
-            {/* --- 2. AÑADIR EL COMPONENTE TOASTER AQUÍ --- */}
-            {/* Se encargará de mostrar todas las notificaciones de la aplicación */}
-            <Toaster 
-                position="top-right"
-                toastOptions={{
-                    style: {
-                        background: '#1F2937', // bg-gray-800
-                        color: '#D1D5DB', // text-gray-300
-                        border: '1px solid #4B5563', // border-gray-600
-                    },
-                }}
-            />
+            {/* Toaster centralized in `src/main.jsx` to avoid duplicate toasts */}
         </div>
     );
 };

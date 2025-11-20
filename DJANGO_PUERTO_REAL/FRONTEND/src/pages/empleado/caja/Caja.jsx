@@ -7,12 +7,12 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 
 // --- ¡CAMBIOS CLAVE EN IMPORTS! ---
-import { useCajaContext } from '@/contexts/CajaContext';
+import { useCajaContext } from '@/hooks/useCaja';
 // Añadimos 'isToday'
 import { formatCurrency, toYYYYMMDD, isToday } from '@/utils/formatters'; 
 import FormInput from '@/components/shared/FormInput'; 
-import MovimientoCajaModal from '@/components/Modals/MovimientoCajaModal';
-import CloseCajaSection from '@/components/Modals/CloseCajaSection'; 
+import MovimientoCajaModal from '@/components/Modals/Caja/MovimientoCajaModal';
+import CloseCajaSection from '@/components/Modals/Caja/CloseCajaSection'; 
 
 // --- HELPERS GLOBALES ---
 // (Componentes de ayuda para renderizar)

@@ -1,85 +1,79 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-    faPlusCircle,
-    faPlus,
-    faSpinner,                // --- AÑADIDO ---
-    faExclamationTriangle,    // --- AÑADIDO ---
-    faInbox,                  // --- AÑADIDO ---
-    faSort,                   // --- AÑADIDO ---
-    faSortUp,                 // --- AÑADIDO ---
-    faSortDown,               // --- AÑADIDO ---
-    faCircle,                 // --- AÑADIDO ---
-    faEye                     // --- AÑADIDO ---
+    faPlusCircle, faPlus, faSpinner, faExclamationTriangle, faInbox,
+    faSort, faSortUp, faSortDown, faCircle, faEye
 } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-hot-toast';
-import apiClient from '@/api/apiClient';
+import apiClient from '@/api/apiClient'; // Nuestra instancia de Axios
 
-// --- MODIFICADO: Importa el modal externo ---
-import AddStockModal from '@/components/modals/AddStockModal'; // Asegúrate que la ruta sea correcta
-import StockHistoryModal from '@/components/Modals/StockHistoryModal'; 
-// --- AÑADIDO: HELPER COMPONENT SORT INDICATOR ---
+import AddStockModal from '@/components/modals/ControlStock/AddStockModal';
+import StockHistoryModal from '@/components/Modals/ControlStock/StockHistoryModal'; 
+
+// --- Componentes Helper ---
 const SortIndicator = ({ direction }) => {
     if (!direction) return <FontAwesomeIcon icon={faSort} className="ml-1 text-gray-600 opacity-50" />;
     return direction === 'ascending'
         ? <FontAwesomeIcon icon={faSortUp} className="ml-1" />
         : <FontAwesomeIcon icon={faSortDown} className="ml-1" />;
 };
-
-// --- AÑADIDO: HELPER COMPONENT STATUS BADGE ---
 const StatusBadge = ({ status }) => (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${status.className} whitespace-nowrap`}>
         <FontAwesomeIcon icon={faCircle} className="w-2 h-2 mr-1.5" />
         {status.text}
     </span>
 );
+// --- Fin Componentes Helper ---
 
 const EmpleadoControlStock = () => {
+    // --- Estados ---
     const [products, setProducts] = useState([]);
-    const [allProducts, setAllProducts] = useState([]); // Usado para el autocompletar del modal
+    const [allProducts, setAllProducts] = useState([]);
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null); // --- AÑADIDO: Estado de Error ---
+    const [error, setError] = useState(null);
     const [userData, setUserData] = useState(null);
     const [showAddStockModal, setShowAddStockModal] = useState(false);
-    
-    // --- AÑADIDO: Estados para Modal de Historial ---
     const [showHistoryModal, setShowHistoryModal] = useState(false);
     const [selectedProductForHistory, setSelectedProductForHistory] = useState(null);
-    
-    // Estado para el formulario del modal
     const initialAddStockState = { searchTerm: '', selectedProduct: null, quantity: '', reason: 'Recepción de pedido' };
     const [addStockState, setAddStockState] = useState(initialAddStockState);
-    
-    // Filtros de la tabla
     const [tableSearchTerm, setTableSearchTerm] = useState('');
     const [tableSelectedCategory, setTableSelectedCategory] = useState('');
     const [tableSelectedStatus, setTableSelectedStatus] = useState('');
-
-    // --- AÑADIDO: Estado de Ordenamiento ---
     const [sortConfig, setSortConfig] = useState({ key: 'nombre_producto', direction: 'ascending' });
 
-    // --- MODIFICADO: fetchData para manejar Error ---
+    
+    // --- FUNCIÓN DE FETCH REFACTORIZADA ---
     const fetchData = useCallback(async () => {
-        // No mostramos el spinner en cada recarga, solo en la inicial
         if (!loading) setLoading(true); 
         setError(null);
         try {
-            const [productsData, categoriesData] = await Promise.all([
-                apiClient('/api/stock/productos/'),
-                apiClient('/api/stock/categorias/')
+            // 1. Usamos apiClient.get() y quitamos /api/ de las rutas
+            const [productsResponse, categoriesResponse] = await Promise.all([
+                apiClient.get('/stock/productos/'),
+                apiClient.get('/stock/categorias/')
             ]);
+
+            // 2. Los datos ahora están en la propiedad .data
+            const productsData = productsResponse.data;
+            const categoriesData = categoriesResponse.data;
+
             const productList = productsData.results || productsData || [];
             setProducts(productList);
-            setAllProducts(productList); // Asumiendo que /api/stock/productos/ devuelve todo
+            setAllProducts(productList); 
             setCategories(categoriesData.results || categoriesData || []);
+        
         } catch (error) {
-            toast.error("Error al cargar los datos.");
-            setError(error.message || 'Error desconocido');
+            // 3. Mejoramos el manejo de errores de Axios
+            const errorMsg = error.response?.data?.detail || error.message || 'Error desconocido';
+            toast.error(`Error al cargar los datos: ${errorMsg}`);
+            setError(errorMsg);
+        
         } finally {
             setLoading(false);
         }
-    }, []); // Quitamos 'loading' de las dependencias
+    }, []); // 'loading' no debe estar aquí
 
     useEffect(() => {
         fetchData();
@@ -89,7 +83,7 @@ const EmpleadoControlStock = () => {
         }
     }, [fetchData]);
 
-    // --- AÑADIDO: Función de Ordenamiento ---
+    // --- Resto de Handlers y Lógica (Sin cambios) ---
     const requestSort = (key) => {
         let direction = 'ascending';
         if (sortConfig.key === key && sortConfig.direction === 'ascending') {
@@ -98,14 +92,12 @@ const EmpleadoControlStock = () => {
         setSortConfig({ key, direction });
     };
 
-    // --- MODIFICADO: Esta es la función que llama el modal al tener éxito ---
     const handleSuccess = () => {
         setShowAddStockModal(false);
         setShowHistoryModal(false);
         fetchData(); // Refresca los datos
     };
     
-    // Nueva función para abrir el modal, opcionalmente con un producto
     const openAddStockModal = (product) => {
         if (product) {
             setAddStockState({
@@ -119,26 +111,19 @@ const EmpleadoControlStock = () => {
         setShowAddStockModal(true);
     };
 
-    // --- AÑADIDO: Handler para modal de historial ---
     const openHistoryModal = (product) => {
         setSelectedProductForHistory(product);
         setShowHistoryModal(true);
     };
     
-    // --- ELIMINADOS ---
-    // handleAddStockChange, handleSelectProductForStock, y handleAddStockSubmit
-    // ahora viven dentro del componente AddStockModal
-    
-    // --- MODIFICADO: Colores de 'getStatus' para consistencia ---
     const getStatus = (product) => {
         const stock = product.total_stock || 0;
-        const lowStockThreshold = product.low_stock_threshold || 10; // Valor por defecto
+        const lowStockThreshold = product.low_stock_threshold || 10;
         if (stock === 0) return { text: 'Sin Stock', className: 'bg-red-600/20 text-red-300', value: 'out' };
         if (stock > 0 && stock <= lowStockThreshold) return { text: 'Stock Bajo', className: 'bg-yellow-600/20 text-yellow-300', value: 'low' };
         return { text: 'En Stock', className: 'bg-green-600/20 text-green-300', value: 'stock' };
     };
 
-    // --- MODIFICADO: 'useMemo' ahora incluye ordenamiento ---
     const tableFilteredProducts = useMemo(() => {
         let filtered = products.filter(p => {
             const searchLower = tableSearchTerm.toLowerCase();
@@ -177,7 +162,7 @@ const EmpleadoControlStock = () => {
     
     const formatCurrency = (value) => `$${(value || 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-    // --- MODIFICADO: Estados de Carga y Error ---
+    // --- Render Lógica ---
     if (loading && products.length === 0) {
         return (
             <div className="flex justify-center items-center h-64 text-pr-yellow">
@@ -198,6 +183,7 @@ const EmpleadoControlStock = () => {
         );
     }
 
+    // --- Render JSX ---
     return (
         <>
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
@@ -211,7 +197,6 @@ const EmpleadoControlStock = () => {
                 </button>
             </div>
 
-            {/* --- Filtros de la tabla --- */}
             <div className="flex flex-col md:flex-row gap-4 mb-6">
                 <input type="text" placeholder="Buscar por Nombre o SKU..." value={tableSearchTerm} onChange={e => setTableSearchTerm(e.target.value)} className="w-full md:w-1/3 p-3 text-sm text-white border border-gray-600 rounded-lg bg-pr-dark-gray focus:ring-pr-yellow focus:border-pr-yellow" />
                 <select value={tableSelectedCategory} onChange={e => setTableSelectedCategory(e.target.value)} className="w-full md:w-auto p-3 text-sm text-white border border-gray-600 rounded-lg bg-pr-dark-gray focus:ring-pr-yellow focus:border-pr-yellow">
@@ -226,11 +211,8 @@ const EmpleadoControlStock = () => {
                 </select>
             </div>
 
-            {/* --- Tabla de Productos --- */}
             <div className="relative overflow-x-auto shadow-md rounded-lg border border-gray-700">
                 <table className="w-full text-sm text-left text-gray-400">
-                    
-                    {/* --- MODIFICADO: thead con Ordenamiento --- */}
                     <thead className="text-xs text-white uppercase bg-pr-dark border-b border-gray-700">
                         <tr>
                             <th scope="col" className="px-6 py-3 cursor-pointer hover:bg-gray-700" onClick={() => requestSort('barcode')}>
@@ -267,7 +249,6 @@ const EmpleadoControlStock = () => {
                         </tr>
                     </thead>
 
-                    {/* --- MODIFICADO: tbody con Estado Vacío y Botones --- */}
                     <tbody>
                         {tableFilteredProducts.length > 0 ? (
                             tableFilteredProducts.map((product) => {
@@ -279,11 +260,7 @@ const EmpleadoControlStock = () => {
                                         <td className="px-6 py-4 text-gray-300">{product.categoria_producto?.nombre_categoria || 'Sin Cat.'}</td>
                                         <td className="px-6 py-4 font-medium text-white">{formatCurrency(product.precio_unitario_venta_producto)}</td>
                                         <td className={`px-6 py-4 font-bold ${status.value === 'low' ? 'text-yellow-400' : status.value === 'out' ? 'text-red-500' : 'text-white'}`}>{product.total_stock || 0}</td>
-                                        
-                                        {/* --- MODIFICADO: Usando StatusBadge --- */}
                                         <td className="px-6 py-4"><StatusBadge status={status} /></td>
-                                        
-                                        {/* --- MODIFICADO: Columna de Acciones --- */}
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex items-center justify-end space-x-2">
                                                 <button
@@ -306,7 +283,6 @@ const EmpleadoControlStock = () => {
                                 );
                             })
                         ) : (
-                            // --- AÑADIDO: Estado Vacío ---
                             <tr>
                                 <td colSpan="7" className="text-center p-12 text-pr-gray">
                                     <FontAwesomeIcon icon={faInbox} className="text-4xl text-pr-gray/50 mb-4" />
@@ -329,11 +305,9 @@ const EmpleadoControlStock = () => {
                 onSuccess={handleSuccess}
                 allProducts={allProducts}
                 userData={userData}
-                // Pasamos el estado local para que el modal lo use
                 initialState={addStockState}
                 setInitialState={setAddStockState}
             />
-
             
             <StockHistoryModal
                 isOpen={showHistoryModal}

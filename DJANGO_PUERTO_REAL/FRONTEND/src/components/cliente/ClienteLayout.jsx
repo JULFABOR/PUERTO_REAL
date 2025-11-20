@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, Outlet, useNavigate } from 'react-router-dom';
+import { Link, Outlet } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
     faBars, 
@@ -7,35 +7,18 @@ import {
     faUser,
 } from '@fortawesome/free-solid-svg-icons';
 import { initFlowbite } from 'flowbite';
-
-const getUserData = () => {
-    try {
-        const userDataString = localStorage.getItem('userData');
-        return userDataString ? JSON.parse(userDataString) : null;
-    } catch (error) {
-        console.error("Error parsing user data from localStorage", error);
-        return null;
-    }
-};
+import { useAuth } from '@/hooks/useAuth';
 
 const ClienteLayout = () => {
-    const [isSidebarOpen, setSidebarOpen] = useState(false); // Hidden by default on mobile
-    const [userData, setUserData] = useState(null);
-    const navigate = useNavigate();
+    const [isSidebarOpen, setSidebarOpen] = useState(false);
+    const { user, logout } = useAuth();
 
     useEffect(() => {
         initFlowbite();
-        setUserData(getUserData());
     }, []);
 
     const toggleSidebar = () => {
         setSidebarOpen(!isSidebarOpen);
-    };
-
-    const handleLogout = () => {
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('userData');
-        navigate('/');
     };
 
     return (
@@ -56,11 +39,11 @@ const ClienteLayout = () => {
                         </button>
                         <div className="z-50 hidden my-4 text-base list-none bg-pr-dark divide-y divide-gray-600 rounded-lg shadow" id="user-dropdown">
                             <div className="px-4 py-3">
-                                <span className="block text-sm text-white">{userData?.rol || 'Cliente'}</span>
-                                <span className="block text-sm text-gray-400 truncate">{userData?.email || ''}</span>
+                                <span className="block text-sm text-white">{user?.rol || 'Cliente'}</span>
+                                <span className="block text-sm text-gray-400 truncate">{user?.email || ''}</span>
                             </div>
                             <ul className="py-2" aria-labelledby="user-menu-button">
-                                <li><button onClick={handleLogout} className="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-pr-dark-gray">Cerrar Sesión</button></li>
+                                <li><button onClick={logout} className="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-pr-dark-gray">Cerrar Sesión</button></li>
                             </ul>
                         </div>
                     </div>

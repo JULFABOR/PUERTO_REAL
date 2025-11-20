@@ -16,6 +16,8 @@ const RoleBasedRedirect = () => {
         return <Navigate to="/" />;
     }
 
+    // Debug: logueamos user y role para detectar pantallas en blanco
+    console.log('RoleBasedRedirect - user:', user);
     const role = user?.rol;
 
     // --- Corregimos a 'Jefe' y 'Empleado' (con mayúscula inicial) ---

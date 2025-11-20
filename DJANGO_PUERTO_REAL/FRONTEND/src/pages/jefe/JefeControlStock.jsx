@@ -7,22 +7,22 @@ import {
     faSpinner,
     faExclamationTriangle,
     faInbox,
-    faSort,         // --- AÑADIDO ---
-    faSortUp,       // --- AÑADIDO ---
-    faSortDown,     // --- AÑADIDO ---
-    faCircle,       // --- AÑADIDO ---
-    faEye           // --- AÑADIDO ---
+    faSort,
+    faSortUp,
+    faSortDown,
+    faCircle,
+    faEye
 } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-hot-toast';
-import apiClient from '@/api/apiClient';
-import useDebounce from '../../hooks/useDebounce'; // Asegúrate que la ruta sea correcta
+import apiClient from '@/api/apiClient'; // Nuestra instancia de Axios
+import useDebounce from '../../hooks/useDebounce'; 
 
-// --- Modales ---
-import AddStockModal from '../../components/modals/AddStockModal'; 
-import AdjustStockModal from '../../components/modals/AdjustStockModal';
-import StockHistoryModal from '../../components/Modals/StockHistoryModal';
+// --- Modals ---
+import AddStockModal from '@/components/modals/ControlStock/AddStockModal'; 
+import AdjustStockModal from '@/components/modals/ControlStock/AdjustStockModal';
+import StockHistoryModal from '@/components/Modals/ControlStock/StockHistoryModal';
 
-// --- AÑADIDO: HELPER COMPONENT SORT INDICATOR ---
+// --- HELPER COMPONENT SORT INDICATOR (Sin cambios) ---
 const SortIndicator = ({ direction }) => {
     if (!direction) return <FontAwesomeIcon icon={faSort} className="ml-1 text-gray-600 opacity-50" />;
     return direction === 'ascending'
@@ -30,8 +30,7 @@ const SortIndicator = ({ direction }) => {
         : <FontAwesomeIcon icon={faSortDown} className="ml-1" />;
 };
 
-// --- AÑADIDO: HELPER COMPONENT STATUS BADGE ---
-// Este componente está diseñado para usar el objeto de getStatus
+// --- HELPER COMPONENT STATUS BADGE (Sin cambios) ---
 const StatusBadge = ({ status }) => (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${status.className} whitespace-nowrap`}>
         <FontAwesomeIcon icon={faCircle} className="w-2 h-2 mr-1.5" />
@@ -39,8 +38,7 @@ const StatusBadge = ({ status }) => (
     </span>
 );
 
-// --- FUNCIÓN getStatus ---
-// (Esta función ya la tenías y es perfecta)
+// --- FUNCIÓN getStatus (Sin cambios) ---
 const getStatus = (product) => {
     const stock = product.total_stock || 0;
     const lowStockThreshold = product.low_stock_threshold || 10;
@@ -50,74 +48,73 @@ const getStatus = (product) => {
 };
 
 const JefeControlStock = () => {
-    // --- ESTADOS ---
+    // --- ESTADOS (Sin cambios) ---
     const [products, setProducts] = useState([]); 
     const [allProducts, setAllProducts] = useState([]); 
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [userData, setUserData] = useState(null);
-
-    // Estados para modales
     const [showAddStockModal, setShowAddStockModal] = useState(false);
     const [showAdjustStockModal, setShowAdjustStockModal] = useState(false);
-    // --- AÑADIDO: Estado para modal de historial ---
     const [showHistoryModal, setShowHistoryModal] = useState(false);
     const [selectedProductForHistory, setSelectedProductForHistory] = useState(null);
-
-    // Estados para filtros y búsqueda
     const [tableSearchTerm, setTableSearchTerm] = useState('');
     const [tableSelectedCategory, setTableSelectedCategory] = useState('');
     const [tableSelectedStatus, setTableSelectedStatus] = useState(''); 
     const debouncedSearchTerm = useDebounce(tableSearchTerm, 500); 
-
-    // --- AÑADIDO: Estado para Ordenamiento ---
     const [sortConfig, setSortConfig] = useState({ key: 'nombre_producto', direction: 'ascending' });
-
-    // Estado para el modal AddStock
     const initialAddStockState = { searchTerm: '', selectedProduct: null, quantity: '', reason: 'Compra a proveedor' };
     const [addStockState, setAddStockState] = useState(initialAddStockState);
 
-
-    // --- LÓGICA DE DATOS ---
+    // --- LÓGICA DE DATOS (REFACTORIZADA) ---
+    
+    // --- CAMBIOS EN fetchData ---
     const fetchData = useCallback(async () => {
         setError(null);
         try {
-             const params = new URLSearchParams();
-             if (debouncedSearchTerm) params.append('search', debouncedSearchTerm);
-             if (tableSelectedCategory) params.append('categoria_producto', tableSelectedCategory);
+            // --- CAMBIO 1: Parámetros de Axios ---
+            const productParams = {};
+            if (debouncedSearchTerm) productParams.search = debouncedSearchTerm;
+            if (tableSelectedCategory) productParams.categoria_producto = tableSelectedCategory;
 
-            const [productsData, categoriesData] = await Promise.all([
-                apiClient(`/api/stock/productos/?${params.toString()}`),
-                apiClient('/api/stock/categorias/')
+            // --- CAMBIO 2: Sintaxis de Axios GET ---
+            const [productsResponse, categoriesResponse] = await Promise.all([
+                apiClient.get('/stock/productos/', { params: productParams }),
+                apiClient.get('/stock/categorias/')
             ]);
 
-             let productList = [];
-             if (productsData && Array.isArray(productsData.results)) {
+            // --- CAMBIO 3: Acceso a datos con .data ---
+            const productsData = productsResponse.data;
+            const categoriesData = categoriesResponse.data;
+
+            let productList = [];
+            if (productsData && Array.isArray(productsData.results)) {
                  productList = productsData.results;
-             } else if (productsData && Array.isArray(productsData)) {
+            } else if (productsData && Array.isArray(productsData)) {
                  productList = productsData;
-             }
-             setProducts(productList); 
-             setAllProducts(productList); // Asumiendo que esto es correcto por ahora
+            }
+            setProducts(productList); 
+            setAllProducts(productList); // Para las stats
 
             setCategories(categoriesData.results || categoriesData || []);
 
         } catch (err) {
+            // --- CAMBIO 4: Manejo de error de Axios ---
             console.error("Fetch Error:", err); 
-            toast.error("Error al cargar los datos. Revisa la consola.");
-            setError(err.message || 'Error desconocido');
+            const errorMsg = err.response?.data?.detail || err.message || "Error al cargar los datos.";
+            toast.error(errorMsg);
+            setError(errorMsg);
         } finally {
             setLoading(false);
         }
     }, [debouncedSearchTerm, tableSelectedCategory]); 
 
-    // Efecto para cargar datos iniciales y cuando cambian los filtros de backend
+    // --- Resto de hooks y funciones (Sin cambios) ---
     useEffect(() => {
         fetchData();
     }, [fetchData]);
 
-    // Efecto para obtener datos del usuario al montar
     useEffect(() => {
         const storedUserData = localStorage.getItem('userData');
         if (storedUserData) {
@@ -125,7 +122,6 @@ const JefeControlStock = () => {
         }
     }, []);
 
-    // --- AÑADIDO: Función de Ordenamiento ---
     const requestSort = (key) => {
         let direction = 'ascending';
         if (sortConfig.key === key && sortConfig.direction === 'ascending') {
@@ -134,11 +130,10 @@ const JefeControlStock = () => {
         setSortConfig({ key, direction });
     };
 
-    // --- MANEJO DE MODALES ---
     const handleSuccess = () => {
         setShowAddStockModal(false);
         setShowAdjustStockModal(false);
-        setShowHistoryModal(false); // <-- AÑADIDO
+        setShowHistoryModal(false);
         fetchData(); // Refresca los datos
     };
 
@@ -155,17 +150,12 @@ const JefeControlStock = () => {
         setShowAddStockModal(true);
     };
 
-    // --- AÑADIDO: Handler para modal de historial ---
     const openHistoryModal = (product) => {
         setSelectedProductForHistory(product);
         setShowHistoryModal(true);
     };
 
-    // --- LÓGICA AUXILIAR ---
-
-    // Cálculo de Estadísticas
     const stats = useMemo(() => {
-        // ... (tu lógica de stats existente, está bien)
         const productList = allProducts; 
         const inventoryValue = productList.reduce((acc, p) => acc + ((p.precio_unitario_venta_producto || 0) * (p.total_stock || 0)), 0);
         const uniqueProducts = productList.length;
@@ -174,50 +164,42 @@ const JefeControlStock = () => {
         return { inventoryValue, uniqueProducts, lowStockAlerts, outOfStockProducts };
     }, [allProducts]);
 
-    // --- MODIFICADO: Filtrado Frontend ahora incluye Ordenamiento ---
     const tableFilteredProducts = useMemo(() => {
-        // 1. Filtrado (como ya lo tenías)
         let filtered = products.filter(p => {
             const statusMatch = !tableSelectedStatus || getStatus(p).value === tableSelectedStatus;
             return statusMatch;
         });
         
-        // 2. Ordenamiento (Nuevo)
         if (sortConfig.key) {
            filtered.sort((a, b) => {
                 let aValue = a[sortConfig.key];
                 let bValue = b[sortConfig.key];
                 
-                // Manejo de valores anidados (como categoría)
                 if (sortConfig.key === 'categoria_producto') {
                     aValue = a.categoria_producto?.nombre_categoria || '';
                     bValue = b.categoria_producto?.nombre_categoria || '';
                 }
-                // Manejo de valores numéricos (como stock o precio)
                 if (['precio_unitario_venta_producto', 'total_stock'].includes(sortConfig.key)) {
                     aValue = aValue || 0;
                     bValue = bValue || 0;
                     return sortConfig.direction === 'ascending' ? aValue - bValue : bValue - aValue;
                 }
-                // Manejo de estado
                 if (sortConfig.key === 'estado') {
                     aValue = getStatus(a).text;
                     bValue = getStatus(b).text;
                 }
 
-                // Comparación de texto
                 const comparison = (aValue || '').toString().localeCompare((bValue || '').toString(), undefined, { numeric: true, sensitivity: 'base' });
                 return sortConfig.direction === 'ascending' ? comparison : -comparison;
             });
         }
 
         return filtered;
-    }, [products, tableSelectedStatus, sortConfig]); // <-- Añadir sortConfig
+    }, [products, tableSelectedStatus, sortConfig]); 
 
-    // Formateo de moneda
     const formatCurrency = (value) => `$${(value || 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-    // --- RENDERIZADO ---
+    // --- RENDERIZADO (Sin cambios) ---
     if (loading && products.length === 0) { 
         return (
             <div className="flex justify-center items-center h-64 text-pr-yellow">
@@ -241,13 +223,12 @@ const JefeControlStock = () => {
     return (
         <>
             {/* --- CABECERA --- */}
-            {/* ... (Tu cabecera con botones está bien) ... */}
              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
                 <h1 className="text-3xl font-bold text-white mb-4 sm:mb-0">Gestión de Inventario</h1>
                 <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                     <button
                         onClick={() => openAddStockModal(null)}
-                        className="w-full sm:w-auto text-pr-dark bg-pr-yellow hover:bg-yellow-400 font-bold rounded-lg text-sm px-5 py-2.5 text-center flex items-center justify-center gap-2 transition-colors"
+                        className="btn-primary w-full sm:w-auto"
                     >
                         <FontAwesomeIcon icon={faPlusCircle} />
                         <span>Agregar Stock</span>
@@ -282,12 +263,11 @@ const JefeControlStock = () => {
                 </div>
             </div>
 
-
             {/* --- Filtros --- */}
             <div className="flex flex-col md:flex-row gap-4 mb-6">
                 <input
                     type="text"
-                    placeholder="Buscar por Nombre o SKU..." // Placeholder actualizado
+                    placeholder="Buscar por Nombre o SKU..."
                     value={tableSearchTerm}
                     onChange={e => setTableSearchTerm(e.target.value)}
                     className="w-full md:w-1/3 p-3 text-sm text-white border border-gray-600 rounded-lg bg-pr-dark-gray focus:ring-pr-yellow focus:border-pr-yellow"
@@ -315,8 +295,6 @@ const JefeControlStock = () => {
             {/* --- Tabla de Productos --- */}
             <div className="relative overflow-x-auto shadow-md rounded-lg border border-gray-700">
                 <table className="w-full text-sm text-left text-gray-400">
-                    
-                    {/* --- MODIFICADO: Encabezado de Tabla con Ordenamiento --- */}
                     <thead className="text-xs text-white uppercase bg-pr-dark border-b border-gray-700">
                         <tr>
                             <th scope="col" className="px-6 py-3 cursor-pointer hover:bg-gray-700" onClick={() => requestSort('barcode')}>
@@ -364,14 +342,9 @@ const JefeControlStock = () => {
                                         <td className="px-6 py-4 text-gray-300">{product.categoria_producto?.nombre_categoria || 'Sin Cat.'}</td>
                                         <td className="px-6 py-4 font-medium text-white">{formatCurrency(product.precio_unitario_venta_producto)}</td>
                                         <td className={`px-6 py-4 font-bold ${status.value === 'low' ? 'text-yellow-400' : status.value === 'out' ? 'text-red-500' : 'text-white'}`}>{product.total_stock || 0}</td>
-                                        
-                                        {/* --- MODIFICADO: Usando StatusBadge --- */}
                                         <td className="px-6 py-4"><StatusBadge status={status} /></td>
-                                        
-                                        {/* --- MODIFICADO: Columna de Acciones --- */}
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex items-center justify-end space-x-2">
-                                                {/* Botón "Ver Historial" */}
                                                 <button
                                                     onClick={() => openHistoryModal(product)}
                                                     className="p-2 w-9 h-9 flex items-center justify-center bg-pr-gray/10 text-cyan-400 rounded-lg hover:bg-cyan-400 hover:text-pr-dark transition-colors"
@@ -379,8 +352,6 @@ const JefeControlStock = () => {
                                                 >
                                                     <FontAwesomeIcon icon={faEye} />
                                                 </button>
-                                                
-                                                {/* Botón "Agregar Stock" */}
                                                 <button
                                                     onClick={() => openAddStockModal(product)}
                                                     className="p-2 w-9 h-9 flex items-center justify-center bg-pr-gray/10 text-pr-yellow rounded-lg hover:bg-pr-yellow hover:text-pr-dark transition-colors"
@@ -406,6 +377,7 @@ const JefeControlStock = () => {
                 </table>
             </div>
 
+            {/* --- Modales --- */}
             <AddStockModal
                 isOpen={showAddStockModal}
                 onClose={() => setShowAddStockModal(false)}

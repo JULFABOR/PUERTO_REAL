@@ -1,13 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { initFlowbite } from 'flowbite';
-import { useAuth } from '@/contexts/AuthContext'; // Importar el hook de autenticación
+import { useAuth } from '@/hooks/useAuth';
+import apiClient from '@/api/apiClient';
+import { Link, useNavigate } from 'react-router-dom';
 
 const AuthPage = () => {
     const { login } = useAuth(); // Obtener la función de login del contexto
     const [activeTab, setActiveTab] = useState('login');
 
     useEffect(() => {
-        initFlowbite();
+        try { initFlowbite(); } catch (e) { /* ignore if not available */ }
     }, []);
 
     // --- Estados para Formularios ---
@@ -22,6 +24,9 @@ const AuthPage = () => {
     const [lastName, setLastName] = useState('');
     const [registerError, setRegisterError] = useState('');
     const [registerSuccess, setRegisterSuccess] = useState('');
+    const registerFirstNameRef = useRef(null);
+    const registerFormRef = useRef(null);
+    const [isRegisterSubmitting, setIsRegisterSubmitting] = useState(false);
 
     // --- Estados para el modal de reseteo de contraseña ---
     const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
@@ -29,40 +34,71 @@ const AuthPage = () => {
     const [resetMessage, setResetMessage] = useState('');
 
 
+    const navigate = useNavigate();
+
     // --- Lógica de Envío (Refactored) ---
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const loginUsernameRef = useRef(null);
+    const loginFormRef = useRef(null);
     const handleLoginSubmit = async (e) => {
         e.preventDefault();
         setLoginError('');
-        const result = await login(loginUsername, loginPassword);
-        if (!result.success) {
-            setLoginError(result.error);
+        setIsSubmitting(true);
+        try {
+            const result = await login(loginUsername, loginPassword);
+            if (result && result.success) {
+                // Navegar a la ruta principal cuando el login fue exitoso
+                navigate('/home');
+            } else {
+                setLoginError(result?.error || 'Credenciales inválidas.');
+            }
+        } catch (err) {
+            setLoginError('Ocurrió un error al iniciar sesión.');
+        } finally {
+            setIsSubmitting(false);
         }
-        // La navegación se maneja dentro del AuthContext
     };
+
+    // Autofocus cuando se muestra la pestaña de login
+    useEffect(() => {
+        if (activeTab === 'login') {
+            // pequeña espera para asegurar que el input esté montado
+            setTimeout(() => loginUsernameRef.current?.focus?.(), 50);
+        }
+    }, [activeTab]);
+
+    // Autofocus para registro cuando se muestra la pestaña de registro
+    useEffect(() => {
+        if (activeTab === 'register') {
+            setTimeout(() => registerFirstNameRef.current?.focus?.(), 50);
+        }
+    }, [activeTab]);
 
     const handleRegisterSubmit = async (e) => {
         e.preventDefault();
         setRegisterError('');
         setRegisterSuccess('');
 
+        if (isRegisterSubmitting) return;
+        setIsRegisterSubmitting(true);
+
         if (registerPassword !== confirmPassword) {
             setRegisterError("Las contraseñas no coinciden.");
+            setIsRegisterSubmitting(false);
             return;
         }
 
         try {
-            const response = await apiClient('/auth/api/register/', {
-                method: 'POST',
-                body: JSON.stringify({
-                    first_name: firstName,
-                    last_name: lastName,
-                    email: registerEmail,
-                    password: registerPassword,
-                    password2: confirmPassword
-                }),
+            const response = await apiClient.post('/auth/register/', {
+                first_name: firstName,
+                last_name: lastName,
+                email: registerEmail,
+                password: registerPassword,
+                password2: confirmPassword
             });
 
-            if (response.token) {
+            const data = response.data || {};
+            if (data.token) {
                 setRegisterSuccess('¡Registro exitoso! Serás redirigido al login.');
                 setTimeout(() => {
                     setActiveTab('login');
@@ -75,16 +111,16 @@ const AuthPage = () => {
                     setRegisterSuccess('');
                 }, 3000);
             } else {
-                 // Esto es en caso de que la respuesta no sea la esperada pero no lanzó un error http
                 const errorData = response.data || { detail: 'Ocurrió un error desconocido.' };
-                const errorMessage = Object.values(errorData).flat().join(' ');
+                const errorMessage = Array.isArray(errorData) ? errorData.join(' ') : (typeof errorData === 'string' ? errorData : Object.values(errorData).flat().join(' '));
                 setRegisterError(errorMessage);
             }
         } catch (error) {
-            // El apiClient debería procesar el error y devolverlo en un formato consistente
             const errorData = error.response?.data || { detail: 'No se pudo conectar con el servidor.' };
-            const errorMessage = Object.values(errorData).flat().join(' ');
+            const errorMessage = Array.isArray(errorData) ? errorData.join(' ') : (typeof errorData === 'string' ? errorData : Object.values(errorData).flat().join(' '));
             setRegisterError(errorMessage);
+        } finally {
+            setIsRegisterSubmitting(false);
         }
     };
 
@@ -93,12 +129,9 @@ const AuthPage = () => {
         setResetMessage('');
 
         try {
-            const response = await apiClient('/auth/api/password-reset/', {
-                method: 'POST',
-                body: JSON.stringify({ email: resetEmail }),
-            });
-            
-            setResetMessage(response.message);
+            const response = await apiClient.post('/auth/password-reset/', { email: resetEmail });
+            const data = response.data || {};
+            setResetMessage(data.message || 'Si tu correo está en nuestro sistema recibirás un enlace.');
             setTimeout(() => {
                 setShowForgotPasswordModal(false);
                 setResetMessage(''); // Limpia el mensaje para la próxima vez
@@ -119,7 +152,6 @@ const AuthPage = () => {
                     <div>
                         <h1 className="text-5xl md:text-6xl font-bold text-pr-yellow">PUERTO REAL</h1>
                     </div>
-                    {/* Aquí puedes volver a poner tu carrusel de Flowbite si lo tenías */}
                 </div>
 
                 <div className="w-full max-w-md mx-auto">
@@ -146,7 +178,20 @@ const AuthPage = () => {
                         </div>
                         <div>
                             {activeTab === 'login' && (
-                                <form className="space-y-6" onSubmit={handleLoginSubmit}>
+                                <form
+                                    className="space-y-6"
+                                    onSubmit={handleLoginSubmit}
+                                    ref={loginFormRef}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            if (!isSubmitting) {
+                                                // requestSubmit dispara el onSubmit del form de forma segura
+                                                loginFormRef.current?.requestSubmit?.();
+                                            }
+                                        }
+                                    }}
+                                >
                                     <div>
                                         <label htmlFor="login-username" className="block mb-2 text-sm font-medium text-gray-300">Nombre de usuario</label>
                                         <input 
@@ -157,6 +202,8 @@ const AuthPage = () => {
                                             required 
                                             value={loginUsername}
                                             onChange={(e) => setLoginUsername(e.target.value)}
+                                            ref={loginUsernameRef}
+                                            autoComplete="username"
                                         />
                                     </div>
                                     <div>
@@ -169,6 +216,7 @@ const AuthPage = () => {
                                             required 
                                             value={loginPassword}
                                             onChange={(e) => setLoginPassword(e.target.value)}
+                                            autoComplete="current-password"
                                         />
                                     </div>
                                     {loginError && (
@@ -185,24 +233,38 @@ const AuthPage = () => {
                                             ¿Olvidaste tu contraseña?
                                         </button>
                                     </div>
-                                    <button type="button" onClick={handleLoginSubmit} className="w-full text-pr-dark bg-pr-yellow hover:bg-yellow-400 focus:ring-4 focus:outline-none focus:ring-yellow-300 font-bold rounded-lg text-sm px-5 py-3 text-center transition duration-300">
-                                        Ingresar
+                                    <button type="submit" disabled={isSubmitting} className="w-full text-pr-dark bg-pr-yellow hover:bg-yellow-400 focus:ring-4 focus:outline-none focus:ring-yellow-300 font-bold rounded-lg text-sm px-5 py-3 text-center transition duration-300 disabled:opacity-60 disabled:cursor-not-allowed">
+                                        {isSubmitting ? 'Ingresando...' : 'Ingresar'}
                                     </button>
                                 </form>
                             )}
                             {activeTab === 'register' && (
-                                <form className="space-y-4" onSubmit={handleRegisterSubmit}>
+                                <form
+                                    className="space-y-4"
+                                    onSubmit={handleRegisterSubmit}
+                                    ref={registerFormRef}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            if (!isRegisterSubmitting) {
+                                                registerFormRef.current?.requestSubmit?.();
+                                            }
+                                        }
+                                    }}
+                                >
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
                                             <label htmlFor="register-first-name" className="block mb-2 text-sm font-medium text-gray-300">Nombre</label>
                                             <input
                                                 type="text"
                                                 id="register-first-name"
+                                                ref={registerFirstNameRef}
                                                 className="bg-pr-dark-gray border border-pr-gray text-white text-sm rounded-lg focus:ring-pr-yellow focus:border-pr-yellow block w-full p-2.5"
                                                 placeholder="Leandro"
                                                 required
                                                 value={firstName}
                                                 onChange={(e) => setFirstName(e.target.value)}
+                                                autoComplete="given-name"
                                             />
                                         </div>
                                         <div>
@@ -215,6 +277,7 @@ const AuthPage = () => {
                                                 required
                                                 value={lastName}
                                                 onChange={(e) => setLastName(e.target.value)}
+                                                autoComplete="family-name"
                                             />
                                         </div>
                                     </div>
@@ -228,6 +291,7 @@ const AuthPage = () => {
                                             required
                                             value={registerEmail}
                                             onChange={(e) => setRegisterEmail(e.target.value)}
+                                            autoComplete="email"
                                         />
                                     </div>
                                     <div>
@@ -240,6 +304,7 @@ const AuthPage = () => {
                                             required
                                             value={registerPassword}
                                             onChange={(e) => setRegisterPassword(e.target.value)}
+                                            autoComplete="new-password"
                                         />
                                     </div>
                                     <div>
@@ -252,6 +317,7 @@ const AuthPage = () => {
                                             required
                                             value={confirmPassword}
                                             onChange={(e) => setConfirmPassword(e.target.value)}
+                                            autoComplete="new-password"
                                         />
                                     </div>
                                      {registerError && (
@@ -264,8 +330,8 @@ const AuthPage = () => {
                                             {registerSuccess}
                                         </div>
                                     )}
-                                    <button type="submit" className="w-full text-pr-dark bg-pr-yellow hover:bg-yellow-400 focus:ring-4 focus:outline-none focus:ring-yellow-300 font-bold rounded-lg text-sm px-5 py-3 text-center transition duration-300">
-                                        Crear Cuenta
+                                    <button type="submit" disabled={isRegisterSubmitting} className="w-full text-pr-dark bg-pr-yellow hover:bg-yellow-400 focus:ring-4 focus:outline-none focus:ring-yellow-300 font-bold rounded-lg text-sm px-5 py-3 text-center transition duration-300 disabled:opacity-60 disabled:cursor-not-allowed">
+                                        {isRegisterSubmitting ? 'Creando...' : 'Crear Cuenta'}
                                     </button>
                                 </form>
                             )}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import apiClient from '@/api/apiClient';
+import apiClient from '@/api/apiClient'; // Nuestra instancia de Axios
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faSearch,
@@ -8,18 +8,18 @@ import {
     faExclamationTriangle,
     faInbox,
     faEdit,
-    faSort,         // --- AÑADIDO ---
-    faSortUp,       // --- AÑADIDO ---
-    faSortDown,     // --- AÑADIDO ---
-    faCircle,       // --- AÑADIDO ---
-    faEye           // --- AÑADIDO ---
+    faSort,
+    faSortUp,
+    faSortDown,
+    faCircle,
+    faEye
 } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-hot-toast';
-import NewProviderModal from '@/components/Modals/NewProviderModal'; // Ajusta ruta si es necesario
-import ProviderDetailsModal from '@/components/Modals/ProviderDetailsModal'; // Ajusta ruta si es necesario
-import EditProviderModal from '@/components/Modals/EditProviderModal'; // Ajusta ruta si es necesario
+import NewProviderModal from '@/components/Modals/Proveedores/NewProviderModal';
+import ProviderDetailsModal from '@/components/Modals/Proveedores/ProviderDetailsModal';
+import EditProviderModal from '@/components/Modals/Proveedores/EditProviderModal';
 
-// --- AÑADIDO: HELPER COMPONENT SORT INDICATOR ---
+// --- HELPER COMPONENT SORT INDICATOR (Sin cambios) ---
 const SortIndicator = ({ direction }) => {
     if (!direction) return <FontAwesomeIcon icon={faSort} className="ml-1 text-gray-600 opacity-50" />;
     return direction === 'ascending'
@@ -27,7 +27,7 @@ const SortIndicator = ({ direction }) => {
         : <FontAwesomeIcon icon={faSortDown} className="ml-1" />;
 };
 
-// --- AÑADIDO: HELPER COMPONENT STATUS BADGE ---
+// --- HELPER COMPONENT STATUS BADGE (Sin cambios) ---
 const StatusBadge = ({ estado }) => {
     const nombreEstado = estado?.nombre_estado?.toLowerCase() || '';
     let bgColor = 'bg-gray-700';
@@ -52,6 +52,7 @@ const StatusBadge = ({ estado }) => {
 };
 
 const Proveedores = () => {
+    // --- Estados (Sin cambios) ---
     const [providers, setProviders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -61,34 +62,47 @@ const Proveedores = () => {
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [selectedProvider, setSelectedProvider] = useState(null);
-
-    // --- AÑADIDO: Estado de Ordenamiento ---
     const [sortConfig, setSortConfig] = useState({ key: 'nombre_proveedor', direction: 'ascending' });
 
+    
+    // --- CAMBIOS EN fetchInitialData ---
     const fetchInitialData = useCallback(async () => {
         setError(null);
         try {
-            const [providersData, statesData] = await Promise.all([
-                apiClient('/api/compras/proveedores/'),
-                apiClient('/api/compras/estados-proveedor/') 
+            // 1. Usamos apiClient.get() y quitamos /api/ de las rutas
+            const [providersResponse, statesResponse] = await Promise.all([
+                apiClient.get('/compras/proveedores/'),
+                apiClient.get('/compras/estados-proveedor/') 
             ]);
+
+            // 2. Los datos ahora están en la propiedad .data
+            const providersData = providersResponse.data;
+            const statesData = statesResponse.data;
+
             setProviders(providersData || []);
             setSupplierStates(statesData || []); 
+        
         } catch (err) {
-            setError(err.message || 'Error desconocido al cargar datos.');
+            // 3. Mejoramos el manejo de errores de Axios
+            const errorMsg = err.response?.data?.detail || err.message || 'Error desconocido al cargar datos.';
+            setError(errorMsg);
             toast.error("No se pudieron cargar proveedores o estados."); 
             setProviders([]);
             setSupplierStates([]);
+        
         } finally {
              if(loading) setLoading(false);
         }
-    }, [loading]); 
+    // 4. FIX: Quitamos [loading] de las dependencias para evitar un bucle infinito
+    }, []); 
 
     useEffect(() => {
         fetchInitialData(); 
     }, [fetchInitialData]);
 
-    // --- AÑADIDO: Función de Ordenamiento ---
+    
+    // --- Resto del componente (Sin cambios) ---
+
     const requestSort = (key) => {
         let direction = 'ascending';
         if (sortConfig.key === key && sortConfig.direction === 'ascending') {
@@ -97,35 +111,31 @@ const Proveedores = () => {
         setSortConfig({ key, direction });
     };
 
-    // --- MODIFICADO: useMemo para filtrar por más campos y ordenar ---
     const filteredProviders = useMemo(() => {
         let filtered = [...providers];
 
-        // 1. Filtrado (Mejorado)
         if (searchTerm) {
             const lowerSearch = searchTerm.toLowerCase();
             filtered = filtered.filter(supplier =>
                 supplier.nombre_proveedor.toLowerCase().includes(lowerSearch) ||
                 (supplier.razon_social_proveedor && supplier.razon_social_proveedor.toLowerCase().includes(lowerSearch)) ||
-                (supplier.cuit_proveedor && supplier.cuit_proveedor.includes(lowerSearch)) || // Asumiendo que quieres buscar por CUIT
+                (supplier.cuit_proveedor && supplier.cuit_proveedor.includes(lowerSearch)) ||
                 (supplier.correo_proveedor && supplier.correo_proveedor.toLowerCase().includes(lowerSearch)) ||
                 (supplier.telefono_proveedor && supplier.telefono_proveedor.includes(lowerSearch))
             );
         }
         
-        // 2. Ordenamiento (Nuevo)
         if (sortConfig.key) {
            filtered.sort((a, b) => {
                 let aValue = sortConfig.key === 'estado_proveedor' ? (a.estado_proveedor?.nombre_estado || '') : (a[sortConfig.key] || '');
                 let bValue = sortConfig.key === 'estado_proveedor' ? (b.estado_proveedor?.nombre_estado || '') : (b[sortConfig.key] || '');
-                // Comparación robusta para strings y números
                 const comparison = aValue.toString().localeCompare(bValue.toString(), undefined, { numeric: true, sensitivity: 'base' });
                 return sortConfig.direction === 'ascending' ? comparison : -comparison;
             });
         }
 
         return filtered;
-    }, [providers, searchTerm, sortConfig]); // <-- Añadir sortConfig
+    }, [providers, searchTerm, sortConfig]);
 
     const handleAddProvider = () => {
         setIsNewProviderModalOpen(true);
@@ -175,7 +185,7 @@ const Proveedores = () => {
                 <div className="relative w-full md:w-1/2"> 
                     <input
                         type="text"
-                        placeholder="Buscar por nombre, CUIT, email..." // <-- MODIFICADO
+                        placeholder="Buscar por nombre, CUIT, email..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full bg-pr-dark-gray border border-pr-gray/20 rounded-lg py-2 px-4 pl-10 text-white focus:ring-pr-yellow focus:border-pr-yellow"
@@ -184,17 +194,16 @@ const Proveedores = () => {
                 </div>
                 <button
                     onClick={handleAddProvider}
-                    className="bg-pr-yellow text-pr-dark font-bold py-2 px-4 rounded-lg hover:bg-opacity-80 transition-colors flex items-center shrink-0 ml-4"
+                    className="btn-primary px-4 py-2 flex items-center shrink-0 ml-4"
                 >
                     <FontAwesomeIcon icon={faPlus} className="mr-2" />
                     Añadir Proveedor
                 </button>
             </div>
 
-            {/* --- MODIFICADO: TABLA DE PROVEEDORES --- */}
+            {/* --- TABLA DE PROVEEDORES --- */}
             <div className="bg-pr-dark p-6 rounded-lg shadow-lg overflow-x-auto border border-pr-gray/20">
                 <table className="w-full text-left text-pr-gray">
-                    {/* --- MODIFICADO: Encabezado con Ordenamiento --- */}
                     <thead className="border-b border-pr-gray/20 text-pr-gray/80 uppercase text-xs tracking-wider">
                         <tr>
                             <th className="p-4 font-medium cursor-pointer hover:text-white" onClick={() => requestSort('nombre_proveedor')}>
@@ -221,15 +230,12 @@ const Proveedores = () => {
                                     <SortIndicator direction={sortConfig.key === 'correo_proveedor' ? sortConfig.direction : null} />
                                 </div>
                             </th>
-                            
-                            {/* --- AÑADIDO: Columna Estado --- */}
                             <th className="p-4 font-medium cursor-pointer hover:text-white" onClick={() => requestSort('estado_proveedor')}>
                                 <div className="flex items-center">
                                     Estado
                                     <SortIndicator direction={sortConfig.key === 'estado_proveedor' ? sortConfig.direction : null} />
                                 </div>
                             </th>
-
                             <th className="p-4 font-medium">Acciones</th>
                         </tr>
                     </thead>
@@ -241,15 +247,11 @@ const Proveedores = () => {
                                     <td className="p-4 hidden sm:table-cell">{provider.razon_social_proveedor || '-'}</td>
                                     <td className="p-4 hidden md:table-cell">{provider.telefono_proveedor || '-'}</td>
                                     <td className="p-4 hidden lg:table-cell">{provider.correo_proveedor || '-'}</td>
-                                    
-                                    {/* --- AÑADIDO: Celda Estado --- */}
                                     <td className="p-4">
                                         <StatusBadge estado={provider.estado_proveedor} />
                                     </td>
-                                    
                                     <td className="p-4 whitespace-nowrap"> 
                                         <div className="flex items-center space-x-2"> 
-                                            {/* --- MODIFICADO: Botón con Icono --- */}
                                             <button
                                                 onClick={() => handleViewDetails(provider)}
                                                 className="bg-pr-gray/10 text-pr-yellow py-1 px-3 rounded-md text-sm font-medium hover:bg-pr-yellow hover:text-pr-dark transition-colors"
@@ -270,7 +272,6 @@ const Proveedores = () => {
                             ))
                         ) : (
                             <tr>
-                                {/* --- MODIFICADO: colSpan a 6 --- */}
                                 <td colSpan="6" className="text-center p-12 text-pr-gray"> 
                                     <FontAwesomeIcon icon={faInbox} className="text-4xl text-pr-gray/50 mb-4" />
                                     <p className="font-bold text-white text-lg">

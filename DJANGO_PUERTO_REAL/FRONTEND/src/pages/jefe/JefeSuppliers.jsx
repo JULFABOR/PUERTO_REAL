@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faPlus,
@@ -16,18 +16,19 @@ import {
     faEye 
 } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-hot-toast';
-import apiClient from '@/api/apiClient'; 
+import apiClient from '@/api/apiClient'; // Nuestra instancia de Axios
 import useDebounce from '../../hooks/useDebounce'; 
 
 // --- Modals --- 
-import NewProviderModal from '../../components/Modals/NewProviderModal';
-import EditProviderModal from '../../components/Modals/EditProviderModal';
-import ConfirmDeleteModal from '../../components/Modals/ConfirmDeleteModal';
-import NewOrdenCompraModal from '../../components/Modals/NewOrdenCompraModal';
-import OrderDetailsModal from '../../components/Modals/OrderDetailsModal'; 
-import EditOrderModal from '../../components/Modals/EditOrderModal';
+// (Asumimos que estos ya están refactorizados o lo estarán)
+import NewProviderModal from '@/components/Modals/proveedores/NewProviderModal';
+import EditProviderModal from '@/components/Modals/Proveedores/EditProviderModal';
+import ConfirmDeleteModal from '@/components/Modals/ConfirmDeleteModal';
+import NewOrdenCompraModal from '@/components/Modals/ControlStock/NewOrdenCompraModal';
+import OrderDetailsModal from '@/components/Modals/ControlStock/OrderDetailsModal'; 
+import EditOrderModal from '@/components/Modals/ControlStock/EditOrderModal';
 
-// --- HELPER COMPONENT: SORT INDICATOR ---
+// --- HELPER COMPONENT: SORT INDICATOR (Sin cambios) ---
 const SortIndicator = ({ direction }) => {
     if (!direction) return <FontAwesomeIcon icon={faSort} className="ml-1 text-gray-600 opacity-50" />;
     return direction === 'ascending'
@@ -35,20 +36,19 @@ const SortIndicator = ({ direction }) => {
         : <FontAwesomeIcon icon={faSortDown} className="ml-1" />;
 };
 
-// --- HELPER COMPONENT: STATUS BADGE ---
+// --- HELPER COMPONENT: STATUS BADGE (Sin cambios) ---
 const StatusBadge = ({ estado }) => {
-    // Expects 'estado' object like { id_estado: X, nombre_estado: 'Y' }
     const nombreEstado = estado?.nombre_estado?.toLowerCase() || '';
-    let bgColor = 'bg-gray-700'; // Default/Unknown state
+    let bgColor = 'bg-gray-700'; 
     let textColor = 'text-gray-300';
 
-    if (nombreEstado === 'activo' || nombreEstado === 'recibida') { // Treat 'Recibida' as green
+    if (nombreEstado === 'activo' || nombreEstado === 'recibida') {
         bgColor = 'bg-green-600/20';
         textColor = 'text-green-300';
-    } else if (nombreEstado === 'pendiente') { // Yellow for pending
+    } else if (nombreEstado === 'pendiente') {
         bgColor = 'bg-yellow-600/20';
         textColor = 'text-yellow-300';
-    } else if (nombreEstado === 'inactivo' || nombreEstado === 'cancelada') { // Red for inactive/cancelled
+    } else if (nombreEstado === 'inactivo' || nombreEstado === 'cancelada') {
         bgColor = 'bg-red-600/20';
         textColor = 'text-red-300';
     }
@@ -65,10 +65,8 @@ const StatusBadge = ({ estado }) => {
 
 
 const JefeSuppliers = () => {
-    // --- STATE MANAGEMENT ---
-    const [viewMode, setViewMode] = useState('suppliers'); // 'suppliers' or 'orders'
-
-    // Supplier States
+    // --- STATE MANAGEMENT (Sin cambios) ---
+    const [viewMode, setViewMode] = useState('suppliers');
     const [providers, setProviders] = useState([]);
     const [loadingSuppliers, setLoadingSuppliers] = useState(true);
     const [supplierError, setSupplierError] = useState(null);
@@ -80,8 +78,6 @@ const JefeSuppliers = () => {
     const [showEditProviderModal, setShowEditProviderModal] = useState(false);
     const [editingProvider, setEditingProvider] = useState(null);
     const [providerToDelete, setProviderToDelete] = useState(null);
-
-    // Order States
     const [orders, setOrders] = useState([]);
     const [loadingOrders, setLoadingOrders] = useState(false);
     const [orderError, setOrderError] = useState(null);
@@ -91,47 +87,60 @@ const JefeSuppliers = () => {
     const [orderToEdit, setOrderToEdit] = useState(null);
     const [orderStates, setOrderStates] = useState([]);
     const debouncedSearchTermOrders = useDebounce(searchTermOrders, 300);
-
-    // --- MEJORA: Estado de ordenamiento para Órdenes ---
     const [sortConfigOrders, setSortConfigOrders] = useState({ key: 'fecha_compra', direction: 'descending' });
 
 
-    // --- DATA FETCHING ---
+    // --- DATA FETCHING (REFACTORIZADO) ---
+    
+    // --- CAMBIO 1: fetchSuppliersAndStates con Axios ---
     const fetchSuppliersAndStates = useCallback(async () => {
         setLoadingSuppliers(true);
         setSupplierError(null);
         try {
-            // --- MODIFICADO: Añadimos la 3ra llamada ---
-            const [suppliersData, supStatesData, ordStatesData] = await Promise.all([
-                apiClient('/api/compras/proveedores/'),
-                apiClient('/api/compras/estados-proveedor/'),
-                apiClient('/api/compras/estados_compra/') // <-- ¡NUEVA API CALL!
+            // Usamos apiClient.get() y quitamos /api/
+            const [suppliersResponse, supStatesResponse, ordStatesResponse] = await Promise.all([
+                apiClient.get('/compras/proveedores/'),
+                apiClient.get('/compras/estados-proveedor/'),
+                apiClient.get('/compras/estados_compra/')
             ]);
-            setProviders(suppliersData || []);
-            setSupplierStates(supStatesData || []);
-            setOrderStates(ordStatesData || []); // <-- ¡NUEVO ESTADO!
+            
+            // Leemos los datos desde la propiedad .data
+            setProviders(suppliersResponse.data || []);
+            setSupplierStates(supStatesResponse.data || []);
+            setOrderStates(ordStatesResponse.data || []);
+            
         } catch (err) {
-            setSupplierError(err.message || 'Error desconocido al cargar datos.');
+            // Usamos err.response.data.detail para errores de Axios
+            const errorMsg = err.response?.data?.detail || err.message || 'Error desconocido al cargar datos.';
+            setSupplierError(errorMsg);
             toast.error("No se pudieron cargar proveedores o estados.");
             setProviders([]);
             setSupplierStates([]);
-            setOrderStates([]); // <-- Limpia en caso de error
+            setOrderStates([]);
         } finally {
             setLoadingSuppliers(false);
         }
     }, []);
 
+    // --- CAMBIO 2: fetchOrders con Axios ---
     const fetchOrders = useCallback(async () => {
         setLoadingOrders(true);
         setOrderError(null);
         try {
-            const params = new URLSearchParams();
-            if (debouncedSearchTermOrders) params.append('search', debouncedSearchTermOrders);
-            // Ensure endpoint is correct for purchase orders
-            const data = await apiClient(`/api/compras/compras/?${params.toString()}`);
-            setOrders(data.results || data || []);
+            // Usamos el objeto 'params' de Axios
+            const params = {};
+            if (debouncedSearchTermOrders) params.search = debouncedSearchTermOrders;
+            
+            // Nota: antes se usaba `apiClient('/api/...')`. Ahora usar `apiClient.get('/compras/compras/', { params })`
+            // Ahora:
+            const response = await apiClient.get('/compras/compras/', { params });
+            
+            setOrders(response.data.results || response.data || []);
+        
         } catch (err) {
-            setOrderError(err.message);
+            // Usamos err.response.data.detail
+            const errorMsg = err.response?.data?.detail || err.message;
+            setOrderError(errorMsg);
             toast.error("No se pudieron cargar las órdenes de compra.");
             setOrders([]);
         } finally {
@@ -139,9 +148,9 @@ const JefeSuppliers = () => {
         }
     }, [debouncedSearchTermOrders]);
 
-    // --- EFFECTS ---
+    // --- EFFECTS (Sin cambios) ---
     useEffect(() => {
-        fetchSuppliersAndStates(); // Load suppliers and states on mount
+        fetchSuppliersAndStates();
     }, [fetchSuppliersAndStates]);
 
     useEffect(() => {
@@ -150,7 +159,7 @@ const JefeSuppliers = () => {
         }
     }, [viewMode, fetchOrders]); 
 
-    // --- FILTERING & SORTING ---
+    // --- FILTERING & SORTING (Sin cambios) ---
     const sortedAndFilteredSuppliers = useMemo(() => {
         let filtered = [...providers];
         if (searchTermSuppliers) {
@@ -177,7 +186,6 @@ const JefeSuppliers = () => {
         return filtered;
     }, [providers, searchTermSuppliers, sortConfig, selectedStatus]);
 
-    // --- MEJORA: Lógica de ordenamiento para Órdenes ---
     const filteredOrders = useMemo(() => {
         let sortedOrders = [...orders]; 
         
@@ -186,7 +194,6 @@ const JefeSuppliers = () => {
                 let aValue = a[sortConfigOrders.key];
                 let bValue = b[sortConfigOrders.key];
 
-                // Manejo especial para objetos anidados (como proveedor o estado)
                 if (sortConfigOrders.key === 'proveedor_compra') {
                     aValue = a.proveedor_compra?.nombre_proveedor || '';
                     bValue = b.proveedor_compra?.nombre_proveedor || '';
@@ -196,16 +203,13 @@ const JefeSuppliers = () => {
                     bValue = b.estado_compra?.nombre_estado || '';
                 }
 
-                // Lógica de comparación
                 if (aValue === null || aValue === undefined) return 1;
                 if (bValue === null || bValue === undefined) return -1;
                 
-                // Comparación numérica para el total
                 if (sortConfigOrders.key === 'total_compra') {
                     return sortConfigOrders.direction === 'ascending' ? aValue - bValue : bValue - aValue;
                 }
 
-                // Comparación de texto/fecha
                 const comparison = aValue.toString().localeCompare(bValue.toString(), undefined, { numeric: true, sensitivity: 'base' });
                 return sortConfigOrders.direction === 'ascending' ? comparison : -comparison;
             });
@@ -214,7 +218,7 @@ const JefeSuppliers = () => {
         return sortedOrders;
     }, [orders, sortConfigOrders]);
 
-    // --- HELPER FUNCTIONS ---
+    // --- HELPER FUNCTIONS (Sin cambios) ---
     const requestSort = (key) => {
         let direction = 'ascending';
         if (sortConfig.key === key && sortConfig.direction === 'ascending') {
@@ -223,7 +227,6 @@ const JefeSuppliers = () => {
         setSortConfig({ key, direction });
     };
 
-    // --- MEJORA: Nueva función de ordenamiento para Órdenes ---
     const requestSortOrders = (key) => {
         let direction = 'ascending';
         if (sortConfigOrders.key === key && sortConfigOrders.direction === 'ascending') {
@@ -236,24 +239,31 @@ const JefeSuppliers = () => {
 
     const formatCurrency = (value) => `$${(value || 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-    // --- MODAL & ACTION HANDLERS ---
+    // --- MODAL & ACTION HANDLERS (REFACTORIZADOS) ---
+    
     // Suppliers
     const handleAddProvider = () => {
-        // --- CORRECCIÓN: Usar el setter correcto ---
         setShowNewProviderModal(true);
     };
     const handleSupplierSuccess = () => { fetchSuppliersAndStates(); setShowNewProviderModal(false); setShowEditProviderModal(false); };
     const handleEditClick = (provider) => { setEditingProvider(provider); setShowEditProviderModal(true); };
     const handleDeleteRequest = (provider) => { setProviderToDelete(provider); };
+    
+    // --- CAMBIO 3: handleConfirmDeleteSupplier con Axios ---
     const handleConfirmDeleteSupplier = async () => {
         if (!providerToDelete) return;
         const loadingToast = toast.loading('Eliminando proveedor...');
         try {
-            await apiClient(`/api/compras/proveedores/${providerToDelete.id_proveedor}/`, { method: 'DELETE' });
+            // Antes: await apiClient(url, { method: 'DELETE' });
+            // Ahora:
+            await apiClient.delete(`/compras/proveedores/${providerToDelete.id_proveedor}/`);
+            
             toast.success(`Proveedor "${providerToDelete.nombre_proveedor}" eliminado.`, { id: loadingToast });
             fetchSuppliersAndStates(); 
         } catch (error) {
-            toast.error(error.data?.detail || 'Error al eliminar el proveedor.', { id: loadingToast });
+            // Usamos error.response.data
+            const errorMsg = error.response?.data?.detail || 'Error al eliminar el proveedor.';
+            toast.error(errorMsg, { id: loadingToast });
         } finally {
             setProviderToDelete(null);
         }
@@ -265,24 +275,29 @@ const JefeSuppliers = () => {
         setOrderToEdit(null); 
         fetchOrders(); 
     };
+    
+    // --- CAMBIO 4: handleMarkAsReceived con Axios ---
     const handleMarkAsReceived = async (orderId) => {
-        const receivedStatusId = 10; 
-
+        const receivedStatusId = 10; // Asumes que 10 es 'Recibida'
         const loadingToast = toast.loading('Marcando como recibida...');
+        
         try {
-            // Use the correct endpoint for purchase orders
-            await apiClient(`/api/compras/compras/${orderId}/`, {
-                method: 'PATCH',
-                body: JSON.stringify({ estado_compra: receivedStatusId })
+            // Antes: await apiClient(url, { method: 'PATCH', body: ... })
+            // Ahora: apiClient.patch(ruta_sin_api, payload)
+            await apiClient.patch(`/compras/compras/${orderId}/`, {
+                estado_compra: receivedStatusId 
             });
+            
             toast.success('Orden marcada como recibida.', { id: loadingToast });
             fetchOrders(); // Refresh orders list
         } catch (err) {
-            toast.error(err.data?.detail || 'No se pudo actualizar la orden.', { id: loadingToast });
+            // Usamos err.response.data
+            const errorMsg = err.response?.data?.detail || 'No se pudo actualizar la orden.';
+            toast.error(errorMsg, { id: loadingToast });
         }
     };
 
-    // --- RENDER FUNCTIONS FOR VIEWS ---
+    // --- RENDER FUNCTIONS FOR VIEWS (Sin cambios) ---
     const renderSuppliersView = () => {
         // Loading State
         if (loadingSuppliers) {
@@ -333,7 +348,7 @@ const JefeSuppliers = () => {
                     </select>
                     <button
                         onClick={handleAddProvider}
-                        className="bg-pr-yellow text-pr-dark font-bold py-2 px-4 rounded-lg hover:bg-opacity-80 transition-colors flex items-center shrink-0 ml-4" // Añadido shrink-0 y ml-4
+                        className="btn-primary px-4 py-2 flex items-center shrink-0 ml-4"
                     >
                         <FontAwesomeIcon icon={faPlus} className="mr-2" />
                         Añadir Proveedor
@@ -435,7 +450,7 @@ const JefeSuppliers = () => {
                         />
                         <FontAwesomeIcon icon={faSearch} className="absolute left-3 top-1/2 -translate-y-1/2 text-pr-gray"/>
                     </div>
-                    <button onClick={() => setShowNewOrderModal(true)} className="bg-pr-yellow text-pr-dark font-bold py-2 px-4 rounded-lg hover:bg-opacity-80 transition-colors flex items-center shrink-0 ml-4">
+                    <button onClick={() => setShowNewOrderModal(true)} className="btn-primary px-4 py-2 flex items-center shrink-0 ml-4">
                         <FontAwesomeIcon icon={faFileInvoiceDollar} className="mr-2" /> Nueva Orden
                     </button>
                 </div>
@@ -443,7 +458,6 @@ const JefeSuppliers = () => {
                 {filteredOrders.length > 0 ? (
                     <div className="bg-pr-dark p-6 rounded-lg shadow-lg overflow-x-auto border border-pr-gray/20">
                         <table className="w-full text-sm text-left text-gray-400">
-                            {/* --- MEJORA: Encabezados de Órdenes clickeables --- */}
                             <thead className="text-xs text-white uppercase bg-pr-dark border-b border-gray-700">
                                 <tr>
                                     <th className="px-4 py-2 cursor-pointer hover:bg-gray-700 transition-colors" onClick={() => requestSortOrders('id_compra')}>
@@ -478,7 +492,6 @@ const JefeSuppliers = () => {
                                 {filteredOrders.map(order => (
                                     <tr key={order.id_compra} className="bg-pr-dark-gray hover:bg-gray-800 transition-colors">
                                         <td className="px-4 py-2 font-mono text-xs">{order.id_compra}</td>
-                                        {/* --- MEJORA: Formato de Fecha --- */}
                                         <td className="px-4 py-2 whitespace-nowrap">
                                             {new Date(order.fecha_compra).toLocaleDateString('es-AR', {
                                                 day: '2-digit',
@@ -489,8 +502,6 @@ const JefeSuppliers = () => {
                                         <td className="px-4 py-2 text-white">{order.proveedor_compra?.nombre_proveedor || '-'}</td>
                                         <td className="px-4 py-2 text-white font-medium text-right">{formatCurrency(order.total_compra)}</td>
                                         <td className="px-4 py-2"><StatusBadge estado={order.estado_compra} /></td>
-                                        
-                                        {/* --- MEJORA: Columna de Acciones --- */}
                                         <td className="px-4 py-2">
                                             <div className="flex items-center space-x-2">
                                                 <button 
@@ -501,13 +512,12 @@ const JefeSuppliers = () => {
                                                     <FontAwesomeIcon icon={faEye} />
                                                 </button>
                                                 <button 
-                                                    onClick={() => setOrderToEdit(order)} // <-- Función que crearemos
+                                                    onClick={() => setOrderToEdit(order)}
                                                     className="bg-pr-gray/10 text-pr-yellow py-1 px-2 rounded-md text-sm font-medium hover:bg-pr-yellow hover:text-pr-dark transition-colors" 
                                                     title="Editar estado de la orden"
                                                 >
                                                     <FontAwesomeIcon icon={faEdit} />
                                                 </button>
-
                                             </div>
                                         </td>
                                     </tr>
@@ -527,6 +537,7 @@ const JefeSuppliers = () => {
             );
     };
 
+    // --- RENDERIZADO PRINCIPAL ---
     return (
         <>
             <h1 className="text-3xl font-bold text-white mb-6">Compras y Proveedores</h1>
@@ -553,7 +564,7 @@ const JefeSuppliers = () => {
 
             {/* --- Modals --- */}
             <NewProviderModal 
-                isOpen={showNewProviderModal} // Corregido para usar la variable correcta
+                isOpen={showNewProviderModal}
                 onClose={() => setShowNewProviderModal(false)} 
                 onSuccess={handleSupplierSuccess} 
                 supplierStates={supplierStates} 
@@ -588,7 +599,7 @@ const JefeSuppliers = () => {
                 onClose={() => setOrderToEdit(null)}
                 onSuccess={handleOrderSuccess}
                 order={orderToEdit}
-                orderStates={orderStates} // <-- Pasa la lista de estados
+                orderStates={orderStates} 
             />
         </>
     );

@@ -1,16 +1,14 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faTrash} from '@fortawesome/free-solid-svg-icons'; // Mantenemos solo faPlus
+import { faPlus, faTrash, faSpinner } from '@fortawesome/free-solid-svg-icons'; // Simplificado
 import { toast } from 'react-hot-toast';
-import apiClient from '@/api/apiClient';
+import apiClient from '@/api/apiClient'; // Nuestra instancia de Axios
 
 // Importamos los modales
-import NewProductModal from '../../../components/Modals/NewProductModal';
-import EditProductModal from '../../../components/Modals/EditProductModal';
-import ConfirmDeleteModal from '../../../components/Modals/ConfirmDeleteModal';
-
-// --- AÑADIDO (1/4): Importar el modal de categorías ---
-import CategoryManagerModal from '../../../components/Modals/CategoryManagerModal';
+import NewProductModal from  '@/components/Modals/Stock/NewProductModal';
+import EditProductModal from  '@/components/Modals/Stock/EditProductModal';
+import ConfirmDeleteModal from '@/components/Modals/ConfirmDeleteModal';
+import CategoryManagerModal from '@/components/Modals/Stock/CategoryManagerModal';
 
 // Función getStatus (sin cambios)
 const getStatus = (product) => {
@@ -22,46 +20,45 @@ const getStatus = (product) => {
 };
 
 const EmpleadoStock = () => {
-    // --- ESTADOS ---
+    // --- ESTADOS (Sin cambios) ---
     const [products, setProducts] = useState([]);
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
-
-    // Estados para paginación (sin cambios)
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalProducts, setTotalProducts] = useState(0);
-
-    // Estados para modales (añadimos showCategoryModal)
     const [showNewProductModal, setShowNewProductModal] = useState(false);
     const [showEditProductModal, setShowEditProductModal] = useState(false);
     const [productToEdit, setProductToEdit] = useState(null);
-
-    // --- AÑADIDO (2/4): Estado para el nuevo modal ---
     const [showCategoryModal, setShowCategoryModal] = useState(false);
-
-    // Estados para filtros (sin cambios)
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('');
-
-    // Estado para confirmar eliminación
     const [productToDelete, setProductToDelete] = useState(null);
 
-    // --- LÓGICA DE DATOS ---
+    // --- LÓGICA DE DATOS (REFACTORIZADA) ---
+    
+    // --- CAMBIO 1: fetchProducts con Axios ---
     const fetchProducts = useCallback(async (page = 1) => {
         setLoading(true);
         try {
-            const params = new URLSearchParams({ page });
-            if (searchTerm) params.append('search', searchTerm);
-            if (selectedCategory) params.append('categoria_producto', selectedCategory);
+            // Construimos los parámetros para Axios
+            const params = {
+                page: page,
+            };
+            if (searchTerm) params.search = searchTerm;
+            if (selectedCategory) params.categoria_producto = selectedCategory;
             
-            const data = await apiClient(`/api/stock/productos/?${params.toString()}`);
-            
+            // Antes: const data = await apiClient(`/api/stock/productos/?${params.toString()}`);
+            // Ahora:
+            const response = await apiClient.get('/stock/productos/', { params });
+            const data = response.data; // Los datos están en response.data
+
             if (data && Array.isArray(data.results)) {
                 setProducts(data.results);
                 setTotalProducts(data.count);
                 setTotalPages(Math.ceil((data.count || 0) / 10)); 
             } else if (data && Array.isArray(data)) {
+                // Manejo para backends no paginados
                 setProducts(data);
                 setTotalProducts(data.length);
                 setTotalPages(1);
@@ -70,41 +67,48 @@ const EmpleadoStock = () => {
                 setProducts([]);
             }
         } catch (error) {
-            toast.error("No se pudieron cargar los productos.");
+            // Mejoramos el manejo de error de Axios
+            const errorMsg = error.response?.data?.detail || "No se pudieron cargar los productos.";
+            toast.error(errorMsg);
             setProducts([]);
         } finally {
             setLoading(false);
         }
-    }, [searchTerm, selectedCategory]);
+    }, [searchTerm, selectedCategory]); // Dependencias correctas
 
+    // --- CAMBIO 2: fetchCategories con Axios ---
     const fetchCategories = useCallback(async () => {
         try {
-            const categoriesData = await apiClient('/api/stock/categorias/');
+            // Antes: const categoriesData = await apiClient('/api/stock/categorias/');
+            // Ahora:
+            const response = await apiClient.get('/stock/categorias/');
+            const categoriesData = response.data; // Datos en response.data
+            
             setCategories(categoriesData.results || categoriesData || []);
         } catch (error) {
-            toast.error("No se pudieron cargar las categorías.");
+            const errorMsg = error.response?.data?.detail || "No se pudieron cargar las categorías.";
+            toast.error(errorMsg);
         }
     }, []);
 
-    // --- AÑADIDO (3/4): Función para refrescar todo ---
-    // Esta función se pasará al modal de categorías
     const refreshAllData = useCallback(() => {
         fetchProducts(currentPage);
         fetchCategories();
     }, [currentPage, fetchProducts, fetchCategories]);
 
 
-    // --- EFECTOS ---
+    // --- EFECTOS (Sin cambios) ---
     useEffect(() => {
         fetchProducts(1);
         setCurrentPage(1);
-    }, [searchTerm, selectedCategory]);
+    }, [searchTerm, selectedCategory, fetchProducts]); // fetchProducts añadido
 
     useEffect(() => {
-        if (currentPage > 1 || (currentPage === 1 && products.length === 0)) {
+        // Ajustamos la lógica para evitar doble carga inicial
+        if (currentPage > 1) {
             fetchProducts(currentPage);
         }
-    }, [currentPage]);
+    }, [currentPage, fetchProducts]);
     
     useEffect(() => {
         fetchCategories();
@@ -126,40 +130,47 @@ const EmpleadoStock = () => {
     };
 
     const formatCurrency = (value) => `$${parseFloat(value || 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    
     const handleDeleteRequest = (product) => {
         setProductToDelete(product);
     };
 
+    // --- CAMBIO 3: handleConfirmDelete con Axios ---
     const handleConfirmDelete = async () => {
         if (!productToDelete) return;
         try {
-            await apiClient(`/api/stock/productos/${productToDelete.id_producto}/`, { method: 'DELETE' });
+            // Antes: await apiClient(url, { method: 'DELETE' });
+            // Ahora:
+            await apiClient.delete(`/stock/productos/${productToDelete.id_producto}/`);
+            
             toast.success(`Producto "${productToDelete.nombre_producto}" eliminado.`);
-            // Comprueba si era el último item en una página
+            
             if (products.length === 1 && currentPage > 1) {
-                setCurrentPage(currentPage - 1); // Va a la página anterior
+                setCurrentPage(currentPage - 1); // Esto disparará el useEffect de currentPage
             } else {
                 await fetchProducts(currentPage); // Recarga la página actual
             }
         } catch (error) {
-            toast.error('Error al eliminar el producto.');
+            // Mejoramos el manejo de error de Axios
+            const errorMsg = error.response?.data?.detail || 'Error al eliminar el producto.';
+            toast.error(errorMsg);
         } finally {
             setProductToDelete(null); // Cierra el modal
         }
     };
 
+    // --- RENDERIZADO (Sin cambios) ---
     return (
         <>
             {/* --- CABECERA Y FILTROS --- */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
                 <h1 className="text-3xl font-bold text-white mb-4 sm:mb-0">Catálogo de Productos</h1>
-                <button onClick={() => setShowNewProductModal(true)} className="w-full sm:w-auto text-pr-dark bg-pr-yellow hover:bg-yellow-400 font-bold rounded-lg text-sm px-5 py-2.5 text-center flex items-center justify-center gap-2">
+                <button onClick={() => setShowNewProductModal(true)} className="btn-primary w-full sm:w-auto">
                     <FontAwesomeIcon icon={faPlus} />
                     <span>Agregar Nuevo Producto</span>
                 </button>
             </div>
             
-            {/* --- AÑADIDO (4/4): Botón de Gestionar Categorías --- */}
             <div className="flex flex-col md:flex-row gap-4 mb-6">
                 <input type="text" placeholder="Buscar por nombre o SKU..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="flex-grow p-3 text-sm text-white border border-gray-600 rounded-lg bg-pr-dark-gray focus:ring-pr-yellow focus:border-pr-yellow" />
                 <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="p-3 text-sm text-white border border-gray-600 rounded-lg bg-pr-dark-gray focus:ring-pr-yellow focus:border-pr-yellow">
@@ -178,7 +189,9 @@ const EmpleadoStock = () => {
 
             {/* --- LISTA DE PRODUCTOS Y PAGINACIÓN --- */}
             {loading ? (
-                <div className="text-center text-white py-10">Cargando...</div>
+                <div className="text-center text-white py-10">
+                    <FontAwesomeIcon icon={faSpinner} className="animate-spin text-4xl text-pr-yellow" />
+                </div>
             ) : products.length > 0 ? (
                 <>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -205,7 +218,7 @@ const EmpleadoStock = () => {
                                                 <span className="text-lg font-bold text-gray-300">{product.total_stock || 0}</span>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-2"> {/* Mantenemos gap-2 */}
+                                        <div className="flex items-center gap-2">
                                             <button
                                                 onClick={() => handleEditClick(product)}
                                                 className="text-sm text-pr-yellow border border-pr-yellow rounded-md px-4 py-1.5 font-semibold hover:bg-pr-yellow hover:text-pr-dark transition-colors"
@@ -217,7 +230,7 @@ const EmpleadoStock = () => {
                                                 className="text-red-500 border border-red-500 rounded-md px-2 py-1.5 hover:bg-red-500 hover:text-white transition-colors flex items-center justify-center h-full aspect-square"
                                                 title="Eliminar producto"
                                             >
-                                                <FontAwesomeIcon icon={faTrash} className="w-4 h-4" /> {/* Tamaño explícito del icono */}
+                                                <FontAwesomeIcon icon={faTrash} className="w-4 h-4" />
                                             </button>
                                         </div>
                                     </div>
@@ -268,7 +281,7 @@ const EmpleadoStock = () => {
                 isOpen={showCategoryModal}
                 onClose={() => setShowCategoryModal(false)}
                 categories={categories}
-                onDataChange={refreshAllData} // Usamos la función de refresco
+                onDataChange={refreshAllData} 
             />
             <ConfirmDeleteModal
                 isOpen={!!productToDelete}

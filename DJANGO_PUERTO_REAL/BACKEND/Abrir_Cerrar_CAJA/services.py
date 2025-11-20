@@ -8,7 +8,7 @@ from django.core.exceptions import ObjectDoesNotExist
 
 from autenticacion.models import Empleados
 from Config_PR.models import Estados,Tipos_Estados
-from Abrir_Cerrar_CAJA.models import Cajas, Historial_Caja, Tipo_Evento, Fondo_Pagos, Movimiento_Fondo
+from Abrir_Cerrar_CAJA.models import Cajas, Historial_Caja, Tipo_Evento, Fondo_Pagos, Movimiento_Fondo, Historial_Movimientos_Financieros
 
 # Importar el servicio de auditoría
 from Auditoria.services import crear_registro
@@ -380,4 +380,16 @@ def registrar_ingreso_venta_service(caja_activa, empleado, monto_ingreso, venta_
         descripcion_hcaja=f"Ingreso por Venta #{venta_id}"
     )
     
+    # Registrar también un movimiento financiero vinculado a esta venta
+    try:
+        Historial_Movimientos_Financieros.objects.create(
+            venta_mov_fin_id=venta_id,
+            monto_mov_fin=monto_ingreso,
+            caja_mov_fin=caja_activa,
+            Historial_Caja=historial
+        )
+    except Exception:
+        # No interrumpimos la venta si este registro falla; lo ignoramos silenciosamente
+        pass
+
     return historial

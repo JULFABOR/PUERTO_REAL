@@ -239,68 +239,104 @@ class ClientesViewSet(viewsets.ModelViewSet):
 
         return Response({"message": f"Puntos ajustados exitosamente. Nuevo saldo: {nuevo_saldo}"}, status=status.HTTP_200_OK)
 
-@api_view(['POST'])
+@api_view(['GET', 'POST'])
 def load_points_qr(request):
-    token = request.data.get('token')
+    """
+    Endpoint para canjear puntos desde un token QR.
+
+    Acepta:
+    - GET ?token=...  -> devuelve HTML simple (útil para escanear con el móvil)
+    - POST { token: '...' } -> devuelve JSON (útil para llamadas AJAX desde la app)
+
+    El token puede ser:
+    - un token firmado por `signing.dumps({'venta_id': ...})`
+    - o el `qr_token` (UUID) que se guarda en `Ventas.qr_token`.
+    """
+    # soportar GET y POST
+    token = request.GET.get('token') if request.method == 'GET' else request.data.get('token')
     if not token:
+        if request.method == 'GET':
+            return HttpResponse('<h3>Token no proporcionado.</h3>', status=400)
         return Response({"error": "Token no proporcionado."}, status=status.HTTP_400_BAD_REQUEST)
 
+    venta = None
+    venta_id = None
+
+    # Intentar carga firmada primero
     try:
-        data = signing.loads(token, max_age=300) # 300 segundos = 5 minutos
+        data = signing.loads(token, max_age=60 * 60 * 24)  # permitir token válidos hasta 24h por defecto
         venta_id = data.get('venta_id')
-    except (signing.SignatureExpired, signing.BadSignature):
-        return Response({"error": "QR inválido o expirado."}, status=status.HTTP_400_BAD_REQUEST)
-    
+    except Exception:
+        venta_id = None
+
     try:
-        venta = Ventas.objects.get(id_venta=venta_id)
+        if venta_id:
+            venta = Ventas.objects.get(id_venta=venta_id)
+        else:
+            # Intentar buscar por qr_token (token crudo)
+            venta = Ventas.objects.get(qr_token=token)
     except Ventas.DoesNotExist:
+        if request.method == 'GET':
+            return HttpResponse('<h3>Venta no encontrada o QR inválido.</h3>', status=404)
         return Response({"error": "Venta no encontrada."}, status=status.HTTP_404_NOT_FOUND)
 
-    if venta.estado_venta.nombre_estado == 'ANULADA':
+    if venta.estado_venta.nombre_estado.upper() == 'ANULADA':
+        if request.method == 'GET':
+            return HttpResponse('<h3>La venta ha sido anulada.</h3>', status=400)
         return Response({"error": "La venta ha sido anulada."}, status=status.HTTP_400_BAD_REQUEST)
-    
-    # Asumiendo que añadiste este campo al modelo Ventas
-    # if venta.puntos_cargados_qr: 
-    #    return Response({"error": "Los puntos de esta venta ya han sido cargados."}, status=status.HTTP_400_BAD_REQUEST)
 
     cliente = venta.cliente_venta
     if not cliente:
+        if request.method == 'GET':
+            return HttpResponse('<h3>La venta no está asociada a un cliente.</h3>', status=400)
         return Response({"error": "La venta no está asociada a un cliente."}, status=status.HTTP_400_BAD_REQUEST)
 
-    # Asumiendo que tienes esta configuración en settings.py
-    # puntos_ganados = math.floor(venta.total_venta / settings.PESOS_POR_PUNTO)
-    
-    # --- CÁLCULO DE PUNTOS PROVISIONAL (ajusta esto) ---
-    # Necesitas definir cómo se calculan los puntos.
-    # Por ejemplo, 1 punto cada 1000 pesos.
-    puntos_ganados = math.floor(float(venta.total_venta) / 1000.0)
-    # --- FIN CÁLCULO PROVISIONAL ---
+    # Calculo de puntos: configurable via settings.PESOS_POR_PUNTO (default 10)
+    from django.conf import settings
+    pesos_por_punto = getattr(settings, 'PESOS_POR_PUNTO', 10)
+    try:
+        pesos_por_punto = float(pesos_por_punto)
+        if pesos_por_punto <= 0:
+            pesos_por_punto = 10.0
+    except Exception:
+        pesos_por_punto = 10.0
 
+    puntos_ganados = math.floor(float(venta.total_venta) / pesos_por_punto)
 
     if puntos_ganados <= 0:
+        if request.method == 'GET':
+            return HttpResponse('<h3>Esta venta no genera puntos.</h3>', status=400)
         return Response({"error": "Esta venta no genera puntos."}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Verificar si ya fue canjeada: si el qr_token ya fue consumido, lo consideramos canjeado
+    if not venta.qr_token:
+        if request.method == 'GET':
+            return HttpResponse('<h3>Los puntos de esta venta ya fueron cargados.</h3>', status=400)
+        return Response({"error": "Los puntos de esta venta ya han sido cargados."}, status=status.HTTP_400_BAD_REQUEST)
 
     with transaction.atomic():
         puntos_anteriores = get_puntos_cliente(cliente)
-        
-        tipo_movimiento_ganados = Tipos_Movimientos.objects.get(nombre_movimiento='ACUMULACION_COMPRA')
+        tipo_movimiento_ganados = Tipos_Movimientos.objects.get_or_create(nombre_movimiento='ACUMULACION_COMPRA')[0]
 
         transaccion = Transacciones_Puntos.objects.create(
             cliente_trans_puntos=cliente,
-            puntos_transaccion=puntos_ganados,
+            puntos_trans_puntos=puntos_ganados,
             descripcion_trans_puntos=f"Puntos por venta #{venta.id_venta}"
         )
 
         Historial_Puntos.objects.create(
-            trans_hist_puntos=transaccion,
-            puntos_movidos=puntos_ganados,
-            puntos_anteriores=puntos_anteriores,
-            puntos_nuevos=puntos_anteriores + puntos_ganados,
-            tipo_mov_hist_puntos=tipo_movimiento_ganados
+            cliente_historial_puntos=cliente,
+            puntos_obtenidos_historial_puntos=puntos_ganados,
+            puntos_redimidos_historial_puntos=0,
+            descripcion_historial_puntos=f"Puntos por venta #{venta.id_venta}"
         )
-        
-        # Descomenta esto cuando añadas el campo 'puntos_cargados_qr' a tu modelo 'Ventas'
-        # venta.puntos_cargados_qr = True 
-        # venta.save()
+
+        # Consumir el token para evitar reutilización
+        venta.qr_token = None
+        venta.save(update_fields=['qr_token'])
+
+    if request.method == 'GET':
+        # Responder con HTML simple para mostrar al cliente tras escanear
+        return HttpResponse(f'<h3>Puntos cargados: {puntos_ganados}</h3><p>Gracias por su compra.</p>')
 
     return Response({"message": f"Puntos cargados exitosamente. {puntos_ganados} puntos añadidos."}, status=status.HTTP_200_OK)
