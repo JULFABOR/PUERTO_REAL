@@ -24,6 +24,7 @@ db.sqlite3
 # Ignorar configuraciones de VS Code (opcional, pero recomendado dejarlo)
 .vscode/
 
+# Carpetas de sistema o instalaciones
 Lib/
 Scripts/
 pyvenv.cfg
