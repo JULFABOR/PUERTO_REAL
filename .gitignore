@@ -1,5 +1,9 @@
-# Created by venv; see https://docs.python.org/3/library/venv.html
+# --- FRONTEND (React/Node) ---
+node_modules/
+dist/
+build/
 
+# --- BACKEND (Python/Django) ---
 # Ignorar entornos virtuales
 venv/
 ENV/
@@ -17,9 +21,11 @@ db.sqlite3
 # Ignorar logs
 *.log
 
-# Ignorar configuraciones de VS Code
+# --- GENERAL ---
+# Ignorar configuraciones de VS Code (opcional, pero recomendado dejarlo)
 .vscode/
 
+# Carpetas de sistema o instalaciones
 Lib/
 Scripts/
 pyvenv.cfg
