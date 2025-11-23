@@ -1,0 +1,33 @@
+# --- FRONTEND (React/Node) ---
+dist/
+build/
+
+# --- BACKEND (Python/Django) ---
+# Ignorar entornos virtuales
+venv/
+ENV/
+env/
+.venv/
+.env
+
+# Ignorar archivos compilados de Python
+__pycache__/
+*.py[cod]
+
+# Ignorar archivos de bases de datos locales
+db.sqlite3
+
+# Ignorar logs
+*.log
+
+# --- GENERAL ---
+# Ignorar configuraciones de VS Code (opcional, pero recomendado dejarlo)
+.vscode/
+
+# Carpetas de sistema o instalaciones
+Lib/
+Scripts/
+pyvenv.cfg
+
+# Archivo de variables de entorno
+.env.local

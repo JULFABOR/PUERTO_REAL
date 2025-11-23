@@ -1,0 +1,139 @@
+from rest_framework import serializers
+from .models import Tipo_Evento, Cajas, Historial_Caja, Fondo_Pagos, Movimiento_Fondo
+from autenticacion.models import Empleados
+from Config_PR.models import Estados, Tipos_Movimientos
+from django.contrib.auth.models import User
+from decimal import Decimal
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('id', 'username', 'first_name', 'last_name')
+
+class EmpleadoSerializer(serializers.ModelSerializer):
+    user_empleado = UserSerializer(read_only=True)
+
+    class Meta:
+        model = Empleados
+        fields = ('id_empleado', 'user_empleado', 'dni_empleado', 'telefono_empleado')
+
+class EstadoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Estados
+        fields = ('id_estado', 'nombre_estado')
+
+class TipoEventoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Tipo_Evento
+        fields = ('id_evento', 'nombre_evento')
+
+class TiposMovimientosSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Tipos_Movimientos
+        fields = ('id_tipo_movimiento', 'nombre_movimiento', 'is_transfer')
+
+class CajasSerializer(serializers.ModelSerializer):
+    estado_caja = EstadoSerializer(read_only=True)
+
+    class Meta:
+        model = Cajas
+        fields = ('id_caja', 'total_gastos_caja', 'monto_apertura_caja', 
+                 'monto_cierre_caja', 'monto_teorico_caja', 'diferencia_caja', 
+                 'observaciones_caja', 'estado_caja')
+    
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+
+        # Añadir campos dinámicamente
+        representation['caja_abierta'] = instance.estado_caja.nombre_estado == 'ABIERTA' if instance.estado_caja else False
+
+        # Optimización: Una sola consulta para obtener el historial de apertura
+        historial_apertura = Historial_Caja.objects.filter(
+            caja_hc=instance, 
+            tipo_event_caja__nombre_evento='APERTURA'
+        ).select_related('empleado_hc__user_empleado').first()
+
+        if historial_apertura:
+            representation['fecha_apertura'] = historial_apertura.fecha_movimiento_hcaja
+            representation['monto_inicial'] = historial_apertura.cantidad_movida_hcaja
+            if historial_apertura.empleado_hc:
+                representation['empleado_apertura'] = EmpleadoSerializer(historial_apertura.empleado_hc).data
+            else:
+                representation['empleado_apertura'] = None
+        else:
+            representation['fecha_apertura'] = None
+            representation['empleado_apertura'] = None
+            representation['monto_inicial'] = Decimal("0.00") 
+            
+        return representation
+
+class HistorialCajaSerializer(serializers.ModelSerializer):
+    empleado_hc = EmpleadoSerializer(read_only=True)
+    tipo_event_caja = TipoEventoSerializer(read_only=True)
+    cantidad_movida_hcaja = serializers.DecimalField(max_digits=20, decimal_places=2)
+    
+    class Meta:
+        model = Historial_Caja
+        fields = ('id_historial_caja', 'cantidad_movida_hcaja', 'caja_hc', 
+                  'empleado_hc', 'tipo_event_caja', 'fecha_movimiento_hcaja', 
+                  'saldo_anterior_hcaja', 'nuevo_saldo_hcaja', 'descripcion_hcaja', 
+                  'destino_movimiento')
+
+# (El resto de serializers: FondoPagosSerializer, MovimientoFondoSerializer, etc. van aquí...)
+
+class FondoPagosSerializer(serializers.ModelSerializer):
+    estado_fp = EstadoSerializer(read_only=True)
+    class Meta:
+        model = Fondo_Pagos
+        fields = ('id_fondo_fp', 'saldo_fp', 'estado_fp')
+
+class MovimientoFondoSerializer(serializers.ModelSerializer):
+    fondo_mov_fp = FondoPagosSerializer(read_only=True)
+    empleado_mov_fp = EmpleadoSerializer(read_only=True)
+    tipo_mov_fp = TiposMovimientosSerializer(read_only=True)
+    class Meta:
+        model = Movimiento_Fondo
+        fields = ('id_mov_fp', 'fondo_mov_fp', 'fecha_mov_fp', 
+                  'tipo_mov_fp', 'monto_mov_fp', 'motivo_mov_fp', 'empleado_mov_fp')
+
+# --- Serializers de Entrada (Input) ---
+
+class AperturaCajaInputSerializer(serializers.Serializer):
+    monto_inicial = serializers.DecimalField(max_digits=10, decimal_places=2)
+    desc_ajuste = serializers.CharField(max_length=255, required=False, allow_blank=True)
+
+class RetiroInputSerializer(serializers.Serializer):
+    monto_retiro = serializers.DecimalField(max_digits=10, decimal_places=2)
+    motivo = serializers.CharField(max_length=255)
+    destino = serializers.CharField(max_length=50)
+    aprobador = serializers.CharField(max_length=255, required=False, allow_blank=True)
+
+class RendirFondoInputSerializer(serializers.Serializer):
+    monto_a_devolver = serializers.DecimalField(max_digits=10, decimal_places=2)
+
+class CerrarCajaInputSerializer(serializers.Serializer):
+    monto_cierre_real = serializers.DecimalField(max_digits=10, decimal_places=2)
+    observaciones_cierre = serializers.CharField(max_length=255, required=False, allow_blank=True)
+
+class MovimientoFondoInputSerializer(serializers.Serializer):
+    monto = serializers.DecimalField(max_digits=12, decimal_places=2)
+    motivo = serializers.CharField(max_length=200, required=False, allow_blank=True)
+    tipo = serializers.ChoiceField(choices=[("ENTRADA", "Entrada"), ("SALIDA", "Salida")])
+
+class AjusteCajaInputSerializer(serializers.Serializer):
+    monto_ajuste = serializers.DecimalField(max_digits=10, decimal_places=2)
+    motivo_ajuste = serializers.CharField(max_length=255)
+
+# --- NUEVO: Serializer para Movimientos de Caja Manuales (Ingreso/Egreso) ---
+class MovimientoCajaManualInputSerializer(serializers.Serializer):
+    """
+    Serializer de entrada para registrar un INGRESO o EGRESO manual de la caja.
+    """
+    monto = serializers.DecimalField(max_digits=10, decimal_places=2)
+    motivo = serializers.CharField(max_length=300) 
+    tipo = serializers.ChoiceField(choices=[("INGRESO", "Ingreso"), ("EGRESO", "Egreso")])
+    
+    def validate_monto(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("El monto debe ser un valor positivo.")
+        return value

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Reporte de Ventas</title>
+    <style>
+        @page {
+            size: a4 portrait;
+            @frame header_frame {
+                -pdf-frame-content: header_content;
+                left: 50pt; right: 50pt; top: 50pt; height: 50pt;
+            }
+            @frame content_frame {
+                left: 50pt; right: 50pt; top: 120pt; bottom: 50pt;
+            }
+            @frame footer_frame {
+                -pdf-frame-content: footer_content;
+                left: 50pt; right: 50pt; bottom: 30pt; height: 20pt;
+            }
+        }
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            background-color: #121212; /* pr-dark */
+            color: #FFFFFF;
+        }
+        #header_content {
+            text-align: center;
+        }
+        #header_content h1 {
+            font-size: 24px;
+            color: #FFC700; /* pr-yellow */
+            margin: 0;
+        }
+        #header_content p {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin: 5px 0;
+        }
+        #footer_content {
+            text-align: right;
+            font-size: 10px;
+            color: #7f8c8d;
+        }
+        h2 {
+            font-size: 18px;
+            color: #FFFFFF; /* use white for headings */
+            border-bottom: 2px solid #FFC700; /* pr-yellow */
+            padding-bottom: 5px;
+            margin-top: 20px;
+        }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .summary-item {
+            background-color: #1F2937; /* pr-dark-gray */
+            padding: 10px;
+            border-radius: 5px;
+            color: #e5e7eb;
+        }
+        .summary-item p {
+            margin: 0;
+            font-size: 12px;
+        }
+        .summary-item .value {
+            font-size: 16px;
+            font-weight: bold;
+            color: #FFC700; /* pr-yellow */
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #374151;
+            padding: 8px;
+            text-align: left;
+            font-size: 12px;
+            color: #e5e7eb;
+        }
+        th {
+            background-color: #1F2937; /* pr-dark-gray */
+            color: white;
+            font-weight: bold;
+        }
+        tbody tr:nth-child(even) {
+            background-color: #0f1720;
+        }
+        tbody tr:nth-child(odd) {
+            background-color: #0b0f13;
+        }
+    </style>
+</head>
+<body>
+    <div id="header_content">
+        <h1>Reporte de Ventas - PUERTO REAL</h1>
+        <p>Fecha de generación: {{ today }}</p>
+        <p>Periodo del reporte: {{ period }}</p>
+    </div>
+
+    <div id="footer_content">
+        Página <pdf:pagenumber> de <pdf:pagecount>
+    </div>
+
+    <h2>Indicadores Principales</h2>
+    <div class="summary-grid">
+        <div class="summary-item">
+            <p>Ventas Totales</p>
+            <p class="value">${{ total_sales }}</p>
+        </div>
+        <div class="summary-item">
+            <p>Ganancia Bruta</p>
+            <p class="value">${{ gross_profit }}</p>
+        </div>
+        <div class="summary-item">
+            <p>Nº Transacciones</p>
+            <p class="value">{{ total_transactions }}</p>
+        </div>
+        <div class="summary-item">
+            <p>Ticket Promedio</p>
+            <p class="value">${{ average_ticket }}</p>
+        </div>
+    </div>
+
+    {% if chart_income %}
+    <h2>Evolución de Ingresos</h2>
+    <div style="text-align:center; margin: 10px 0;">
+        <img src="data:image/png;base64,{{ chart_income }}" alt="Evolución de Ingresos" style="max-width:100%; height:auto;" />
+    </div>
+    {% endif %}
+
+    {% if chart_categories %}
+    <h2>Distribución por Categoría</h2>
+    <div style="text-align:center; margin: 10px 0;">
+        <img src="data:image/png;base64,{{ chart_categories }}" alt="Distribución por Categoría" style="max-width:100%; height:auto;" />
+    </div>
+    {% endif %}
+
+    <h2>Ventas por Medio de Pago</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Medio de Pago</th>
+                <th>Monto</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for method in payment_methods %}
+            <tr>
+                <td>{{ method.name }}</td>
+                <td>${{ method.amount }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>Rentabilidad por Producto</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Producto</th>
+                <th>Uds. Vendidas</th>
+                <th>Ingresos</th>
+                <th>Costo Total</th>
+                <th>Ganancia Bruta</th>
+                <th>Margen</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for product in products %}
+            <tr>
+                <td>{{ product.name }}</td>
+                <td>{{ product.units }}</td>
+                <td>${{ product.revenue }}</td>
+                <td>${{ product.cost }}</td>
+                <td>${{ product.profit }}</td>
+                <td>{{ product.margin }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+</body>
+</html>
