@@ -22,7 +22,7 @@ const FormInput = ({ name, label, value, onChange, error, type = 'text', require
             className={`
                 block w-full p-2.5 pt-6 text-sm text-white bg-pr-dark-gray border 
                 rounded-lg appearance-none focus:outline-none focus:ring-0
-                ${error ? 'border-red-500 focus:border-red-500' : 'border-gray-500 focus:border-pr-yellow'}
+                ${error ? 'border-pr-red focus:border-pr-red' : 'border-gray-500 focus:border-pr-yellow'}
                 peer
             `}
             placeholder=" "
@@ -32,15 +32,15 @@ const FormInput = ({ name, label, value, onChange, error, type = 'text', require
             className={`
                 absolute text-sm duration-300 transform -translate-y-4 scale-75 top-5 z-10 origin-[0]
                 left-2.5
-                ${error ? 'text-red-400' : 'text-gray-400'}
+                ${error ? 'text-pr-red' : 'text-gray-400'}
                 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0
                 peer-focus:scale-75 peer-focus:-translate-y-4
-                ${error ? 'peer-focus:text-red-400' : 'peer-focus:text-pr-yellow'}
+                ${error ? 'peer-focus:text-pr-red' : 'peer-focus:text-pr-yellow'}
             `}
         >
             {label}{required && ' *'}
         </label>
-        {error && <p className="mt-1 text-xs text-red-400">{error[0] || error}</p>}
+        {error && <p className="mt-1 text-xs text-pr-red">{error[0] || error}</p>}
     </div>
 );
 
@@ -218,7 +218,7 @@ const NewOrdenCompraModal = ({ isOpen, onClose, onSuccess, suppliers }) => {
                     {/* --- Encabezado --- */}
                     <div className="flex items-center justify-between p-4 md:p-5 border-b rounded-t border-gray-600">
                         <h3 className="text-xl font-semibold text-white">Nueva Orden de Compra</h3>
-                        <button type="button" onClick={onClose} className="text-gray-400 bg-transparent rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center hover:bg-gray-600 hover:text-white">
+                        <button type="button" onClick={onClose} className="text-pr-gray bg-transparent rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center hover:bg-gray-600 hover:text-white">
                             <FontAwesomeIcon icon={faTimes} />
                         </button>
                     </div>
@@ -229,13 +229,13 @@ const NewOrdenCompraModal = ({ isOpen, onClose, onSuccess, suppliers }) => {
 
                             {/* Selección de Proveedor */}
                             <div>
-                                <label htmlFor="supplier-select" className={`block mb-1 text-sm font-medium ${errors.proveedor_compra ? 'text-red-400' : 'text-white'}`}>Proveedor *</label>
+                                <label htmlFor="supplier-select" className={`block mb-1 text-sm font-medium ${errors.proveedor_compra ? 'text-pr-red' : 'text-white'}`}>Proveedor *</label>
                                 <select
                                     id="supplier-select"
                                     value={selectedSupplier}
                                     onChange={(e) => { setSelectedSupplier(e.target.value); setErrors(p => ({ ...p, proveedor_compra: null })); }}
                                     required
-                                    className={`border text-sm rounded-lg block w-full p-2.5 bg-pr-dark-gray text-white focus:ring-pr-yellow focus:border-pr-yellow ${errors.proveedor_compra ? 'border-red-500' : 'border-gray-500'}`}
+                                    className={`border text-sm rounded-lg block w-full p-2.5 bg-pr-dark-gray text-white focus:ring-pr-yellow focus:border-pr-yellow ${errors.proveedor_compra ? 'border-pr-red' : 'border-gray-500'}`}
                                 >
                                     <option value="" disabled>Selecciona un proveedor</option>
                                     {(suppliers || []).map(sup => (
@@ -244,7 +244,7 @@ const NewOrdenCompraModal = ({ isOpen, onClose, onSuccess, suppliers }) => {
                                         </option>
                                     ))}
                                 </select>
-                                {errors.proveedor_compra && <p className="mt-1 text-xs text-red-400">{errors.proveedor_compra[0]}</p>}
+                                {errors.proveedor_compra && <p className="mt-1 text-xs text-pr-red">{errors.proveedor_compra[0]}</p>}
                             </div>
 
                             {/* Búsqueda y Adición de Productos */}
@@ -276,7 +276,7 @@ const NewOrdenCompraModal = ({ isOpen, onClose, onSuccess, suppliers }) => {
                                                         {p.nombre_producto}
                                                         <span className="block text-xs text-pr-gray/70">SKU: {p.barcode || 'N/A'} - Stock: {p.total_stock || 0}</span>
                                                     </div>
-                                                     <FontAwesomeIcon icon={faPlus} className="text-green-500 shrink-0 ml-2"/>
+                                                     <FontAwesomeIcon icon={faPlus} className="text-pr-green shrink-0 ml-2"/>
                                                 </li>
                                             ))}
                                         </ul>
@@ -323,7 +323,7 @@ const NewOrdenCompraModal = ({ isOpen, onClose, onSuccess, suppliers }) => {
                                                         />
                                                     </td>
                                                     <td className="px-4 py-2 text-center">
-                                                        <button type="button" onClick={() => handleRemoveItem(index)} className="text-red-500 hover:text-red-400 px-2">
+                                                        <button type="button" onClick={() => handleRemoveItem(index)} className="text-pr-red hover:text-pr-red/80 px-2">
                                                             <FontAwesomeIcon icon={faTrash} />
                                                         </button>
                                                     </td>
@@ -334,8 +334,8 @@ const NewOrdenCompraModal = ({ isOpen, onClose, onSuccess, suppliers }) => {
                                 </div>
                             )}
                             {/* Errores de 'detalles' */}
-                            {errors.detalles && typeof errors.detalles === 'string' && <p className="mt-1 text-xs text-red-400">{errors.detalles}</p>}
-                            {errors.detalles && Array.isArray(errors.detalles) && !errors.detalles[0]?.producto_dt_comp && <p className="mt-1 text-xs text-red-400">Error en los items. Revisa cantidad y costo.</p>}
+                            {errors.detalles && typeof errors.detalles === 'string' && <p className="mt-1 text-xs text-pr-red">{errors.detalles}</p>}
+                            {errors.detalles && Array.isArray(errors.detalles) && !errors.detalles[0]?.producto_dt_comp && <p className="mt-1 text-xs text-pr-red">Error en los items. Revisa cantidad y costo.</p>}
 
                             {/* Total */}
                             {orderItems.length > 0 && (
@@ -352,14 +352,14 @@ const NewOrdenCompraModal = ({ isOpen, onClose, onSuccess, suppliers }) => {
                                 type="button" 
                                 onClick={onClose}
                                 disabled={isSubmitting}
-                                className="text-gray-400 hover:text-white px-5 py-2.5 rounded-lg text-sm font-bold disabled:opacity-50"
+                                className="btn-secondary"
                             >
                                 Cancelar
                             </button>
                             <button 
                                 type="submit" 
                                 disabled={isSubmitting || orderItems.length === 0 || !selectedSupplier}
-                                className="w-auto text-pr-dark bg-pr-yellow hover:bg-yellow-400 font-bold rounded-lg text-sm px-5 py-2.5 text-center disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed flex items-center justify-center min-w-[160px]"
+                                className="btn-primary w-auto flex items-center justify-center min-w-[160px] disabled:opacity-60 disabled:cursor-not-allowed"
                             >
                                 {isSubmitting ? (
                                     <>

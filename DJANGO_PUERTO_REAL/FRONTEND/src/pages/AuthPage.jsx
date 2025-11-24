@@ -9,6 +9,7 @@ import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import CTAButton from '@/components/shared/CTAButton';
 
 // --- Zod Schema for Registration Validation ---
 const registerSchema = z.object({
@@ -38,9 +39,11 @@ const loginSchema = z.object({
 const AuthPage = () => {
     const { login } = useAuth();
     const [activeTab, setActiveTab] = useState('login');
+    const [animateLeftPanel, setAnimateLeftPanel] = useState(false); // State for animation
 
     useEffect(() => {
         try { initFlowbite(); } catch (e) { /* ignore if not available */ }
+        setAnimateLeftPanel(true); // Trigger animation after component mounts
     }, []);
 
     // --- States & Forms ---
@@ -163,13 +166,16 @@ const AuthPage = () => {
             <main className="flex-grow flex items-center justify-center p-4">
                 <div className="container mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                     
-                    <div className="text-center lg:text-left px-4 flex flex-col gap-6 items-center justify-center">
+                    <div className={`text-center lg:text-left px-4 flex flex-col gap-6 items-center justify-center
+                        transition-all duration-1000 ease-out
+                        ${animateLeftPanel ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
                         {/* --- Espacio para el Logo --- */}
                         <div className="w-48 h-48 md:w-64 md:h-64 bg-pr-yellow rounded-full flex items-center justify-center shadow-lg">
                             {/* Reemplaza este span con tu componente <img /> o <svg /> del logo */}
                             <span className="text-pr-dark font-bold text-2xl select-none">LOGO</span>
                         </div>
                         <h1 className="text-4xl md:text-5xl font-bold text-white">PUERTO REAL</h1>
+                        <p className="text-lg md:text-xl text-pr-gray">Gestión eficiente para un futuro brillante.</p>
                     </div>
 
                     <div className="w-full max-w-md mx-auto">
@@ -178,7 +184,7 @@ const AuthPage = () => {
                                 <ul className="flex flex-wrap -mb-px text-sm font-medium text-center">
                                     <li className="w-1/2" role="presentation">
                                         <button 
-                                            className={`inline-block w-full p-4 border-b-2 rounded-t-lg ${activeTab === 'login' ? 'text-pr-yellow border-pr-yellow' : 'border-transparent text-gray-400 hover:text-pr-yellow hover:border-pr-yellow'}`}
+                                            className={`inline-block w-full p-4 border-b-2 rounded-t-lg ${activeTab === 'login' ? 'text-pr-yellow border-pr-yellow' : 'border-transparent text-pr-gray hover:text-pr-yellow hover:border-pr-yellow'}`}
                                             onClick={() => setActiveTab('login')}
                                         >
                                             Iniciar Sesión
@@ -186,7 +192,7 @@ const AuthPage = () => {
                                     </li>
                                     <li className="w-1/2" role="presentation">
                                         <button 
-                                            className={`inline-block w-full p-4 border-b-2 rounded-t-lg ${activeTab === 'register' ? 'text-pr-yellow border-pr-yellow' : 'border-transparent text-gray-400 hover:text-pr-yellow hover:border-pr-yellow'}`}
+                                            className={`inline-block w-full p-4 border-b-2 rounded-t-lg ${activeTab === 'register' ? 'text-pr-yellow border-pr-yellow' : 'border-transparent text-pr-gray hover:text-pr-yellow hover:border-pr-yellow'}`}
                                             onClick={() => setActiveTab('register')}
                                         >
                                             Registrarse
@@ -201,19 +207,19 @@ const AuthPage = () => {
                                         onSubmit={handleSubmitLogin(onLoginSubmit)}
                                     >
                                         <div>
-                                            <label htmlFor="login-username" className="block mb-2 text-sm font-medium text-gray-300">Nombre de usuario</label>
+                                            <label htmlFor="login-username" className="block mb-2 text-sm font-medium text-pr-gray">Nombre de usuario o Correo electrónico</label>
                                             <input 
                                                 type="text" 
                                                 id="login-username" 
                                                 className="bg-pr-dark-gray border border-pr-gray text-white text-sm rounded-lg focus:ring-pr-yellow focus:border-pr-yellow block w-full p-2.5" 
-                                                placeholder="tu_usuario" 
+                                                placeholder="tu_usuario o tu.correo@ejemplo.com" 
                                                 autoComplete="username"
                                                 {...registerLogin('username')}
                                             />
-                                            {errorsLogin.username && <p className="mt-1 text-sm text-red-500">{errorsLogin.username.message}</p>}
+                                            {errorsLogin.username && <p className="mt-1 text-sm text-pr-red">{errorsLogin.username.message}</p>}
                                         </div>
                                         <div className="relative">
-                                            <label htmlFor="login-password" className="block mb-2 text-sm font-medium text-gray-300">Contraseña</label>
+                                            <label htmlFor="login-password" className="block mb-2 text-sm font-medium text-pr-gray">Contraseña</label>
                                             <input 
                                                 type={showLoginPassword ? 'text' : 'password'} 
                                                 id="login-password" 
@@ -225,14 +231,14 @@ const AuthPage = () => {
                                             <button 
                                                 type="button"
                                                 onClick={() => setShowLoginPassword(!showLoginPassword)}
-                                                className="absolute inset-y-0 right-0 top-7 px-3 flex items-center text-gray-400 hover:text-pr-yellow focus:outline-none"
+                                                className="absolute inset-y-0 right-0 top-7 px-3 flex items-center text-pr-gray hover:text-pr-yellow focus:outline-none"
                                             >
                                                 <FontAwesomeIcon icon={showLoginPassword ? faEyeSlash : faEye} />
                                             </button>
                                         </div>
-                                        {errorsLogin.password && <p className="mt-1 text-sm text-red-500">{errorsLogin.password.message}</p>}
+                                        {errorsLogin.password && <p className="mt-1 text-sm text-pr-red">{errorsLogin.password.message}</p>}
                                         {loginError && (
-                                            <div className="text-sm text-red-500 text-center">
+                                            <div className="text-sm text-pr-red text-center">
                                                 {loginError}
                                             </div>
                                         )}
@@ -245,9 +251,9 @@ const AuthPage = () => {
                                                 ¿Olvidaste tu contraseña?
                                             </button>
                                         </div>
-                                        <button type="submit" disabled={isLoginSubmitting} className="w-full text-pr-dark bg-pr-yellow hover:bg-yellow-400 focus:ring-4 focus:outline-none focus:ring-yellow-300 font-bold rounded-lg text-sm px-5 py-3 text-center transition duration-300 disabled:opacity-60 disabled:cursor-not-allowed">
+                                        <CTAButton type="submit" disabled={isLoginSubmitting} className="w-full transition duration-300 disabled:opacity-60 disabled:cursor-not-allowed">
                                             {isLoginSubmitting ? 'Ingresando...' : 'Ingresar'}
-                                        </button>
+                                        </CTAButton>
                                     </form>
                                 )}
                                 {activeTab === 'register' && (
@@ -257,7 +263,7 @@ const AuthPage = () => {
                                     >
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <div>
-                                                <label htmlFor="register-first-name" className="block mb-2 text-sm font-medium text-gray-300">Nombre</label>
+                                                <label htmlFor="register-first-name" className="block mb-2 text-sm font-medium text-pr-gray">Nombre</label>
                                                 <input
                                                     type="text"
                                                     id="register-first-name"
@@ -266,10 +272,10 @@ const AuthPage = () => {
                                                     autoComplete="given-name"
                                                     {...registerRegister('firstName')}
                                                 />
-                                                {errorsRegister.firstName && <p className="mt-1 text-sm text-red-500">{errorsRegister.firstName.message}</p>}
+                                                {errorsRegister.firstName && <p className="mt-1 text-sm text-pr-red">{errorsRegister.firstName.message}</p>}
                                             </div>
                                             <div>
-                                                <label htmlFor="register-last-name" className="block mb-2 text-sm font-medium text-gray-300">Apellido</label>
+                                                <label htmlFor="register-last-name" className="block mb-2 text-sm font-medium text-pr-gray">Apellido</label>
                                                 <input
                                                     type="text"
                                                     id="register-last-name"
@@ -278,11 +284,11 @@ const AuthPage = () => {
                                                     autoComplete="family-name"
                                                     {...registerRegister('lastName')}
                                                 />
-                                                {errorsRegister.lastName && <p className="mt-1 text-sm text-red-500">{errorsRegister.lastName.message}</p>}
+                                                {errorsRegister.lastName && <p className="mt-1 text-sm text-pr-red">{errorsRegister.lastName.message}</p>}
                                             </div>
                                         </div>
                                         <div>
-                                            <label htmlFor="register-email" className="block mb-2 text-sm font-medium text-gray-300">Correo electrónico</label>
+                                            <label htmlFor="register-email" className="block mb-2 text-sm font-medium text-pr-gray">Correo electrónico</label>
                                             <input
                                                 type="email"
                                                 id="register-email"
@@ -292,13 +298,13 @@ const AuthPage = () => {
                                                 {...registerRegister('email')}
                                             />
                                             {errorsRegister.email ? (
-                                                <p className="mt-1 text-sm text-red-500">{errorsRegister.email.message}</p>
+                                                <p className="mt-1 text-sm text-pr-red">{errorsRegister.email.message}</p>
                                             ) : (
-                                                <p className="mt-2 text-xs text-gray-400">Usaremos este correo para verificar tu cuenta.</p>
+                                                <p className="mt-2 text-xs text-pr-gray">Usaremos este correo para verificar tu cuenta.</p>
                                             )}
                                         </div>
                                         <div className="relative">
-                                            <label htmlFor="register-password" className="block mb-2 text-sm font-medium text-gray-300">Contraseña</label>
+                                            <label htmlFor="register-password" className="block mb-2 text-sm font-medium text-pr-gray">Contraseña</label>
                                             <input
                                                 type={showRegisterPassword ? 'text' : 'password'}
                                                 id="register-password"
@@ -310,46 +316,46 @@ const AuthPage = () => {
                                             <button 
                                                 type="button"
                                                 onClick={() => setShowRegisterPassword(!showRegisterPassword)}
-                                                className="absolute inset-y-0 right-0 top-7 px-3 flex items-center text-gray-400 hover:text-pr-yellow focus:outline-none"
+                                                className="absolute inset-y-0 right-0 top-7 px-3 flex items-center text-pr-gray hover:text-pr-yellow focus:outline-none"
                                             >
                                                 <FontAwesomeIcon icon={showRegisterPassword ? faEyeSlash : faEye} />
                                             </button>
                                         </div>
                                         <PasswordStrengthMeter password={registerPassword} />
                                         <div className="relative">
-                                            <label htmlFor="confirm-password" className="block mb-2 text-sm font-medium text-gray-300">Confirmar contraseña</label>
+                                            <label htmlFor="confirm-password" className="block mb-2 text-sm font-medium text-pr-gray">Confirmar contraseña</label>
                                             <input
                                                 type={showConfirmPassword ? 'text' : 'password'}
                                                 id="confirm-password"
                                                 placeholder="Confirma tu contraseña"
-                                                className={`bg-pr-dark-gray border ${errorsRegister.confirmPassword ? 'border-red-500' : 'border-pr-gray'} text-white text-sm rounded-lg focus:ring-pr-yellow focus:border-pr-yellow block w-full p-2.5`}
+                                                className={`bg-pr-dark-gray border ${errorsRegister.confirmPassword ? 'border-pr-red' : 'border-pr-gray'} text-white text-sm rounded-lg focus:ring-pr-yellow focus:border-pr-yellow block w-full p-2.5`}
                                                 autoComplete="new-password"
                                                 {...registerRegister('confirmPassword')}
                                             />
                                             <button 
                                                 type="button"
                                                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                                className="absolute inset-y-0 right-0 top-7 px-3 flex items-center text-gray-400 hover:text-pr-yellow focus:outline-none"
+                                                className="absolute inset-y-0 right-0 top-7 px-3 flex items-center text-pr-gray hover:text-pr-yellow focus:outline-none"
                                             >
                                                 <FontAwesomeIcon icon={showConfirmPassword ? faEyeSlash : faEye} />
                                             </button>
                                         </div>
                                         {errorsRegister.confirmPassword && (
-                                            <p className="text-sm text-red-500">{errorsRegister.confirmPassword.message}</p>
+                                            <p className="text-sm text-pr-red">{errorsRegister.confirmPassword.message}</p>
                                         )}
                                          {registerError && (
-                                            <div className="text-sm text-red-500 text-center">
+                                            <div className="text-sm text-pr-red text-center">
                                                 {registerError}
                                             </div>
                                         )}
                                         {registerSuccess && (
-                                            <div className="text-sm text-green-500 text-center">
+                                            <div className="text-sm text-pr-green text-center">
                                                 {registerSuccess}
                                             </div>
                                         )}
-                                        <button type="submit" disabled={isRegisterSubmitting} className="w-full text-pr-dark bg-pr-yellow hover:bg-yellow-400 focus:ring-4 focus:outline-none focus:ring-yellow-300 font-bold rounded-lg text-sm px-5 py-3 text-center transition duration-300 disabled:opacity-60 disabled:cursor-not-allowed">
+                                        <CTAButton type="submit" disabled={isRegisterSubmitting} className="w-full transition duration-300 disabled:opacity-60 disabled:cursor-not-allowed">
                                             {isRegisterSubmitting ? 'Creando...' : 'Crear Cuenta'}
-                                        </button>
+                                        </CTAButton>
                                     </form>
                                 )}
                             </div>
@@ -360,7 +366,7 @@ const AuthPage = () => {
 
             {/* Footer */}
             <footer className="w-full bg-pr-dark text-center p-4">
-                <p className="text-gray-400 text-sm">&copy; {new Date().getFullYear()} Puerto Real. Todos los derechos reservados.</p>
+                <p className="text-pr-gray text-sm">&copy; {new Date().getFullYear()} Puerto Real. Todos los derechos reservados.</p>
             </footer>
 
             {/* Modal para Restablecer Contraseña */}
@@ -370,7 +376,7 @@ const AuthPage = () => {
                         <div className="relative rounded-lg shadow bg-pr-dark">
                             <div className="flex items-center justify-between p-4 border-b border-gray-600">
                                 <h3 className="text-xl font-semibold text-white">Restablecer Contraseña</h3>
-                                <button type="button" onClick={() => setShowForgotPasswordModal(false)} className="text-gray-400 bg-transparent rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center hover:bg-gray-600 hover:text-white">
+                                <button type="button" onClick={() => setShowForgotPasswordModal(false)} className="text-pr-gray bg-transparent rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center hover:bg-gray-600 hover:text-white">
                                     <svg className="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/></svg>
                                     <span className="sr-only">Cerrar</span>
                                 </button>
@@ -392,8 +398,8 @@ const AuthPage = () => {
                                                 onChange={(e) => setResetEmail(e.target.value)}
                                             />
                                         </div>
-                                        <p className="text-xs text-gray-400">Te enviaremos un enlace a tu correo para que puedas restablecer tu contraseña.</p>
-                                        <button type="submit" className="w-full text-pr-dark bg-pr-yellow hover:bg-yellow-400 font-bold rounded-lg text-sm px-5 py-2.5 text-center">
+                                        <p className="text-xs text-pr-gray">Te enviaremos un enlace a tu correo para que puedas restablecer tu contraseña.</p>
+                                        <button type="submit" className="w-full btn-primary">
                                             Enviar Enlace de Recuperación
                                         </button>
                                     </form>

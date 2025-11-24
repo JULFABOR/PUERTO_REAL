@@ -57,14 +57,14 @@ const ClienteLayout = () => {
                     {/* Logo y Título */}
                     <NavLink to="/cliente/home" className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-pr-yellow rounded-full flex items-center justify-center shadow-lg">
-                            <img src="/logo1-removebg-preview.png" alt="Puerto Real Logo" className="h-full w-full object-contain" />
+                            <span className="text-pr-dark font-bold text-lg select-none">LOGO</span>
                         </div>                        <span className="self-center text-2xl font-bold whitespace-nowrap text-white">Puerto Real</span>
                     </NavLink>
 
                     {/* Botón de Menú Móvil y Menú de Usuario */}
                     <div className="flex items-center md:order-2 gap-3">
                         {/* User Menu */}
-                        <button type="button" className="flex text-sm bg-gray-800 rounded-full focus:ring-4 focus:ring-pr-yellow" id="user-menu-button" aria-expanded="false" data-dropdown-toggle="user-dropdown" data-dropdown-placement="bottom">
+                        <button type="button" className="flex text-sm bg-pr-dark-gray rounded-full focus:ring-4 focus:ring-pr-yellow" id="user-menu-button" aria-expanded="false" data-dropdown-toggle="user-dropdown" data-dropdown-placement="bottom">
                             <span className="sr-only">Abrir menú de usuario</span>
                             <img className="w-9 h-9 rounded-full object-cover" src="https://placehold.co/40x40/FFC700/121212?text=U" alt="foto de usuario" />
                         </button>
@@ -75,7 +75,7 @@ const ClienteLayout = () => {
                             </div>
                             <ul className="py-1" aria-labelledby="user-menu-button">
                                 <li>
-                                    <button onClick={logout} className="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-pr-gray hover:text-red-300">
+                                    <button onClick={logout} className="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300">
                                         Cerrar Sesión
                                     </button>
                                 </li>
@@ -103,6 +103,9 @@ const ClienteLayout = () => {
                         <ul className="flex flex-col font-medium p-4 md:p-0 mt-4 border border-pr-gray rounded-lg bg-pr-dark md:space-x-8 md:flex-row md:mt-0 md:border-0 md:bg-transparent">
                             <li>
                                 <HeaderLink to="/cliente/home">Productos</HeaderLink>
+                            </li>
+                            <li>
+                                <HeaderLink to="/cliente/promociones">Promociones</HeaderLink>
                             </li>
                             {/* <li>
                                 <HeaderLink to="/cliente/perfil">Mi Perfil</HeaderLink>

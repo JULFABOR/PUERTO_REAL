@@ -121,9 +121,9 @@ const EmpleadoControlStock = () => {
     const getStatus = (product) => {
         const stock = product.total_stock || 0;
         const lowStockThreshold = product.low_stock_threshold || 10;
-        if (stock === 0) return { text: 'Sin Stock', className: 'bg-red-600/20 text-red-300', value: 'out' };
-        if (stock > 0 && stock <= lowStockThreshold) return { text: 'Stock Bajo', className: 'bg-yellow-600/20 text-yellow-300', value: 'low' };
-        return { text: 'En Stock', className: 'bg-green-600/20 text-green-300', value: 'stock' };
+        if (stock === 0) return { text: 'Sin Stock', className: 'bg-pr-red/20 text-pr-red', value: 'out' };
+        if (stock > 0 && stock <= lowStockThreshold) return { text: 'Stock Bajo', className: 'bg-pr-yellow/20 text-pr-yellow', value: 'low' };
+        return { text: 'En Stock', className: 'bg-pr-green/20 text-pr-green', value: 'stock' };
     };
 
     const tableFilteredProducts = useMemo(() => {
@@ -180,8 +180,8 @@ const EmpleadoControlStock = () => {
 
     if (error) {
         return (
-            <div className="bg-red-900/20 border border-red-500 text-red-300 px-4 py-3 rounded-lg flex items-center" role="alert">
-                <FontAwesomeIcon icon={faExclamationTriangle} className="mr-3 text-red-400" />
+            <div className="bg-pr-red/20 border border-pr-red text-pr-red px-4 py-3 rounded-lg flex items-center" role="alert">
+                <FontAwesomeIcon icon={faExclamationTriangle} className="mr-3 text-pr-red" />
                 <div>
                     <strong className="font-bold">Error al cargar el inventario:</strong>
                     <span className="block sm:inline ml-2">{error}</span>
@@ -268,7 +268,7 @@ const EmpleadoControlStock = () => {
                                         <th scope="row" className="px-6 py-4 font-medium text-white whitespace-nowrap">{product.nombre_producto}</th>
                                         <td className="px-6 py-4 text-gray-300">{product.categoria_producto?.nombre_categoria || 'Sin Cat.'}</td>
                                         <td className="px-6 py-4 font-medium text-white">{formatCurrency(product.precio_unitario_venta_producto)}</td>
-                                        <td className={`px-6 py-4 font-bold ${status.value === 'low' ? 'text-yellow-400' : status.value === 'out' ? 'text-red-500' : 'text-white'}`}>{product.total_stock || 0}</td>
+                                        <td className={`px-6 py-4 font-bold ${status.value === 'low' ? 'text-pr-yellow' : status.value === 'out' ? 'text-pr-red' : 'text-white'}`}>{product.total_stock || 0}</td>
                                         <td className="px-6 py-4"><StatusBadge status={status} /></td>
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex items-center justify-end space-x-2">

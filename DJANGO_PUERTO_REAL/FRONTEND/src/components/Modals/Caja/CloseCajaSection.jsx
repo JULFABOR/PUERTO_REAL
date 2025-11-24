@@ -56,10 +56,10 @@ const CloseCajaSection = ({
 
     // Lógica de UI (sin cambios)
     const differenceColorClass = difference === 0
-        ? 'text-gray-400'
+        ? 'text-pr-gray'
         : difference > 0
-            ? 'text-green-500'
-            : 'text-red-500';
+            ? 'text-pr-green'
+            : 'text-pr-red';
 
     // Lógica de UI (sin cambios)
     const differenceIcon = difference === 0
@@ -71,7 +71,7 @@ const CloseCajaSection = ({
     return (
         <div className="bg-pr-dark p-6 rounded-lg shadow-lg mt-6">
             <h2 className="text-xl font-bold text-white mb-4 flex items-center">
-                <FontAwesomeIcon icon={faCashRegister} className="mr-3 text-red-500" />
+                <FontAwesomeIcon icon={faCashRegister} className="mr-3 text-pr-red" />
                 Cierre y Arqueo de Caja
             </h2>
             <div className="space-y-4">
@@ -101,7 +101,7 @@ const CloseCajaSection = ({
                 </div>
 
                 {difference !== 0 && (
-                    <div className="bg-red-900/20 text-red-400 p-3 rounded-lg flex items-center gap-2">
+                    <div className="bg-pr-red/20 text-pr-red p-3 rounded-lg flex items-center gap-2">
                         <FontAwesomeIcon icon={faExclamationTriangle} />
                         <p className="text-sm">¡Advertencia! Hay una diferencia en el arqueo.</p>
                     </div>
@@ -111,7 +111,7 @@ const CloseCajaSection = ({
                     onClick={handleCloseBox}
                     // Usa 'isSubmitting' del prop
                     disabled={isSubmitting || !cajaEstado?.caja_abierta}
-                    className="w-full bg-red-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-pr-red text-white font-bold py-3 px-4 rounded-lg hover:bg-opacity-80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     {isSubmitting ? ( // Usa 'isSubmitting' del prop
                         <>

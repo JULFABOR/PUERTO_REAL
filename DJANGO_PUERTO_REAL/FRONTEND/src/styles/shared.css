@@ -13,14 +13,14 @@
   }
 
   .btn-primary {
-    @apply text-pr-dark bg-pr-yellow font-bold rounded-lg px-5 py-3 text-sm flex items-center justify-center gap-2 transition-colors;
+    @apply text-pr-dark bg-pr-yellow hover:bg-pr-yellow-dark font-bold rounded-lg px-5 py-3 text-sm flex items-center justify-center gap-2 transition-colors;
   }
 
   .btn-primary-lg {
-    @apply text-pr-dark bg-pr-yellow font-bold rounded-lg px-6 py-4 text-lg flex items-center justify-center gap-2 transition-colors;
+    @apply text-pr-dark bg-pr-yellow hover:bg-pr-yellow-dark font-bold rounded-lg px-6 py-4 text-lg flex items-center justify-center gap-2 transition-colors;
   }
 
   .btn-secondary {
-    @apply text-white bg-gray-600 hover:bg-gray-700 font-bold rounded-lg px-5 py-3 text-sm transition-colors;
+    @apply text-white bg-pr-gray hover:bg-pr-dark-gray font-bold rounded-lg px-5 py-3 text-sm transition-colors;
   }
 }

@@ -131,7 +131,7 @@ const Clientes = () => {
     
     if (error) {
         return (
-            <div className="text-center text-red-400 p-10 bg-pr-dark rounded-lg border border-red-900">
+            <div className="text-center text-pr-red p-10 bg-pr-dark rounded-lg border border-pr-red">
                 <FontAwesomeIcon icon={faExclamationTriangle} size="3x" className="mb-4" />
                 <h3 className="text-xl font-bold">Error al cargar datos</h3>
                 <p>{error}</p>
@@ -159,7 +159,7 @@ const Clientes = () => {
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full bg-pr-dark-gray border border-gray-700 rounded-lg py-3 px-4 pl-10 text-white focus:ring-pr-yellow focus:border-pr-yellow"
                     />
-                    <FontAwesomeIcon icon={faSearch} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
+                    <FontAwesomeIcon icon={faSearch} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-pr-gray" />
                 </div>
             </div>
 
@@ -181,7 +181,7 @@ const Clientes = () => {
                             <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-700">
                                 <div>
                                     <span className="text-3xl font-bold text-pr-yellow">{client.puntos || 0}</span>
-                                    <span className="ml-2 text-gray-400">puntos</span>
+                                    <span className="ml-2 text-pr-gray">puntos</span>
                                 </div>
                                 <div className="flex gap-2">
                                     <button 
@@ -192,7 +192,7 @@ const Clientes = () => {
                                     </button>
                                     <button 
                                         onClick={() => handleDeleteClick(client)}
-                                        className="text-sm text-red-500 border border-red-500 rounded-md px-4 py-1.5 font-semibold hover:bg-red-500 hover:text-pr-dark transition-colors"
+                                        className="text-sm text-pr-red border border-pr-red rounded-md px-4 py-1.5 font-semibold hover:bg-pr-red hover:text-pr-dark transition-colors"
                                     >
                                         <FontAwesomeIcon icon={faTrash} />
                                     </button>
@@ -201,8 +201,8 @@ const Clientes = () => {
                         </SectionCard>
                     ))
                 ) : (
-                    <div className="text-center text-gray-400 py-10 bg-pr-dark rounded-lg border border-gray-700 col-span-full">
-                        <FontAwesomeIcon icon={faUsersSlash} size="3x" className="mb-4 text-gray-600" />
+                    <div className="text-center text-pr-gray py-10 bg-pr-dark rounded-lg border border-gray-700 col-span-full">
+                        <FontAwesomeIcon icon={faUsersSlash} size="3x" className="mb-4 text-pr-gray" />
                         <h3 className="text-xl font-bold text-white">No se encontraron clientes</h3>
                         <p>Intenta ajustar tu búsqueda o crea un nuevo cliente.</p>
                     </div>

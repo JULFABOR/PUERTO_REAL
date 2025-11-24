@@ -3,7 +3,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
     faBars, faTimes, faCashRegister, faBoxesStacked, faBookOpen, 
-    faUsers, faTruckField, faMoneyBillWave, faSignOutAlt 
+    faUsers, faTruckField, faMoneyBillWave, faSignOutAlt, faSpinner
 } from '@fortawesome/free-solid-svg-icons';
 import { initFlowbite } from 'flowbite';
 import { useAuth } from '@/hooks/useAuth';
@@ -15,7 +15,7 @@ const SidebarLink = ({ to, icon, children }) => (
         <NavLink
             to={to}
             className={({ isActive }) =>
-                `flex items-center gap-4 p-3 rounded-lg transition-colors text-gray-300 hover:bg-pr-gray hover:text-white ${
+                `flex items-center gap-4 p-3 rounded-lg transition-colors text-pr-gray hover:bg-pr-gray hover:text-white ${
                     isActive ? 'bg-pr-yellow text-pr-dark shadow-md' : ''
                 }`
             }
@@ -48,14 +48,17 @@ const EmpleadoLayout = () => {
     if (loading) {
         return (
             <div className="min-h-screen bg-pr-dark-gray flex items-center justify-center">
-                 <p className="text-gray-300">Cargando sistema...</p>
+                <div className="text-center">
+                    <FontAwesomeIcon icon={faSpinner} spin className="text-pr-yellow text-4xl mb-4" />
+                    <p className="text-pr-gray">Cargando sistema...</p>
+                </div>
             </div>
         );
     }
 
 
     return (
-        <div className="min-h-screen bg-pr-dark-gray font-sans text-gray-300">
+        <div className="min-h-screen bg-pr-dark-gray font-sans text-pr-gray">
             {/* --- Sidebar --- */}
             <aside 
                 className={`bg-pr-dark fixed top-0 left-0 z-40 w-64 h-screen p-6 flex flex-col transition-transform duration-300 ease-in-out md:translate-x-0 ${
@@ -73,7 +76,7 @@ const EmpleadoLayout = () => {
                 {/* Navegación */}
                 <nav className="flex-grow space-y-6 overflow-y-auto">
                     <div>
-                        <h3 className="font-semibold text-gray-400 text-sm mb-3 px-3">MENÚ</h3>
+                        <h3 className="font-semibold text-pr-gray text-sm mb-3 px-3">MENÚ</h3>
                         <ul className="space-y-2">
                             <SidebarLink to="/empleado/pos" icon={faCashRegister}>Ventas (POS)</SidebarLink>
                             <SidebarLink to="/empleado/control-stock" icon={faBoxesStacked}>Control Stock</SidebarLink>
@@ -110,7 +113,7 @@ const EmpleadoLayout = () => {
                 <header className="bg-pr-dark-gray/80 backdrop-blur-sm sticky top-0 z-20 flex items-center justify-between p-4 border-b border-pr-gray/20">
                     <button 
                         onClick={() => setSidebarOpen(!isSidebarOpen)} 
-                        className="p-2 text-gray-400 rounded-lg md:hidden hover:bg-pr-gray focus:outline-none"
+                        className="p-2 text-pr-gray rounded-lg md:hidden hover:bg-pr-gray focus:outline-none"
                     >
                         <FontAwesomeIcon icon={isSidebarOpen ? faTimes : faBars} className="text-xl" />
                     </button>
@@ -123,17 +126,17 @@ const EmpleadoLayout = () => {
                             <img className="w-9 h-9 rounded-full object-cover" src="https://placehold.co/40x40/FFC700/121212?text=E" alt="foto de usuario" />
                             <div className="hidden md:flex flex-col items-start">
                                 <span className="font-medium text-white">{user?.username || 'Usuario'}</span>
-                                <span className="text-xs text-gray-400">{user?.rol || 'Empleado'}</span>
+                                <span className="text-xs text-pr-gray">{user?.rol || 'Empleado'}</span>
                             </div>
                         </button>
                         <div className="z-50 hidden my-4 text-base list-none bg-pr-dark divide-y divide-gray-600 rounded-lg shadow" id="user-dropdown">
                             <div className="px-4 py-3">
                                 <span className="block text-sm text-white">{user?.username || 'Usuario'}</span>
-                                <span className="block text-sm text-gray-400 truncate">{user?.email || 'email@ejemplo.com'}</span>
+                                <span className="block text-sm text-pr-gray truncate">{user?.email || 'email@ejemplo.com'}</span>
                             </div>
                             <ul className="py-1" aria-labelledby="user-menu-button">
                                 <li>
-                                    <button onClick={logout} className="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-pr-gray hover:text-red-300 md:hidden">
+                                    <button onClick={logout} className="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 md:hidden">
                                         Cerrar Sesión
                                     </button>
                                 </li>

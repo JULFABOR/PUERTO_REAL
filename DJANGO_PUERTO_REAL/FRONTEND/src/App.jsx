@@ -14,6 +14,7 @@ import ClienteLayout from './components/cliente/ClienteLayout';
 
 // Page Components
 import ClienteHome from './pages/cliente/ClienteHome';
+import PromocionesPage from './pages/promociones/PromocionesPage'; // <--- AGREGADO
 import EmpleadoHome from './pages/empleado/EmpleadoHome';
 import VentasPOS from './pages/empleado/pos/VentasPOS';
 import EmpleadoControlStock from './pages/empleado/control-stock/EmpleadoControlStock';
@@ -107,6 +108,7 @@ function App() {
           <Route index element={<Navigate to="home" replace />} />
           
           <Route path="home" element={<ClienteHome />} />
+          <Route path="promociones" element={<PromocionesPage />} />
         </Route>
 
         {/* Catch all - Opcional: Para rutas no encontradas */}

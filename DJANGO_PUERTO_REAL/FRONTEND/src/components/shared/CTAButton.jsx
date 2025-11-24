@@ -2,16 +2,19 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 
 const CTAButton = ({ to, onClick, children, className = '', type = 'button' }) => {
-    const base = `inline-block font-bold py-2 px-4 rounded-lg transition-colors ${className}`;
+    // Combine the base button style with any additional classes passed in.
+    const combinedClassName = `btn-primary ${className}`.trim();
+
     if (to) {
         return (
-            <Link to={to} className={`${base} bg-pr-dark-gray text-white hover:bg-pr-yellow hover:text-pr-dark text-center`}>
+            <Link to={to} className={combinedClassName}>
                 {children}
             </Link>
         );
     }
+
     return (
-        <button type={type} onClick={onClick} className={`${base} bg-pr-dark-gray text-white hover:bg-pr-yellow hover:text-pr-dark`}>
+        <button type={type} onClick={onClick} className={combinedClassName}>
             {children}
         </button>
     );

@@ -12,13 +12,15 @@ export default {
     extend: {
       colors: {
         'pr-yellow': '#FFC700',
+        'pr-yellow-dark': '#EAB308',
         'pr-dark': '#121212',
         'pr-dark-gray': '#1F2937',
-        'pr-gray': '#6B7280',
+        'pr-gray': '#D1D5DB',
         'pr-green': '#10B981',
         'pr-red': '#EF4444',
         'pr-blue': '#3B82F6',
         'pr-orange': '#F97316',
+        'pr-purple': '#8B5CF6',
       },
       fontFamily: {
         'sans': ['Poppins', 'sans-serif'],

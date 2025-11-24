@@ -23,8 +23,8 @@ const getTipoColorClass = (tipoNombre) => {
     const positiveTypes = [
         'APERTURA', 'INGRESO_MANUAL', 'TRANSFERENCIA_DESDE_FONDO', 'VENTA_EFECTIVO'
     ];
-    if (!tipoNombre) return 'text-gray-400';
-    return positiveTypes.includes(tipoNombre) ? 'text-green-500' : 'text-red-500';
+    if (!tipoNombre) return 'text-pr-gray';
+    return positiveTypes.includes(tipoNombre) ? 'text-pr-green' : 'text-pr-red';
 };
 
 const formatTime = (dateStr) => {
@@ -157,7 +157,7 @@ const Caja = () => {
         <div>
             <h1 className="text-3xl font-bold text-white mb-6">Control de Caja</h1>
 
-            {cashStatus.error && <p className="text-center text-red-500 bg-red-900/20 p-3 rounded-lg mb-4">Error: {cashStatus.error}</p>}
+            {cashStatus.error && <p className="text-center text-pr-red bg-pr-red/20 p-3 rounded-lg mb-4">Error: {cashStatus.error}</p>}
 
             {/* --- DIV PRINCIPAL MODIFICADO --- */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -175,12 +175,12 @@ const Caja = () => {
                             {cashStatus.isOpen ? (
                                 // --- VISTA: CAJA ABIERTA ---
                                 <div className="space-y-4">
-                                    <p className="text-green-400 font-bold text-lg">Caja Abierta</p>
+                                    <p className="text-pr-green font-bold text-lg">Caja Abierta</p>
                                     <div className="grid grid-cols-1 gap-4">
-                                        <StatsCard title="Saldo Teórico Total" value={cashStatus.data?.monto_teorico_caja} icon={faDollarSign} colorClass="text-green-500" />
-                                        <StatsCard title="Monto Inicial" value={cashStatus.data?.monto_inicial} icon={faDollarSign} colorClass="text-gray-400" />
-                                        <StatsCard title="Total Ventas (Efectivo)" value={cashStatus.data?.total_ventas_efectivo} icon={faArrowUp} colorClass="text-blue-500" />
-                                        <StatsCard title="Total Egresos" value={cashStatus.data?.total_egresos} icon={faArrowDown} colorClass="text-red-500" />
+                                        <StatsCard title="Saldo Teórico Total" value={cashStatus.data?.monto_teorico_caja} icon={faDollarSign} colorClass="text-pr-green" />
+                                        <StatsCard title="Monto Inicial" value={cashStatus.data?.monto_inicial} icon={faDollarSign} colorClass="text-pr-gray" />
+                                        <StatsCard title="Total Ventas (Efectivo)" value={cashStatus.data?.total_ventas_efectivo} icon={faArrowUp} colorClass="text-pr-blue" />
+                                        <StatsCard title="Total Egresos" value={cashStatus.data?.total_egresos} icon={faArrowDown} colorClass="text-pr-red" />
                                     </div>
                                     <div className="text-sm text-pr-gray pt-4 space-y-1 border-t border-gray-700">
                                         <p>Abierta por: {getNombreEmpleado(cashStatus.data?.empleado_apertura)}</p>
@@ -191,10 +191,10 @@ const Caja = () => {
                                         </p>
                                     </div>
                                     <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-700">
-                                        <button onClick={() => handleMovimientoClick('INGRESO')} className="bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition-colors">
+                                        <button onClick={() => handleMovimientoClick('INGRESO')} className="bg-pr-green text-white font-bold py-3 px-4 rounded-lg hover:bg-opacity-80 transition-colors">
                                             Registrar Ingreso
                                         </button>
-                                        <button onClick={() => handleMovimientoClick('EGRESO')} className="bg-orange-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-orange-700 transition-colors">
+                                        <button onClick={() => handleMovimientoClick('EGRESO')} className="bg-pr-orange text-white font-bold py-3 px-4 rounded-lg hover:bg-opacity-80 transition-colors">
                                             Registrar Egreso
                                         </button>
                                     </div>
@@ -202,7 +202,7 @@ const Caja = () => {
                             ) : (
                                 // --- VISTA: CAJA CERRADA ---
                                 <div className="space-y-4">
-                                    <p className="text-red-500 font-bold text-lg">Caja Cerrada</p>
+                                    <p className="text-pr-red font-bold text-lg">Caja Cerrada</p>
                                     <FormInput
                                         name="initial_balance_empleado" label="Monto Inicial en Efectivo"
                                         type="number" step="0.01" min="0" value={montoInicial}
@@ -249,10 +249,10 @@ const Caja = () => {
                             <>
                                 {summary ? (
                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                                        <StatsCard title="Apertura" value={summary.apertura} icon={faDollarSign} colorClass="text-gray-400" />
-                                        <StatsCard title="Ventas Efectivo" value={summary.ventas} icon={faArrowUp} colorClass="text-blue-500" />
-                                        <StatsCard title="Ingresos Man." value={summary.ingresos} icon={faArrowUp} colorClass="text-green-500" />
-                                        <StatsCard title="Egresos Man." value={summary.egresos} icon={faArrowDown} colorClass="text-red-500" />
+                                        <StatsCard title="Apertura" value={summary.apertura} icon={faDollarSign} colorClass="text-pr-gray" />
+                                        <StatsCard title="Ventas Efectivo" value={summary.ventas} icon={faArrowUp} colorClass="text-pr-blue" />
+                                        <StatsCard title="Ingresos Man." value={summary.ingresos} icon={faArrowUp} colorClass="text-pr-green" />
+                                        <StatsCard title="Egresos Man." value={summary.egresos} icon={faArrowDown} colorClass="text-pr-red" />
                                     </div>
                                 ) : (!loadingMovements && <p className="text-center text-gray-500 mb-4">No hay datos de resumen para esta fecha.</p>)}
 

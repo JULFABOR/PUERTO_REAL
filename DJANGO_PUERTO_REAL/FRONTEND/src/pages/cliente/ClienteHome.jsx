@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBeer, faAddressBook, faPercent, faWineBottle, faGift, faBoxOpen, faCoins, faLightbulb } from '@fortawesome/free-solid-svg-icons';
+import { faBeer, faAddressBook, faPercent, faWineBottle, faGift, faBoxOpen, faCoins, faLightbulb, faSpinner } from '@fortawesome/free-solid-svg-icons';
 import { useAuth } from '@/hooks/useAuth';
 import apiClient from '@/api/apiClient';
 import { toast } from 'react-hot-toast';
@@ -178,10 +178,12 @@ const ClienteHome = () => {
 
     return (
         <>
-            <h1 className="text-3xl font-bold text-white mb-6">Bienvenido, {user?.username || 'Cliente'}!</h1>
+            <h1 className="text-3xl font-bold text-white mb-6">Bienvenido, {user?.first_name || user?.username || 'Cliente'}!</h1>
 
             {loading ? (
-                <p className="text-pr-gray">Cargando promociones...</p>
+                <div className="flex justify-center items-center h-48">
+                    <FontAwesomeIcon icon={faSpinner} spin size="3x" className="text-pr-yellow" />
+                </div>
             ) : (
                 <>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -212,23 +214,22 @@ const ClienteHome = () => {
                                     return (
                                         <PromoCard
                                             key={promoId || Math.random()}
+                                            promotion={p} // Pass the entire promotion object
                                             icon={<FontAwesomeIcon icon={faPercent} className="text-pr-yellow text-5xl" />}
                                             title={title}
                                             description={description}
                                             points={puntosReq ? `${puntosReq} Puntos` : undefined}
                                             ctaText={ctaText}
-                                            onClick={() => puntosReq && !isRedeeming && !isRedeemed ? openConfirm(p) : null}
+                                            onClick={puntosReq ? () => openConfirm(p) : undefined}
+                                            to={puntosReq ? undefined : `/promociones/${promoId}`} // Explicitly set to undefined if pointsReq, otherwise provide a link
                                             disabled={isRedeeming || isRedeemed}
                                         />
                                     );
                                 })
                             ) : (
-                                // Fallback: mostrar cards estáticas si no hay promos
-                                <>
-                                    <PromoCard icon={<FontAwesomeIcon icon={faPercent} className="text-pr-yellow text-5xl" />} title="Promoción Especial 1" description="Detalles de la promoción disponibles pronto." points="XXX Puntos" />
-                                    <PromoCard icon={<FontAwesomeIcon icon={faWineBottle} className="text-pr-yellow text-5xl" />} title="Promoción Especial 2" description="Más detalles de la promoción aquí." points="XXX Puntos" />
-                                    <PromoCard icon={<FontAwesomeIcon icon={faGift} className="text-pr-yellow text-5xl" />} title="Promoción Especial 3" description="Condiciones de la promoción a definir." points="XXX Puntos" />
-                                </>
+                                <p className="text-pr-gray text-center col-span-full">
+                                    No hay promociones disponibles en este momento. ¡Vuelve pronto para descubrir nuevas ofertas!
+                                </p>
                             )}
                         </div>
                     </div>
@@ -238,9 +239,9 @@ const ClienteHome = () => {
                         <h2 className="text-2xl font-bold text-white mb-6">Acceso Rápido</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
-                            <PromoCard icon={<FontAwesomeIcon icon={faBoxOpen} className="text-pr-yellow text-5xl" />} title="Pedidos Recientes" description="Consulta el estado de tus últimos pedidos." ctaText="Ver Pedidos" />
-                            <PromoCard icon={<FontAwesomeIcon icon={faCoins} className="text-pr-yellow text-5xl" />} title="Puntos de Lealtad" description={`Saldo: ${points != null ? `${points} pts` : '--'}`} ctaText="Mis Puntos" />
-                            <PromoCard icon={<FontAwesomeIcon icon={faLightbulb} className="text-pr-yellow text-5xl" />} title="Productos Recomendados" description="Descubre productos basados en tus preferencias." ctaText="Ver Recomendaciones" />
+                            <PromoCard to="/cliente/pedidos" icon={<FontAwesomeIcon icon={faBoxOpen} className="text-pr-yellow text-5xl" />} title="Pedidos Recientes" description="Consulta el estado de tus últimos pedidos." ctaText="Ver Pedidos" />
+                            <PromoCard to="/cliente/puntos" icon={<FontAwesomeIcon icon={faCoins} className="text-pr-yellow text-5xl" />} title="Puntos de Lealtad" description={`Saldo: ${points != null ? `${points} pts` : '--'}`} ctaText="Mis Puntos" />
+                            <PromoCard to="/cliente/recomendaciones" icon={<FontAwesomeIcon icon={faLightbulb} className="text-pr-yellow text-5xl" />} title="Productos Recomendados" description="Descubre productos basados en tus preferencias." ctaText="Ver Recomendaciones" />
 
                         </div>
                     </div>

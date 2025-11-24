@@ -102,12 +102,12 @@ const ResetPasswordPage = () => {
                         </div>
 
                         {error && (
-                            <div className="text-sm text-red-500 text-center">
+                            <div className="text-sm text-pr-red text-center">
                                 {error}
                             </div>
                         )}
                         {message && (
-                            <div className="text-sm text-green-500 text-center">
+                            <div className="text-sm text-pr-green text-center">
                                 {message}
                             </div>
                         )}
@@ -115,7 +115,7 @@ const ResetPasswordPage = () => {
                         <button 
                             type="submit" 
                             disabled={isSubmitting} // <-- Añadido
-                            className="btn-primary w-full hover:bg-yellow-400 focus:ring-4 focus:outline-none focus:ring-yellow-300 transition duration-300 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed"
+                            className="btn-primary w-full transition duration-300 disabled:opacity-60 disabled:cursor-not-allowed"
                         >
                             {isSubmitting ? (
                                 <FontAwesomeIcon icon={faSpinner} className="animate-spin" />
