@@ -1,12 +1,13 @@
-import { Link } from 'react-router-dom'; 
+import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '@/hooks/useAuth';
 import StatCard from '@/components/jefe/StatCard.jsx';
-import { 
+import { SectionCard } from '@/components/Empleado';
+import JefeHeader from '@/components/jefe/JefeHeader';import { 
     faBoxOpen, faPlusCircle, faAddressBook, faMoneyBillWave, faChartBar,
-    faCog, faTruck, faUsers, faDollarSign, faTimes
+    faCog, faTruck, faUsers, faDollarSign
 } from '@fortawesome/free-solid-svg-icons';
 
 const JefeHome = () => {
@@ -18,7 +19,7 @@ const JefeHome = () => {
     });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [isWelcomeVisible, setWelcomeVisible] = useState(true);
+
 
     useEffect(() => {
         const fetchStats = async () => {
@@ -36,36 +37,11 @@ const JefeHome = () => {
         fetchStats();
     }, []);
 
-    // Componente interno para las tarjetas de acción para no repetir código
-    const ActionCard = ({ to, icon, title, description }) => (
-        <Link 
-            to={to} 
-            className="group bg-pr-dark rounded-xl p-6 flex flex-col items-center text-center transition duration-300 ease-in-out transform hover:-translate-y-1 hover:shadow-lg hover:shadow-pr-yellow/20"
-        >
-            <div className="bg-pr-dark-gray p-4 rounded-full mb-4">
-                <FontAwesomeIcon icon={icon} className="text-pr-yellow text-3xl" />
-            </div>
-            <h3 className="text-white font-bold text-lg mb-2">{title}</h3>
-            <p className="text-gray-400 text-sm">{description}</p>
-        </Link>
-    );
+
 
     return (
         <div className="space-y-10">
-            {/* Banner de Bienvenida Descartable */}
-            {isWelcomeVisible && (
-                <div className="relative bg-pr-dark border border-pr-gray/50 rounded-lg p-6 flex items-center">
-                    <div className="flex-grow">
-                        <h1 className="text-2xl font-bold text-white">
-                            Bienvenido de nuevo, <span className="text-pr-yellow">{user?.first_name || user?.username || 'Jefe'}</span>
-                        </h1>
-                        <p className="text-gray-400 mt-1">Aquí tienes un resumen de la actividad de tu negocio.</p>
-                    </div>
-                    <button onClick={() => setWelcomeVisible(false)} className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors">
-                        <FontAwesomeIcon icon={faTimes} />
-                    </button>
-                </div>
-            )}
+            <JefeHeader user={user} />
 
             {/* Sección de Estadísticas Dinámicas */}
             <div>
@@ -109,47 +85,54 @@ const JefeHome = () => {
             <div>
                 <h2 className="text-2xl font-bold text-white mb-6">Accesos Rápidos</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    <ActionCard 
-                        to="/jefe/control-stock" 
-                        icon={faBoxOpen} 
+                    <SectionCard
+                        to="/jefe/control-stock"
+                        icon={<FontAwesomeIcon icon={faBoxOpen} className="text-pr-yellow text-3xl" />}
                         title="Control Stock"
                         description="Consulta el stock actual de todos tus productos."
+                        iconWrapperClasses="bg-pr-dark-gray p-4 rounded-full mb-4"
                     />
-                    <ActionCard 
-                        to="/jefe/stock" 
-                        icon={faPlusCircle} 
+                    <SectionCard
+                        to="/jefe/stock"
+                        icon={<FontAwesomeIcon icon={faPlusCircle} className="text-pr-yellow text-3xl" />}
                         title="Gestión de Stock"
                         description="Agrega y edita los productos de tu catálogo."
+                        iconWrapperClasses="bg-pr-dark-gray p-4 rounded-full mb-4"
                     />
-                    <ActionCard 
-                        to="/jefe/customers" 
-                        icon={faAddressBook} 
+                    <SectionCard
+                        to="/jefe/customers"
+                        icon={<FontAwesomeIcon icon={faAddressBook} className="text-pr-yellow text-3xl" />}
                         title="Clientes"
                         description="Administra tu base de datos de clientes."
+                        iconWrapperClasses="bg-pr-dark-gray p-4 rounded-full mb-4"
                     />
-                     <ActionCard 
-                        to="/jefe/suppliers" 
-                        icon={faTruck} 
+                     <SectionCard
+                        to="/jefe/suppliers"
+                        icon={<FontAwesomeIcon icon={faTruck} className="text-pr-yellow text-3xl" />}
                         title="Proveedores"
                         description="Gestiona la información de tus proveedores."
+                        iconWrapperClasses="bg-pr-dark-gray p-4 rounded-full mb-4"
                     />
-                    <ActionCard 
-                        to="/jefe/caja" 
-                        icon={faMoneyBillWave} 
+                    <SectionCard
+                        to="/jefe/caja"
+                        icon={<FontAwesomeIcon icon={faMoneyBillWave} className="text-pr-yellow text-3xl" />}
                         title="Control de Caja"
                         description="Realiza arqueos, aperturas y cierres de caja."
+                        iconWrapperClasses="bg-pr-dark-gray p-4 rounded-full mb-4"
                     />
-                    <ActionCard 
-                        to="/jefe/analysis" 
-                        icon={faChartBar} 
+                    <SectionCard
+                        to="/jefe/analysis"
+                        icon={<FontAwesomeIcon icon={faChartBar} className="text-pr-yellow text-3xl" />}
                         title="Reportes"
                         description="Genera resúmenes de ventas y movimientos."
+                        iconWrapperClasses="bg-pr-dark-gray p-4 rounded-full mb-4"
                     />
-                    <ActionCard 
-                        to="/jefe/settings" 
-                        icon={faCog} 
+                    <SectionCard
+                        to="/jefe/settings"
+                        icon={<FontAwesomeIcon icon={faCog} className="text-pr-yellow text-3xl" />}
                         title="Configuración"
                         description="Ajusta parámetros del sistema y usuarios."
+                        iconWrapperClasses="bg-pr-dark-gray p-4 rounded-full mb-4"
                     />
                 </div>
             </div>

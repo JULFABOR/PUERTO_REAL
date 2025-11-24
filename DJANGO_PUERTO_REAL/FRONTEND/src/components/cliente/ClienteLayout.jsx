@@ -5,6 +5,7 @@ import { faBars, faTimes, faBookOpen, faUser, faSignOutAlt, faSearch } from '@fo
 import { initFlowbite } from 'flowbite';
 import { useAuth } from '@/hooks/useAuth';
 import Footer from '@/components/shared/Footer';
+import { useSearch } from '@/contexts/SearchContext'; // Import useSearch
 
 // Componente reutilizable para los enlaces del Header
 const HeaderLink = ({ to, children }) => (
@@ -26,6 +27,7 @@ const HeaderLink = ({ to, children }) => (
 const ClienteLayout = () => {
     const { user, logout, loading } = useAuth();
     const [isMenuOpen, setMenuOpen] = useState(false);
+    const { searchTerm, handleSearchInputChange, triggerSearchFromInput } = useSearch(); // Use search context
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -38,6 +40,12 @@ const ClienteLayout = () => {
             navigate('/');
         }
     }, [loading, user, navigate]);
+
+    const triggerSearch = (event) => {
+        if (event.key === 'Enter') {
+            triggerSearchFromInput(searchTerm);
+        }
+    };
 
     // Muestra un spinner mientras carga la información del usuario
     if (loading) {
@@ -98,6 +106,9 @@ const ClienteLayout = () => {
                                 id="search-navbar"
                                 className="block w-full p-2 pl-10 text-sm text-white border border-pr-gray rounded-lg bg-pr-dark focus:ring-pr-yellow focus:border-pr-yellow"
                                 placeholder="Buscar productos..."
+                                value={searchTerm}
+                                onChange={handleSearchInputChange}
+                                onKeyPress={triggerSearch}
                             />
                         </div>
                         <ul className="flex flex-col font-medium p-4 md:p-0 mt-4 border border-pr-gray rounded-lg bg-pr-dark md:space-x-8 md:flex-row md:mt-0 md:border-0 md:bg-transparent">

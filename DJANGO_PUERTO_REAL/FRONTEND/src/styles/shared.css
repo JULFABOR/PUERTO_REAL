@@ -5,7 +5,8 @@
   .card-base {
     @apply bg-pr-dark p-6 rounded-lg shadow-lg transition-all duration-300 border border-pr-gray/20 transform will-change-transform;
     /* Micro-interaction: subtle lift and stronger shadow on hover */
-    @apply hover:-translate-y-0.5 hover:shadow-xl;
+    @apply hover:-translate-y-0.5 hover:shadow-xl
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pr-yellow focus-visible:ring-offset-2 focus-visible:ring-offset-pr-dark;
   }
 
   .card-title {

@@ -6,6 +6,7 @@ import ProtectedRoute from './auth/ProtectedRoute';
 import RoleBasedRedirect from './auth/RoleBasedRedirect';
 
 import { CajaProvider } from './contexts/CajaContext';
+import { SearchProvider } from './contexts/SearchContext';
 
 // Layouts
 import EmpleadoLayout from './components/empleado/EmpleadoLayout';
@@ -14,6 +15,8 @@ import ClienteLayout from './components/cliente/ClienteLayout';
 
 // Page Components
 import ClienteHome from './pages/cliente/ClienteHome';
+import ClienteSearchPage from './pages/cliente/ClienteSearchPage';
+import ClienteProductos from './pages/cliente/ClienteProductos';
 import PromocionesPage from './pages/promociones/PromocionesPage'; // <--- AGREGADO
 import EmpleadoHome from './pages/empleado/EmpleadoHome';
 import VentasPOS from './pages/empleado/pos/VentasPOS';
@@ -100,7 +103,9 @@ function App() {
           path="/cliente" 
           element={
             <ProtectedRoute allowedRoles={['CLIENTE']}>
-              <ClienteLayout />
+              <SearchProvider>
+                <ClienteLayout />
+              </SearchProvider>
             </ProtectedRoute>
           }
         >
@@ -108,7 +113,9 @@ function App() {
           <Route index element={<Navigate to="home" replace />} />
           
           <Route path="home" element={<ClienteHome />} />
+          <Route path="productos" element={<ClienteProductos />} />
           <Route path="promociones" element={<PromocionesPage />} />
+          <Route path="search" element={<ClienteSearchPage />} />
         </Route>
 
         {/* Catch all - Opcional: Para rutas no encontradas */}

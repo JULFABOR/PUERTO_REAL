@@ -10,14 +10,22 @@ const SectionCard = ({
     className = '',
     onClick,
     children,
-    ariaLabel
+    ariaLabel,
+    iconWrapperClasses // New prop
 }) => {
     const baseClass = `card-base hover:shadow-pr-yellow/20 ${className}`.trim();
     const label = ariaLabel || title || 'section card';
 
+    const renderIcon = () => {
+        if (icon && iconWrapperClasses) {
+            return <div className={iconWrapperClasses}>{icon}</div>;
+        }
+        return icon;
+    };
+
     const content = (
         <>
-            {icon}
+            {renderIcon()} {/* Use the new renderIcon function */}
             <h3 className="card-title">{title}</h3>
             <p className="text-pr-gray text-sm">{description}</p>
             {children}
@@ -60,4 +68,5 @@ SectionCard.propTypes = {
     onClick: PropTypes.func,
     children: PropTypes.node,
     ariaLabel: PropTypes.string,
+    iconWrapperClasses: PropTypes.string, // New propType
 };
