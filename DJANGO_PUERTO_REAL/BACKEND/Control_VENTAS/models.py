@@ -1,5 +1,6 @@
 from django.db import models
 from decimal import Decimal
+from Abrir_Cerrar_CAJA.models import Metodos_Pago
 
 
 # Create your models here.
@@ -36,14 +37,9 @@ class Detalle_Ventas(models.Model):
     DELETE_Det_Vent = models.BooleanField(default=False)
     def __str__(self):
         return f"{self.producto_det_vent.nombre_producto} x {self.cantidad_det_vent}"
-class Metodos_Pago(models.Model):
-    id_metodo = models.AutoField(primary_key=True)
-    nombre_metodo = models.CharField(max_length=200)
-    DELETE_Met = models.BooleanField(default=False)
-    def __str__(self):
-        return self.nombre_metodo
+
 class Venta_MetodoPago(models.Model):
-    metodopago_vent_metpag = models.ForeignKey(Metodos_Pago, on_delete=models.CASCADE)
+    metodopago_vent_metpag = models.ForeignKey('Abrir_Cerrar_CAJA.Metodos_Pago', on_delete=models.CASCADE)
     venta_vent_metpag = models.ForeignKey(Ventas, on_delete=models.CASCADE)
     DELETE_Vent_MetPag = models.BooleanField(default=False)
     class Meta:
