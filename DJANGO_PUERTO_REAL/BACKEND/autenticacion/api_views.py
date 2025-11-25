@@ -152,6 +152,7 @@ class LogoutView(APIView):
 
 
 class RegisterView(APIView):
+    permission_classes = []
     """
     Registra un nuevo usuario.
     """

@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from .models import Empleados
 from .models import Perfil
+from .models import Clientes # Add this import statement
 from django.contrib.auth import authenticate
 
 
@@ -48,23 +49,43 @@ class UserRegisterSerializer(serializers.ModelSerializer):
     password2 = serializers.CharField(write_only=True, required=True)
     first_name = serializers.CharField(required=True)
     last_name = serializers.CharField(required=True)
+    dni = serializers.CharField(write_only=True, required=True) # Nuevo campo DNI
 
     class Meta:
         model = User
-        fields = ('username', 'password', 'password2', 'email', 'first_name', 'last_name')
+        fields = ('username', 'password', 'password2', 'email', 'first_name', 'last_name', 'dni') # Incluir dni
         extra_kwargs = {
             'email': {'required': True},
-            'username': {'required': False}
+            'username': {'required': True, 'min_length': 5, 'max_length': 20}, # Username ahora es requerido y tiene validaciones
         }
+
+    def validate_dni(self, value):
+        if not value.isdigit() or len(value) != 8:
+            raise serializers.ValidationError("El DNI debe contener exactamente 8 dígitos numéricos.")
+        if Clientes.objects.filter(dni_cliente=value).exists():
+            raise serializers.ValidationError("Ya existe un cliente con este DNI.")
+        return value
+
+    def validate_username(self, value):
+        if User.objects.filter(username=value).exists():
+            raise serializers.ValidationError("Este nombre de usuario ya está en uso.")
+        return value
+
+    def validate_email(self, value):
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("Ya existe un usuario registrado con este correo electrónico.")
+        return value
 
     def validate(self, attrs):
         if attrs['password'] != attrs['password2']:
             raise serializers.ValidationError({"password": "Las contraseñas no coinciden."})
-        attrs['username'] = attrs['email']
+        # Eliminamos la línea que asignaba username = email
         return attrs
 
     def create(self, validated_data):
         validated_data.pop('password2')
+        dni_cliente = validated_data.pop('dni') # Extraer DNI antes de crear el User
+
         user = User.objects.create_user(
             username=validated_data['username'],
             email=validated_data['email'],
@@ -72,6 +93,14 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             last_name=validated_data['last_name'],
             password=validated_data['password']
         )
+        
+        # Crear una instancia de Clientes y asociarla al usuario
+        Clientes.objects.create(
+            user_cliente=user,
+            dni_cliente=dni_cliente,
+            telefono_cliente="" # Puedes dejarlo vacío o establecer un valor por defecto si es opcional
+        )
+        
         return user
 
 # --- Serializers para obtener datos del usuario ---
@@ -89,16 +118,25 @@ class PerfilSerializer(serializers.ModelSerializer):
 class UserDataSerializer(serializers.ModelSerializer):
 
     perfil = PerfilSerializer(read_only=True)
-
     empleado = EmpleadoDetailsSerializer(read_only=True)
-
-
+    dni = serializers.SerializerMethodField() # Campo para DNI
 
     class Meta:
-
         model = User
+        fields = ('id', 'username', 'first_name', 'last_name', 'email', 'is_active', 'perfil', 'empleado', 'dni')
 
-        fields = ('id', 'username', 'first_name', 'last_name', 'email', 'is_active', 'perfil', 'empleado')
+    def get_dni(self, obj):
+        # Intenta obtener el DNI del cliente si el perfil es CLIENTE
+        try:
+            if obj.perfil.rol == 'CLIENTE':
+                return obj.cliente.dni_cliente
+            elif obj.perfil.rol == 'EMPLEADO':
+                return obj.empleado.dni_empleado
+        except Clientes.DoesNotExist:
+            pass
+        except Empleados.DoesNotExist:
+            pass
+        return None
 
 
 

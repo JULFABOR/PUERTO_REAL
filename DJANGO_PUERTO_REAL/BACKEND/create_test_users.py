@@ -23,7 +23,13 @@ def crear_usuario_con_rol(username, password, email, rol, first_name="", last_na
         return user, False
 
     # 1. Crear el usuario base
-    user = User.objects.create_user(username=username, password=password, email=email, first_name=first_name, last_name=last_name)
+    is_staff_status = False
+    if rol == Perfil.Rol.JEFE:
+        is_staff_status = True
+        print(f"   -> Usuario '{username}' será marcado como STAFF.")
+
+    user = User.objects.create_user(username=username, password=password, email=email, first_name=first_name, 
+                                     last_name=last_name, is_staff=is_staff_status)
     print(f"✅ Usuario '{username}' creado.")
 
     # 2. El perfil se crea automáticamente por la señal, ahora se actualiza el rol.

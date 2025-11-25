@@ -1,7 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import IsAdminUser
+from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from .models import ConfiguracionTienda, ConfiguracionPuntos
 from .serializers import ConfiguracionTiendaSerializer, ConfiguracionPuntosSerializer
 
@@ -10,7 +10,10 @@ class ConfiguracionTiendaView(APIView):
     Vista para obtener y actualizar la configuración de la tienda.
     Utiliza un patrón singleton para asegurar una única instancia de configuración.
     """
-    permission_classes = [IsAdminUser]
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [IsAuthenticated()]
+        return [IsAdminUser()]
 
     def get(self, request, *args, **kwargs):
         """
@@ -35,7 +38,10 @@ class ConfiguracionPuntosView(APIView):
     """
     Vista para obtener y actualizar la configuración de puntos de fidelidad.
     """
-    permission_classes = [IsAdminUser]
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [IsAuthenticated()]
+        return [IsAdminUser()]
 
     def get(self, request, *args, **kwargs):
         config, created = ConfiguracionPuntos.objects.get_or_create(pk=1)
