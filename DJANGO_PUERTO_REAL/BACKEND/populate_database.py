@@ -20,7 +20,7 @@ django.setup()
 
 # --- IMPORTACIONES DE MODELOS Y FAKER ---
 from faker import Faker
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
 from Control_STOCK.models import Categorias_Productos, Productos, Stocks
 from autenticacion.models import Clientes, Empleados, Provincias, Ciudades, Barrios, Calles, Direcciones, Telefonos_Usuarios
 from Control_VENTAS.models import Ventas, Detalle_Ventas, Venta_MetodoPago
@@ -31,7 +31,7 @@ from Control_COMPRAS.models import Proveedores, Compras, Detalle_Compras
 # --- CONFIGURACIÓN INICIAL ---
 fake = Faker('es_AR')
 
-# --- DATOS PERSONALIZADOS PARA VINERÍA/DRUGSTORE ---
+# --- DATOS ESTRUCTURADOS ---
 
 PRODUCTOS_POR_CATEGORIA = {
     'Vinos Tintos': ['Malbec Reserva', 'Cabernet Sauvignon', 'Merlot Clásico', 'Syrah Roble', 'Pinot Noir Patagonia'],
@@ -44,97 +44,129 @@ PRODUCTOS_POR_CATEGORIA = {
     'Cigarrillos y Tabaco': ['Marlboro Box 20', 'Camel Común', 'Tabaco para armar 50g', 'Papelillos OCB', 'Filtros x100'],
 }
 
+DATOS_ESENCIALES = {
+    'grupos': ['Administrador', 'Vendedor', 'Cajero'],
+    'tipos_estados': [
+        'ESTADO_CAJA', 'ESTADO_COMPRA', 'ESTADO_VENTA', 'ESTADO_STOCK',
+        'ESTADO_FINANCIERO', 'ESTADO_CLIENTE', 'ESTADO_PRODUCTO',
+        'ESTADO_PROVEEDOR', 'ESTADO_PROMOCION_CLIENTE', 'ESTADO_GENERAL'
+    ],
+    'estados': {
+        'ESTADO_CAJA': ['ABIERTA', 'CERRADA'],
+        'ESTADO_COMPRA': ['PENDIENTE', 'RECIBIDA', 'CANCELADA'],
+        'ESTADO_VENTA': ['EN PROCESO', 'FINALIZADA', 'ANULADA'],
+        'ESTADO_STOCK': ['DISPONIBLE', 'BAJO STOCK', 'SIN STOCK'],
+        'ESTADO_PRODUCTO': ['ACTIVO', 'INACTIVO'],
+        'ESTADO_PROVEEDOR': ['ACTIVO', 'INACTIVO'],
+        'ESTADO_PROMOCION_CLIENTE': ['DISPONIBLE', 'CANJEADA', 'VENCIDA'],
+        'ESTADO_GENERAL': ['OK', 'ERROR', 'ADVERTENCIA'],
+    },
+    'tipos_movimientos': [
+        'APERTURA DE CAJA', 'CIERRE DE CAJA', 'INGRESO POR VENTA', 'INGRESO MANUAL',
+        'EGRESO POR COMPRA', 'EGRESO MANUAL', 'TRANSFERENCIA A FONDO', 'RETIRO DE FONDO',
+        'CARGA INICIAL', 'ENTRADA POR COMPRA', 'AJUSTE DE STOCK',
+    ],
+    'tipos_eventos': ['APERTURA', 'CIERRE', 'INGRESO', 'EGRESO', 'MOVIMIENTO', 'VENTA'],
+    'metodos_pago': [
+        'EFECTIVO', 'TARJETA DE DEBITO', 'TARJETA DE CREDITO',
+        'TRANSFERENCIA BANCARIA', 'MERCADO PAGO'
+    ]
+}
+
 # --- FUNCIONES DE CREACIÓN ---
 
+def crear_datos_esenciales_sistema():
+    """Crea todos los datos maestros y de configuración inicial necesarios."""
+    print('\n--- Creando Datos Esenciales del Sistema ---')
+    
+    # Crear Grupos de Usuarios
+    for nombre_grupo in DATOS_ESENCIALES['grupos']:
+        Group.objects.get_or_create(name=nombre_grupo)
+
+    # Crear Tipos de Estados
+    for nombre_tipo_estado in DATOS_ESENCIALES['tipos_estados']:
+        Tipos_Estados.objects.get_or_create(nombre_tipo_estado=nombre_tipo_estado)
+
+    # Crear Estados
+    for nombre_tipo, nombres_estados in DATOS_ESENCIALES['estados'].items():
+        tipo_estado = Tipos_Estados.objects.get(nombre_tipo_estado=nombre_tipo)
+        for nombre_estado in nombres_estados:
+            Estados.objects.get_or_create(nombre_estado=nombre_estado, tipo_estado=tipo_estado)
+            
+    # Crear Tipos de Movimientos
+    for nombre_mov in DATOS_ESENCIALES['tipos_movimientos']:
+        Tipos_Movimientos.objects.get_or_create(nombre_movimiento=nombre_mov)
+
+    # Crear Tipos de Eventos de Caja
+    for nombre_evento in DATOS_ESENCIALES['tipos_eventos']:
+        Tipo_Evento.objects.get_or_create(nombre_evento=nombre_evento)
+
+    # Crear Métodos de Pago
+    for nombre_metodo in DATOS_ESENCIALES['metodos_pago']:
+        Metodos_Pago.objects.get_or_create(nombre_metodo=nombre_metodo)
+
+    # Cargar/crear singletons de configuración
+    ConfiguracionTienda.load()
+    ConfiguracionPuntos.load()
+    print('✅ Datos esenciales del sistema creados/verificados.')
+
+
 def obtener_recursos_esenciales():
-    """Asegura que existan los estados y cajas necesarios para las ventas."""
-    print('\n--- Verificando recursos esenciales (Caja, Estados, Empleado) ---')
+    """Asegura que existan un empleado admin y una caja abierta, y retorna recursos clave."""
+    print('\n--- Verificando recursos transaccionales (Caja, Empleado) ---')
     
-    # Estado de producto 'ACTIVO'
-    tipo_estado_producto, _ = Tipos_Estados.objects.get_or_create(nombre_tipo_estado='PRODUCTO')
-    estado_activo, created = Estados.objects.get_or_create(
-        nombre_estado='ACTIVO',
-        defaults={'tipo_estado': tipo_estado_producto}
+    # Empleado por defecto para transacciones
+    admin_user, created = User.objects.get_or_create(
+        username='admin',
+        defaults={
+            'first_name': 'Admin', 'last_name': 'Principal', 'email': 'admin@puertoreal.com',
+            'is_staff': True, 'is_active': True, 'is_superuser': True,
+        }
     )
-    if created: print('✅ Estado \'ACTIVO\' para productos creado.')
-    else: print('ℹ️ Estado \'ACTIVO\' ya existe.')
+    if created:
+        admin_user.set_password('admin123')
+        admin_user.save()
+        print('✅ Superusuario \'admin\' creado con contraseña \'admin123\'.')
+    
+    try:
+        admin_group = Group.objects.get(name='Administrador')
+        admin_user.groups.add(admin_group)
+    except Group.DoesNotExist:
+        print('⚠️ No se encontró el grupo "Administrador". El usuario no fue asignado.')
 
-    # Estado de venta 'COMPLETADA'
-    tipo_estado_venta, _ = Tipos_Estados.objects.get_or_create(nombre_tipo_estado='VENTA')
-    estado_completada, created = Estados.objects.get_or_create(
-        nombre_estado='COMPLETADA',
-        defaults={'tipo_estado': tipo_estado_venta}
+    empleado, created = Empleados.objects.get_or_create(
+        user_empleado=admin_user,
+        defaults={'dni_empleado': '12345678', 'telefono_empleado': '1122334455'}
     )
-    if created: print('✅ Estado \'COMPLETADA\' para ventas creado.')
-    else: print('ℹ️ Estado \'COMPLETADA\' ya existe.')
-
+    if created: print(f'✅ Empleado de sistema \'{empleado.user_empleado.username}\' creado.')
+    
     # Caja 'ABIERTA'
-    tipo_estado_caja, _ = Tipos_Estados.objects.get_or_create(nombre_tipo_estado='CAJA')
-    estado_abierta, _ = Estados.objects.get_or_create(
-        nombre_estado='ABIERTA',
-        defaults={'tipo_estado': tipo_estado_caja}
-    )
-    
+    estado_abierta = Estados.objects.get(nombre_estado='ABIERTA', tipo_estado__nombre_tipo_estado='ESTADO_CAJA')
     caja_abierta = Cajas.objects.filter(estado_caja=estado_abierta).first()
     
     if not caja_abierta:
         print('⚠️ No se encontró una caja abierta. Creando una caja principal...')
-        caja_abierta, created = Cajas.objects.get_or_create(
+        caja_abierta, _ = Cajas.objects.get_or_create(
             observaciones_caja='Caja Principal (generada por script)',
             defaults={
-                'estado_caja': estado_abierta,
-                'monto_apertura_caja': 1000.00,
-                'total_gastos_caja': 0.00,
-                'monto_cierre_caja': 0.00,
-                'monto_teorico_caja': 0.00,
-                'diferencia_caja': 0.00,
+                'estado_caja': estado_abierta, 'monto_apertura_caja': 1000.00,
+                'total_gastos_caja': 0.00, 'monto_cierre_caja': 0.00,
+                'monto_teorico_caja': 0.00, 'diferencia_caja': 0.00,
             }
         )
-        if created: print(f'✅ Caja \'{caja_abierta.observaciones_caja}\' creada y abierta.')
-        else: 
-            caja_abierta.estado_caja = estado_abierta
-            caja_abierta.save()
-            print(f'ℹ️ Caja \'{caja_abierta.observaciones_caja}\' encontrada, se ha puesto en estado \'ABIERTA\'.')
+        print(f'✅ Caja \'{caja_abierta.observaciones_caja}\' creada y abierta.')
     else:
         print(f'ℹ️ Usando caja abierta existente: \'{caja_abierta.observaciones_caja}\'.')
 
-    # Empleado por defecto para transacciones
-    admin_user = User.objects.filter(is_superuser=True).first()
-    if not admin_user:
-        print('⚠️ No se encontró un superusuario. Creando usuario \'admin\'...')
-        admin_user, created = User.objects.get_or_create(
-            username='admin',
-            defaults={
-                'first_name': 'Admin',
-                'last_name': 'Principal',
-                'email': 'admin@puertoreal.com',
-                'is_staff': True,
-                'is_active': True,
-                'is_superuser': True,
-            }
-        )
-        if created:
-            admin_user.set_password('admin123')
-            admin_user.save()
-            print('✅ Superusuario \'admin\' creado con contraseña \'admin123\'.')
-
-    empleado, created = Empleados.objects.get_or_create(
-        user_empleado=admin_user,
-        defaults={
-            'dni_empleado': '12345678',
-            'telefono_empleado': '1122334455'
-        }
-    )
-    if created: print(f'✅ Empleado de sistema \'{empleado.user_empleado.username}\' creado.')
-    else: print(f'ℹ️ Empleado de sistema \'{empleado.user_empleado.username}\' ya existe.')
-
-    # Tipo de movimiento para el historial de stock
-    tipo_mov_inicial, _ = Tipos_Movimientos.objects.get_or_create(nombre_movimiento='CARGA INICIAL')
-
-    # Tipo de evento para historial de caja
-    tipo_evento_venta, _ = Tipo_Evento.objects.get_or_create(nombre_evento='INGRESO POR VENTA')
-        
-    return caja_abierta, estado_completada, estado_activo, empleado, tipo_mov_inicial, tipo_evento_venta
+    # Retornar recursos necesarios para otras funciones
+    return {
+        'empleado': empleado,
+        'caja_abierta': caja_abierta,
+        'estado_activo_producto': Estados.objects.get(nombre_estado='ACTIVO', tipo_estado__nombre_tipo_estado='ESTADO_PRODUCTO'),
+        'estado_completada_venta': Estados.objects.get(nombre_estado='FINALIZADA', tipo_estado__nombre_tipo_estado='ESTADO_VENTA'),
+        'tipo_mov_inicial': Tipos_Movimientos.objects.get(nombre_movimiento='CARGA INICIAL'),
+        'tipo_evento_venta': Tipo_Evento.objects.get(nombre_evento='INGRESO POR VENTA'),
+    }
 
 
 def crear_categorias():
@@ -294,31 +326,17 @@ def crear_direcciones_y_telefonos(clientes, calles):
 
 
 def crear_configuracion_base():
-    """Crea métodos de pago y carga la configuración singleton."""
-    print('\n--- Creando Configuración Base (Métodos de Pago, Opciones de Tienda) ---')
-    
-    # Métodos de Pago
-    metodo_efectivo, _ = Metodos_Pago.objects.get_or_create(nombre_metodo='Efectivo')
-    metodo_tarjeta, _ = Metodos_Pago.objects.get_or_create(nombre_metodo='Tarjeta de Crédito/Débito')
-    metodo_mp, _ = Metodos_Pago.objects.get_or_create(nombre_metodo='Mercado Pago QR')
-    print('✅ Métodos de pago creados/verificados.')
-
-    # Cargar/crear singletons de configuración
-    ConfiguracionTienda.load()
-    ConfiguracionPuntos.load()
-    print('✅ Configuración de tienda y puntos cargada/verificada.')
-
-    return [metodo_efectivo, metodo_tarjeta, metodo_mp]
+    """Esta función está ahora obsoleta. Los métodos de pago y singletons se cargan en crear_datos_esenciales_sistema."""
+    # La carga de ConfiguracionTienda y ConfiguracionPuntos ya se hace en crear_datos_esenciales_sistema
+    # La creación de Metodos_Pago ya se hace en crear_datos_esenciales_sistema
+    print('ℹ️ La configuración base (singletons) ya fue cargada.')
+    return Metodos_Pago.objects.all()
 
 def crear_proveedores(cantidad=15):
     """Crea proveedores de ejemplo."""
     print(f'\n--- Creando {cantidad} Proveedores ---')
     
-    tipo_estado_proveedor, _ = Tipos_Estados.objects.get_or_create(nombre_tipo_estado='PROVEEDOR')
-    estado_activo, _ = Estados.objects.get_or_create(
-        nombre_estado='ACTIVO', 
-        defaults={'tipo_estado': tipo_estado_proveedor}
-    )
+    estado_activo = Estados.objects.get(nombre_estado='ACTIVO', tipo_estado__nombre_tipo_estado='ESTADO_PROVEEDOR')
 
     proveedores_creados = 0
     for _ in range(cantidad):
@@ -335,7 +353,6 @@ def crear_proveedores(cantidad=15):
         )
         if created:
             proveedores_creados += 1
-            print(f'  -> Proveedor \'{nombre}\' creado.')
     
     print(f'✅ {proveedores_creados} proveedores nuevos creados.')
     return Proveedores.objects.all()
@@ -348,12 +365,11 @@ def crear_compras(proveedores, productos, empleado, metodos_pago, cantidad=50):
         return
 
     # Estados para compras
-    tipo_estado_compra, _ = Tipos_Estados.objects.get_or_create(nombre_tipo_estado='COMPRA')
-    estado_recibida, _ = Estados.objects.get_or_create(nombre_estado='RECIBIDA', defaults={'tipo_estado': tipo_estado_compra})
-    estado_pendiente, _ = Estados.objects.get_or_create(nombre_estado='PENDIENTE', defaults={'tipo_estado': tipo_estado_compra})
+    estado_recibida = Estados.objects.get(nombre_estado='RECIBIDA', tipo_estado__nombre_tipo_estado='ESTADO_COMPRA')
+    estado_pendiente = Estados.objects.get(nombre_estado='PENDIENTE', tipo_estado__nombre_tipo_estado='ESTADO_COMPRA')
 
     # Tipo de movimiento para historial
-    tipo_mov_compra, _ = Tipos_Movimientos.objects.get_or_create(nombre_movimiento='ENTRADA POR COMPRA')
+    tipo_mov_compra = Tipos_Movimientos.objects.get(nombre_movimiento='ENTRADA POR COMPRA')
 
     compras_creadas = 0
     proveedores_list = list(proveedores)
@@ -456,8 +472,7 @@ def crear_puntos_y_promos_clientes(clientes, promociones):
         return
 
     # Estados para promociones de clientes
-    tipo_estado_promo, _ = Tipos_Estados.objects.get_or_create(nombre_tipo_estado='PROMOCION_CLIENTE')
-    estado_disponible, _ = Estados.objects.get_or_create(nombre_estado='DISPONIBLE', defaults={'tipo_estado': tipo_estado_promo})
+    estado_disponible = Estados.objects.get(nombre_estado='DISPONIBLE', tipo_estado__nombre_tipo_estado='ESTADO_PROMOCION_CLIENTE')
     
     promociones_list = list(promociones)
 
@@ -700,32 +715,54 @@ if __name__ == '__main__':
     
     print('='*50 + '\n')
 
-    # 1. Obtener/crear recursos básicos
-    caja, estado_venta, estado_producto, empleado, tipo_mov_inicial, tipo_evento_venta = obtener_recursos_esenciales()
+    # 1. Crear datos maestros y de configuración
+    crear_datos_esenciales_sistema()
 
-    # 2. Crear datos de base
+    # 2. Obtener/crear recursos transaccionales básicos
+    recursos = obtener_recursos_esenciales()
+
+    # 3. Crear datos de base para transacciones
     categorias = crear_categorias()
-    productos = crear_productos(categorias, estado_producto, empleado, tipo_mov_inicial)
+    productos = crear_productos(
+        categorias, 
+        recursos['estado_activo_producto'], 
+        recursos['empleado'], 
+        recursos['tipo_mov_inicial']
+    )
     clientes = crear_clientes(cantidad=30)
     calles = crear_geolocalizacion_base()
     crear_direcciones_y_telefonos(clientes, calles)
-    metodos_pago = crear_configuracion_base()
+    metodos_pago = Metodos_Pago.objects.all() # Obtener todos los métodos de pago
     proveedores = crear_proveedores()
     promociones = crear_promociones()
     crear_puntos_y_promos_clientes(clientes, promociones)
     
-    # 3. Crear datos de transacciones
-    if caja and estado_venta and productos.exists() and clientes.exists() and proveedores.exists():
-        crear_compras(proveedores, productos, empleado, metodos_pago)
-        crear_ventas(clientes, productos, caja, estado_venta, empleado, tipo_evento_venta, metodos_pago, cantidad=150)
+    # 4. Crear datos de transacciones (Ventas y Compras)
+    if all(k in recursos for k in ['caja_abierta', 'empleado']) and productos.exists() and clientes.exists() and proveedores.exists():
+        crear_compras(
+            proveedores, 
+            productos, 
+            recursos['empleado'],
+            metodos_pago
+        )
+        crear_ventas(
+            clientes, 
+            productos, 
+            recursos['caja_abierta'], 
+            recursos['estado_completada_venta'], 
+            recursos['empleado'], 
+            recursos['tipo_evento_venta'],
+            metodos_pago,
+            cantidad=150
+        )
     else:
-        print('\n❌ No se pudieron crear las transacciones por falta de recursos esenciales (caja, estados, productos, clientes o proveedores).')
+        print('\n❌ No se pudieron crear las transacciones por falta de recursos esenciales (caja, empleado, productos, clientes o proveedores).')
 
-    # 4. Generar reportes
+    # 5. Generar reportes
     generar_reportes_analiticos()
 
-    # 5. Crear registros de auditoría
-    crear_registros_auditoria(empleado)
+    # 6. Crear registros de auditoría
+    crear_registros_auditoria(recursos['empleado'])
 
     print('\n' + '='*50)
     print('🎉 Script de población finalizado.')

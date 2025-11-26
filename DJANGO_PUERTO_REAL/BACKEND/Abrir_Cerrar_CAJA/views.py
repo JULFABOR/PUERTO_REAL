@@ -35,7 +35,7 @@ from .serializers import (
 from . import services
 from autenticacion.models import Empleados
 from Config_PR.models import Estados
-from autenticacion.permissions import IsJefe
+from autenticacion.permissions import IsJefe, IsJefeOrEmpleado
 
 
 # ====== 1) Apertura de Caja ======
@@ -380,7 +380,7 @@ class AjustarCajaAPIView(APIView):
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 class CajaEstadoAPIView(APIView):
-    permission_classes = [IsAuthenticated, IsJefe]
+    permission_classes = [IsJefeOrEmpleado]
 
     def get(self, request, *args, **kwargs):
         # La lógica de permisos ahora es manejada por IsJefe.
