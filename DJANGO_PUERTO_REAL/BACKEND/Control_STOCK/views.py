@@ -18,6 +18,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 # Local application
+from pagination import StandardResultsSetPagination
+from autenticacion.permissions import IsAuthenticatedOrReadOnly
 from Auditoria.services import crear_registro
 from autenticacion.models import Empleados
 from Config_PR.models import Estados, Tipos_Movimientos
@@ -49,19 +51,21 @@ class CategoriaProductoViewSet(viewsets.ModelViewSet):
     """
     queryset = Categorias_Productos.objects.all()
     serializer_class = CategoriaProductoSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    pagination_class = StandardResultsSetPagination
 
 
 class ProductoViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_fields = ['categoria_producto']  # Permite filtrar por: /productos/?categoria_producto=2
     search_fields = ['nombre_producto', 'barcode'] # Permite buscar por: /productos/?search=coca
+    pagination_class = StandardResultsSetPagination
     
     """
     API endpoint que permite ver, crear, editar y eliminar productos.
     """
     queryset = Productos.objects.filter(DELETE_Prod=False).annotate(total_stock=Sum('stocks__cantidad_actual_stock')).order_by('-id_producto')
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticatedOrReadOnly]
     
     def get_serializer_class(self):
         if self.action in ['create', 'update', 'partial_update']:

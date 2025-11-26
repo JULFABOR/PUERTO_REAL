@@ -35,6 +35,7 @@ from .serializers import (
 from . import services
 from autenticacion.models import Empleados
 from Config_PR.models import Estados
+from autenticacion.permissions import IsJefe
 
 
 # ====== 1) Apertura de Caja ======
@@ -379,18 +380,11 @@ class AjustarCajaAPIView(APIView):
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 class CajaEstadoAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsJefe]
 
     def get(self, request, *args, **kwargs):
-        # Intenta obtener el perfil de empleado del usuario.
-        try:
-            empleado_actual = request.user.empleado
-        except Empleados.DoesNotExist:
-            # Si el usuario no tiene un perfil de empleado, no puede tener una caja.
-            # Devuelve un estado de caja cerrada.
-            return Response({'caja_abierta': False, 'detail': 'Usuario no es un empleado.'}, status=status.HTTP_403_FORBIDDEN)
-
-        # Busca una caja que esté en estado 'ABIERTO'.
+        # La lógica de permisos ahora es manejada por IsJefe.
+        # Busca una caja que esté en estado 'ABIERTA'.
         caja_abierta = Cajas.objects.filter(estado_caja__nombre_estado='ABIERTA').first()
 
         if caja_abierta:

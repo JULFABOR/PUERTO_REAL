@@ -14,7 +14,7 @@ BASE_DIR = Path(__file__).resolve().parent
 if str(BASE_DIR.parent) not in sys.path:
     sys.path.insert(0, str(BASE_DIR.parent))
 
-load_dotenv(os.path.join(BASE_DIR, '..', '..', '..', '.env'))
+load_dotenv(os.path.join(BASE_DIR.parent.parent.parent, '.env'))
 
 # ADVERTENCIA DE SEGURIDAD: ¡mantén en secreto la clave secreta utilizada en producción!
 SECRET_KEY = os.getenv('SECRET_KEY')

@@ -7,11 +7,10 @@ import django_filters
 from django.utils import timezone
 from datetime import timedelta
 from django.db.models import Sum, F, Count
-from django.http import JsonResponse
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 from django.contrib.auth.models import User
-
 
 # Local application
 from Config_PR.models import Estados
@@ -19,11 +18,12 @@ from autenticacion.models import Empleados
 from .serializers import EmpleadoSerializer, EstadoSerializer
 from Control_VENTAS.models import Ventas
 from Control_STOCK.models import Stocks
+from autenticacion.permissions import IsJefe
 
 
 class EstadoFilter(django_filters.FilterSet):
     nombre_estado = django_filters.CharFilter(lookup_expr='iexact')
-
+    
     class Meta:
         model = Estados
         fields = ['nombre_estado']
@@ -51,7 +51,7 @@ class EmpleadoList(generics.ListCreateAPIView):
 
 
 class DashboardStatsView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsJefe]
 
     def get(self, request):
         """
@@ -84,4 +84,4 @@ class DashboardStatsView(APIView):
             'new_customers_week': new_customers_count,
         }
 
-        return JsonResponse(stats)
+        return Response(stats)
