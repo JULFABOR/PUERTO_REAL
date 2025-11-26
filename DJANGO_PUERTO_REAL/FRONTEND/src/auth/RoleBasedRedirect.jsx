@@ -1,14 +1,13 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth'; // <-- 1. IMPORTAMOS EL HOOK
+import { useAuth } from '@/hooks/useAuth';
 
 const RoleBasedRedirect = () => {
-    // --- Usamos el hook useAuth como única fuente de verdad ---
     const { user, isAuthenticated, loading } = useAuth();
 
-    // Mientras se verifica el estado de autenticación, no hacemos nada
+    // Mientras se verifica el estado de autenticación, mostrar nada o spinner
     if (loading) {
-        return null; // O un spinner de carga
+        return null;
     }
 
     // Si después de cargar no está autenticado, va al login
@@ -16,20 +15,35 @@ const RoleBasedRedirect = () => {
         return <Navigate to="/" />;
     }
 
-    // Debug: logueamos user y role para detectar pantallas en blanco
-    console.log('RoleBasedRedirect - user:', user);
-    const role = user?.rol;
+    // Extraer el rol de varias posibles ubicaciones
+    let role = null;
+    if (user?.rol) {
+        role = user.rol;
+    } else if (user?.perfil?.rol) {
+        role = user.perfil.rol;
+    } else if (user?.profile?.rol) {
+        role = user.profile.rol;
+    }
 
-    // --- Corregimos a 'Jefe' y 'Empleado' (con mayúscula inicial) ---
-    if (role === 'JEFE') {
+    // Debug: loguear para ver estructura del usuario
+    if (!role) {
+        console.warn('No se encontró rol en el usuario:', user);
+    }
+
+    // Normalizar rol a mayúsculas para comparación
+    const normalizedRole = role ? String(role).toUpperCase().trim() : null;
+
+    // Redirigir según rol
+    if (normalizedRole === 'JEFE') {
         return <Navigate to="/jefe/home" />;
-    } else if (role === 'EMPLEADO') {
+    } else if (normalizedRole === 'EMPLEADO') {
         return <Navigate to="/empleado/home" />;
-    } else if (role === 'CLIENTE') {
+    } else if (normalizedRole === 'CLIENTE') {
         return <Navigate to="/cliente/home" />;
     }
 
-    // Si por alguna razón el rol no es válido, redirigimos al login
+    // Si el rol no es válido, loguear y redirigir a login
+    console.error('Rol inválido o no reconocido:', normalizedRole, 'Usuario:', user);
     return <Navigate to="/" />;
 };
 

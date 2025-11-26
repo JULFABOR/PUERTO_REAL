@@ -47,8 +47,11 @@ const AuthPage = () => {
         try {
             const result = await login(loginUsername, loginPassword);
             if (result && result.success) {
-                // Navegar a la ruta principal cuando el login fue exitoso
-                navigate('/home');
+                // Esperar un poco para que el contexto actualice el estado
+                // Luego navegar a /home
+                setTimeout(() => {
+                    navigate('/home');
+                }, 100);
             } else {
                 setLoginError(result?.error || 'Credenciales inválidas.');
             }

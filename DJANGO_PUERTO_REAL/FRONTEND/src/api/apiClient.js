@@ -6,10 +6,14 @@ const getAuthToken = () => {
   return localStorage.getItem('authToken') || localStorage.getItem('token');
 };
 
+// Leer URL del API desde variable de entorno (permite diferentes URLs por entorno)
+const apiUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+const apiTimeout = parseInt(import.meta.env.VITE_API_TIMEOUT || '10000', 10);
+
 const apiClient = axios.create({
-  // Aseguramos que apunte al puerto de Django
-  baseURL: 'http://127.0.0.1:8000/api', 
-  timeout: 10000, 
+  // URL del API desde .env (desarrollo, staging, producción)
+  baseURL: apiUrl, 
+  timeout: apiTimeout, 
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',

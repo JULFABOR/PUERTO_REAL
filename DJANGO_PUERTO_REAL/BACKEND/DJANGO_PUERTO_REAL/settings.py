@@ -7,6 +7,7 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv
 import sys
+from django.core.exceptions import ImproperlyConfigured
 
 # Construye rutas dentro del proyecto así: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent
@@ -16,11 +17,25 @@ if str(BASE_DIR.parent) not in sys.path:
 
 load_dotenv(os.path.join(BASE_DIR, '.env'))
 
+# Entorno: development o production
+ENVIRONMENT = os.getenv('ENVIRONMENT', 'development')
+
 # ADVERTENCIA DE SEGURIDAD: ¡mantén en secreto la clave secreta utilizada en producción!
+# Cargar SECRET_KEY desde entorno; no dejar por defecto en producción
 SECRET_KEY = os.getenv('SECRET_KEY')
 
-# ADVERTENCIA DE SEGURIDAD: ¡no ejecutes con el modo depuración activado en producción!
-DEBUG = os.getenv('DJANGO_DEBUG', 'True') == 'True'
+# ADVERTENCIA DE SEGURIDAD: no ejecutes con DEBUG activado en producción.
+# Por defecto usamos False y se debe activar explícitamente en desarrollo.
+DEBUG = os.getenv('DJANGO_DEBUG', 'False') == 'True'
+
+# Validar SECRET_KEY: permitir un valor de desarrollo si DEBUG=True,
+# pero exigir SECRET_KEY en producción para evitar despliegues inseguros.
+if not SECRET_KEY:
+    if DEBUG:
+        # Valor temporal para desarrollo local cuando no se provee .env
+        SECRET_KEY = 'dev-secret-key-change-me'
+    else:
+        raise ImproperlyConfigured('Missing SECRET_KEY environment variable in production')
 
 # URLs del frontend y backend
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173')
@@ -197,3 +212,16 @@ JAZZMIN_SETTINGS = {
     "copyright": "Puerto Real Ltd.",
     "theme": "darkly",
 }
+
+# --- Seguridad adicional para entornos de producción ---
+# Cuando ENVIRONMENT=production, aplicamos ajustes seguros. 
+# En desarrollo (ENVIRONMENT=development), no aplicamos SSL redirect.
+if ENVIRONMENT == 'production':
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = int(os.getenv('SECURE_HSTS_SECONDS', '31536000'))
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
