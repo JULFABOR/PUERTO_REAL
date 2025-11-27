@@ -143,6 +143,8 @@ class RegisterView(APIView):
     """
     Registra un nuevo usuario.
     """
+    # Permitir acceso público para que nuevos usuarios puedan registrarse
+    permission_classes = []
     def post(self, request):
         serializer = UserRegisterSerializer(data=request.data)
         if serializer.is_valid():
@@ -371,3 +373,91 @@ class UsersAdminView(APIView):
             return Response(status=status.HTTP_204_NO_CONTENT)
         except User.DoesNotExist:
             return Response({'detail': 'Usuario no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+
+    def put(self, request, pk=None):
+        if not self._is_jefe_or_staff(request.user):
+            return Response({'detail': 'No autorizado'}, status=status.HTTP_403_FORBIDDEN)
+
+        if pk is None:
+            return Response({'detail': 'ID requerido'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(pk=pk)
+            data = request.data
+
+            # Actualizar campos si se proporcionan
+            if 'username' in data:
+                username = data.get('username')
+                # Verificar que el nuevo username sea único (si es diferente)
+                if username != user.username and User.objects.filter(username=username).exists():
+                    return Response({'detail': 'El nombre de usuario ya está en uso.'}, status=status.HTTP_400_BAD_REQUEST)
+                user.username = username
+
+            if 'email' in data:
+                email = data.get('email')
+                # Verificar que el nuevo email sea único (si es diferente)
+                if email != user.email and User.objects.filter(email=email).exists():
+                    return Response({'detail': 'El email ya está en uso.'}, status=status.HTTP_400_BAD_REQUEST)
+                user.email = email
+
+            if 'password' in data and data.get('password'):
+                user.set_password(data.get('password'))
+
+            if 'first_name' in data:
+                user.first_name = data.get('first_name', '')
+
+            if 'last_name' in data:
+                user.last_name = data.get('last_name', '')
+
+            user.save()
+
+            # Actualizar rol en perfil y crear registros relacionados si es necesario
+            if 'role' in data:
+                role = data.get('role').upper()
+                try:
+                    perfil = getattr(user, 'perfil', None)
+                    if perfil:
+                        perfil.rol = role
+                        perfil.save()
+                except Exception:
+                    pass
+
+                # Si el rol es EMPLEADO, crear registro en Empleados si no existe
+                if role == 'EMPLEADO':
+                    from autenticacion.models import Empleados
+                    try:
+                        empleado, created = Empleados.objects.get_or_create(
+                            user_empleado=user,
+                            defaults={
+                                'dni_empleado': '',
+                                'telefono_empleado': ''
+                            }
+                        )
+                        if created:
+                            empleado.save()
+                    except Exception as e:
+                        # Si falla, lo registramos pero continuamos
+                        print(f"Error al crear Empleados para {user.username}: {str(e)}")
+
+                # Si el rol es CLIENTE, crear registro en Clientes si no existe
+                elif role == 'CLIENTE':
+                    from autenticacion.models import Clientes
+                    try:
+                        cliente, created = Clientes.objects.get_or_create(
+                            user_cliente=user,
+                            defaults={
+                                'dni_cliente': '',
+                                'telefono_cliente': ''
+                            }
+                        )
+                        if created:
+                            cliente.save()
+                    except Exception as e:
+                        print(f"Error al crear Clientes para {user.username}: {str(e)}")
+
+            serialized = UserDataSerializer(user).data
+            return Response(serialized, status=status.HTTP_200_OK)
+        except User.DoesNotExist:
+            return Response({'detail': 'Usuario no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

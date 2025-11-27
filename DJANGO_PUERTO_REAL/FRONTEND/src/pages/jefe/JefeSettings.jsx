@@ -12,9 +12,14 @@ const JefeSettings = () => {
     
     // Estados para gestión de usuarios
     const [users, setUsers] = useState([]);
-    const [newUser, setNewUser] = useState({ username: '', email: '', password: '', role: 'cliente' });
+    const initialUserState = { username: '', email: '', password: '', role: 'cliente' };
+    const [formUser, setFormUser] = useState(initialUserState);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    
+    // Estados para saber si estamos editando
+    const [isEditing, setIsEditing] = useState(false);
+    const [editingId, setEditingId] = useState(null);
 
     // Usamos la instancia compartida `apiClient` que ya maneja baseURL y Authorization
     const api = apiClient;
@@ -29,6 +34,7 @@ const JefeSettings = () => {
     const fetchUsers = async () => {
         try {
             const response = await api.get('/auth/users/');
+            console.debug('fetchUsers response:', response?.data);
             setUsers(response.data);
         } catch (err) {
             console.error("Error cargando usuarios", err);
@@ -45,40 +51,76 @@ const JefeSettings = () => {
         }
     };
 
-    // --- 2. CREAR USUARIO ---
+    // --- 2. CREAR O EDITAR USUARIO ---
     const handleInputChange = (e) => {
-        setNewUser({ ...newUser, [e.target.id]: e.target.value });
+        setFormUser({ ...formUser, [e.target.id]: e.target.value });
     };
 
-    const handleCreateUser = async (e) => {
+    // --- PREPARAR EDICIÓN (Al hacer clic en "Editar") ---
+    const handleEditClick = (user) => {
+        setError(null);
+        setIsEditing(true);
+        setEditingId(user.id);
+        
+        // Rellenamos el form (Password vacío por seguridad)
+        setFormUser({
+            username: user.username,
+            email: user.email,
+            role: user.role || user.perfil?.rol || 'cliente',
+            password: '' 
+        });
+    };
+
+    // --- CANCELAR EDICIÓN ---
+    const handleCancelEdit = () => {
+        setIsEditing(false);
+        setEditingId(null);
+        setFormUser(initialUserState);
+        setError(null);
+    };
+
+    // --- ENVIAR FORMULARIO (Sirve para CREAR y EDITAR) ---
+    const handleSubmitUser = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError(null);
 
         try {
-            const response = await api.post('/auth/users/', newUser);
-            // Actualizamos la lista visualmente
-            setUsers([...users, response.data]);
-            // Limpiamos el form
-            setNewUser({ username: '', email: '', password: '', role: 'cliente' });
-            // Mostramos toast con el username devuelto (si fue generado)
-            const createdUsername = response.data?.username || response.data?.user?.username || response.data?.email;
-            toast.success(`Usuario registrado: ${createdUsername}`);
+            if (isEditing) {
+                // EDITAR (PUT)
+                const payload = { ...formUser };
+                if (!payload.password) delete payload.password; // No enviar pass si está vacío
+
+                const response = await api.put(`/auth/users/${editingId}/`, payload);
+                
+                // Actualizar lista local
+                setUsers(users.map(u => u.id === editingId ? response.data : u));
+                toast.success('Usuario actualizado.');
+                handleCancelEdit();
+            } else {
+                // CREAR (POST)
+                const response = await api.post('/auth/users/', formUser);
+                console.debug('create user response:', response?.data);
+                setUsers([...users, response.data]);
+                const createdUsername = response.data?.username || response.data?.user?.username || response.data?.email;
+                toast.success(`Usuario registrado: ${createdUsername}`);
+                setFormUser(initialUserState);
+            }
         } catch (err) {
             console.error(err);
             const status = err.response?.status;
             const serverMsg = err.response?.data?.detail || JSON.stringify(err.response?.data) || err.message;
             if (status === 403) {
-                setError('No autorizado para crear usuarios.');
-                toast.error('No autorizado para crear usuarios.');
+                setError('No autorizado para crear/editar usuarios.');
+                toast.error('No autorizado para crear/editar usuarios.');
             } else if (status === 400) {
-                setError('Datos inválidos al crear usuario. Revisa los campos.');
+                setError('Datos inválidos. Revisa los campos.');
                 toast.error(`Error: ${serverMsg}`);
             } else if (status >= 500) {
-                setError('Error interno del servidor al crear usuario.');
-                toast.error('Error interno del servidor al crear usuario.');
+                setError('Error interno del servidor.');
+                toast.error('Error interno del servidor.');
             } else {
-                setError('Error al crear usuario. Verifica los datos.');
+                setError('Ocurrió un error al procesar la solicitud.');
                 toast.error(`Error: ${serverMsg}`);
             }
         } finally {
@@ -129,16 +171,16 @@ const JefeSettings = () => {
             <div className="mb-4 border-b border-gray-700">
                 <ul className="flex flex-wrap -mb-px text-sm font-medium text-center">
                     <li className="me-2">
-                        <button onClick={() => setActiveTab('profile')} className={`inline-block p-4 border-b-2 rounded-t-lg ${activeTab === 'profile' ? 'text-pr-yellow border-pr-yellow' : 'text-gray-400 hover:text-gray-300'}`}>Mi Perfil</button>
+                        <button onClick={() => setActiveTab('profile')} className={`inline-block p-4 border-b-2 rounded-t-lg ${activeTab === 'profile' ? 'text-pr-yellow border-pr-yellow' : 'text-gray-300 hover:text-white'}`}>Mi Perfil</button>
                     </li>
                     <li className="me-2">
-                        <button onClick={() => setActiveTab('store')} className={`inline-block p-4 border-b-2 rounded-t-lg ${activeTab === 'store' ? 'text-pr-yellow border-pr-yellow' : 'text-gray-400 hover:text-gray-300'}`}>Tienda</button>
+                        <button onClick={() => setActiveTab('store')} className={`inline-block p-4 border-b-2 rounded-t-lg ${activeTab === 'store' ? 'text-pr-yellow border-pr-yellow' : 'text-gray-300 hover:text-white'}`}>Tienda</button>
                     </li>
                     <li className="me-2">
-                        <button onClick={() => setActiveTab('points')} className={`inline-block p-4 border-b-2 rounded-t-lg ${activeTab === 'points' ? 'text-pr-yellow border-pr-yellow' : 'text-gray-400 hover:text-gray-300'}`}>Puntos</button>
+                        <button onClick={() => setActiveTab('points')} className={`inline-block p-4 border-b-2 rounded-t-lg ${activeTab === 'points' ? 'text-pr-yellow border-pr-yellow' : 'text-gray-300 hover:text-white'}`}>Puntos</button>
                     </li>
                     <li className="me-2">
-                        <button onClick={() => setActiveTab('users')} className={`inline-block p-4 border-b-2 rounded-t-lg ${activeTab === 'users' ? 'text-pr-yellow border-pr-yellow' : 'text-gray-400 hover:text-gray-300'}`}>Usuarios</button>
+                        <button onClick={() => setActiveTab('users')} className={`inline-block p-4 border-b-2 rounded-t-lg ${activeTab === 'users' ? 'text-pr-yellow border-pr-yellow' : 'text-gray-300 hover:text-white'}`}>Usuarios</button>
                     </li>
                 </ul>
             </div>
@@ -151,7 +193,7 @@ const JefeSettings = () => {
                         <img src="https://placehold.co/80x80/FFC700/121212?text=J" alt="Avatar" className="w-20 h-20 rounded-full border-4 border-pr-yellow shadow" />
                         <div>
                             <div className="font-bold text-xl">{JSON.parse(localStorage.getItem('userData'))?.username || 'Usuario'}</div>
-                            <div className="text-gray-400">{JSON.parse(localStorage.getItem('userData'))?.email || 'Sin email'}</div>
+                            <div className="text-gray-300">{JSON.parse(localStorage.getItem('userData'))?.email || 'Sin email'}</div>
                             <span className="inline-block mt-2 px-3 py-1 rounded-full bg-pr-yellow/10 text-pr-yellow text-xs font-bold">{JSON.parse(localStorage.getItem('userData'))?.rol || 'JEFE'}</span>
                         </div>
                     </div>
@@ -320,16 +362,16 @@ const JefeSettings = () => {
                     
                     {/* FORMULARIO DE CREACIÓN */}
                     <div className="p-4 rounded-lg bg-pr-dark h-fit">
-                        <h2 className="text-xl font-bold text-white mb-4">Crear Nuevo Usuario</h2>
+                        <h2 className="text-xl font-bold text-white mb-4">{isEditing ? 'Editar Usuario' : 'Crear Nuevo Usuario'}</h2>
                         
                         {error && <div className="p-3 mb-4 text-sm text-red-200 bg-red-900 rounded-lg">{error}</div>}
 
-                        <form onSubmit={handleCreateUser} className="space-y-4">
+                        <form onSubmit={handleSubmitUser} className="space-y-4">
                             <div>
                                 <label htmlFor="username" className="block mb-2 text-sm font-medium text-white">Nombre de Usuario</label>
                                 <input 
                                     onChange={handleInputChange} 
-                                    value={newUser.username} 
+                                    value={formUser.username} 
                                     type="text" 
                                     id="username" 
                                     className="border text-sm rounded-lg block w-full p-2.5 bg-pr-dark-gray border-gray-600 text-white placeholder-gray-400" 
@@ -341,7 +383,7 @@ const JefeSettings = () => {
                                 <label htmlFor="email" className="block mb-2 text-sm font-medium text-white">Email</label>
                                 <input 
                                     onChange={handleInputChange} 
-                                    value={newUser.email} 
+                                    value={formUser.email} 
                                     type="email" 
                                     id="email" 
                                     className="border text-sm rounded-lg block w-full p-2.5 bg-pr-dark-gray border-gray-600 text-white placeholder-gray-400" 
@@ -350,22 +392,22 @@ const JefeSettings = () => {
                                 />
                             </div>
                             <div>
-                                <label htmlFor="password" className="block mb-2 text-sm font-medium text-white">Contraseña</label>
+                                <label htmlFor="password" className="block mb-2 text-sm font-medium text-white">Contraseña {isEditing && <span className="text-gray-300">(Dejar vacío para no cambiar)</span>}</label>
                                 <input 
                                     onChange={handleInputChange} 
-                                    value={newUser.password} 
+                                    value={formUser.password} 
                                     type="password" 
                                     id="password" 
                                     className="border text-sm rounded-lg block w-full p-2.5 bg-pr-dark-gray border-gray-600 text-white" 
                                     placeholder="••••••••" 
-                                    required 
+                                    required={!isEditing}
                                 />
                             </div>
                             <div>
                                 <label htmlFor="role" className="block mb-2 text-sm font-medium text-white">Rol</label>
                                 <select 
                                     onChange={handleInputChange} 
-                                    value={newUser.role} 
+                                    value={formUser.role} 
                                     id="role" 
                                     className="border text-sm rounded-lg block w-full p-2.5 bg-pr-dark-gray border-gray-600 text-white"
                                 >
@@ -374,13 +416,25 @@ const JefeSettings = () => {
                                     <option value="jefe">Jefe</option>
                                 </select>
                             </div>
-                            <button 
-                                type="submit" 
-                                disabled={loading}
-                                className="w-full text-pr-dark bg-pr-yellow hover:bg-yellow-400 font-bold rounded-lg text-sm px-5 py-2.5 text-center disabled:opacity-50"
-                            >
-                                {loading ? 'Registrando...' : 'Registrar Usuario'}
-                            </button>
+                            <div className="flex gap-2">
+                                <button 
+                                    type="submit" 
+                                    disabled={loading}
+                                    className={`w-full font-bold rounded-lg text-sm px-5 py-2.5 text-center disabled:opacity-50 ${isEditing ? 'bg-blue-600 text-white hover:bg-blue-700' : 'text-pr-dark bg-pr-yellow hover:bg-yellow-400'}`}
+                                >
+                                    {loading ? 'Procesando...' : (isEditing ? 'Guardar Cambios' : 'Registrar Usuario')}
+                                </button>
+
+                                {isEditing && (
+                                    <button 
+                                        type="button"
+                                        onClick={handleCancelEdit}
+                                        className="w-1/3 bg-gray-600 text-white hover:bg-gray-500 font-medium rounded-lg text-sm px-5 py-2.5 text-center"
+                                    >
+                                        Cancelar
+                                    </button>
+                                )}
+                            </div>
                         </form>
                     </div>
 
@@ -417,12 +471,20 @@ const JefeSettings = () => {
                                                     })()}
                                             </td>
                                             <td className="px-4 py-3 text-right">
-                                                <button 
-                                                    onClick={() => openConfirmDelete(user)}
-                                                    className="text-red-400 hover:text-red-300 text-xs underline"
-                                                >
-                                                    Eliminar
-                                                </button>
+                                                <div className="flex justify-end gap-3">
+                                                    <button 
+                                                        onClick={() => handleEditClick(user)}
+                                                        className="text-blue-400 hover:text-blue-300 text-xs font-medium underline"
+                                                    >
+                                                        Editar
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => openConfirmDelete(user)}
+                                                        className="text-red-400 hover:text-red-300 text-xs underline"
+                                                    >
+                                                        Eliminar
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}

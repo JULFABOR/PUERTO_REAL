@@ -108,14 +108,14 @@ const NewProductModal = ({ isOpen, onClose, onSuccess, categories }) => {
         // defaults expected by backend
         formData.append('stock_adquirido', '0');
         formData.append('stock_actual', '0');
-        formData.append('descripcion_producto', '');
-        formData.append('low_stock_threshold', '10');
         if (imageFile) {
             formData.append('imagen_producto', imageFile);
         }
 
         try {
-            await apiClient.post('/stock/productos/', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+            // Do not set 'Content-Type' header manually for multipart/form-data.
+            // Let the browser/axios set the correct boundary header.
+            await apiClient.post('/stock/productos/', formData);
             toast.success('¡Producto creado con éxito!');
             onSuccess();
             setNewProduct(initialNewProductState);

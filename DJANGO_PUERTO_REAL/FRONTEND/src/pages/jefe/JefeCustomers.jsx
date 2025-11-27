@@ -160,19 +160,19 @@ const JefeCustomers = () => {
             {/* --- TARJETAS DE ESTADÍSTICAS --- */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <div className="bg-pr-dark p-6 rounded-lg shadow-lg border border-pr-gray/20">
-                    <p className="text-sm text-pr-gray">Total de Clientes</p>
+                    <p className="text-sm text-gray-400">Total de Clientes</p>
                     <p className="text-3xl font-bold text-white">{stats.totalClients}</p>
                 </div>
                 <div className="bg-pr-dark p-6 rounded-lg shadow-lg border border-pr-gray/20">
-                    <p className="text-sm text-pr-gray">Nuevos (Este Mes)</p>
+                    <p className="text-sm text-gray-400">Nuevos (Este Mes)</p>
                     <p className="text-3xl font-bold text-green-500">{stats.newThisMonth}</p>
                 </div>
                 <div className="bg-pr-dark p-6 rounded-lg shadow-lg border border-pr-gray/20">
-                    <p className="text-sm text-pr-gray">Cliente con Más Puntos</p>
+                    <p className="text-sm text-gray-400">Cliente con Más Puntos</p>
                     <p className="text-lg font-bold text-white truncate pt-2">{stats.topClientName}</p>
                 </div>
                 <div className="bg-pr-dark p-6 rounded-lg shadow-lg border border-pr-gray/20">
-                    <p className="text-sm text-pr-gray">Total Puntos Canjeados</p>
+                    <p className="text-sm text-gray-400">Total Puntos Canjeados</p>
                     <p className="text-3xl font-bold text-white">{stats.totalPointsRedeemed}</p>
                 </div>
             </div>
@@ -189,13 +189,13 @@ const JefeCustomers = () => {
                 />
                  <FontAwesomeIcon
                     icon={faSearch}
-                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500"
+                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
                  />
             </div>
 
             {/* --- TABLA DE CLIENTES --- */}
             <div className="relative overflow-x-auto shadow-md rounded-lg border border-gray-700">
-                <table className="w-full text-sm text-left text-gray-400">
+                <table className="w-full text-sm text-left text-white">
                     <thead className="text-xs text-white uppercase bg-pr-dark border-b border-gray-700">
                          <tr>
                             <th scope="col" className="px-6 py-3">Nombre Cliente</th>
@@ -242,8 +242,8 @@ const JefeCustomers = () => {
                             ))
                         ) : (
                              <tr>
-                                <td colSpan="5" className="text-center p-12 text-pr-gray">
-                                    <FontAwesomeIcon icon={faInbox} className="text-4xl text-pr-gray/50 mb-4" />
+                                <td colSpan="5" className="text-center p-12 text-gray-400">
+                                    <FontAwesomeIcon icon={faInbox} className="text-4xl text-gray-600 mb-4" />
                                     <p className="font-bold text-white text-lg">
                                         {searchTerm ? 'No se encontraron clientes con ese término.' : 'No hay clientes registrados.'}
                                     </p>
@@ -264,7 +264,7 @@ const JefeCustomers = () => {
                          <div>
                             <div className="text-pr-yellow text-5xl mb-4"><FontAwesomeIcon icon={faPercent} /></div>
                             <h3 className="text-xl font-bold text-white mb-2">10% de Descuento</h3>
-                            <p className="text-pr-gray mb-4">En tu próxima compra de vinos seleccionados.</p>
+                            <p className="text-gray-400 mb-4">En tu próxima compra de vinos seleccionados.</p>
                          </div>
                          <div>
                             <div className="text-2xl font-semibold text-pr-yellow mb-4">500 Puntos</div>
@@ -276,7 +276,7 @@ const JefeCustomers = () => {
                          <div>
                             <div className="text-pr-yellow text-5xl mb-4"><FontAwesomeIcon icon={faWineBottle} /></div>
                             <h3 className="text-xl font-bold text-white mb-2">Botella Gratis</h3>
-                            <p className="text-pr-gray mb-4">Lleva una botella de nuestro Malbec Clásico sin cargo.</p>
+                            <p className="text-gray-400 mb-4">Lleva una botella de nuestro Malbec Clásico sin cargo.</p>
                          </div>
                          <div>
                             <div className="text-2xl font-semibold text-pr-yellow mb-4">1500 Puntos</div>
@@ -288,7 +288,7 @@ const JefeCustomers = () => {
                          <div>
                             <div className="text-pr-yellow text-5xl mb-4"><FontAwesomeIcon icon={faGift} /></div>
                             <h3 className="text-xl font-bold text-white mb-2">Cata Exclusiva</h3>
-                            <p className="text-pr-gray mb-4">Acceso para dos personas a nuestra próxima cata de vinos premium.</p>
+                            <p className="text-gray-400 mb-4">Acceso para dos personas a nuestra próxima cata de vinos premium.</p>
                          </div>
                          <div>
                             <div className="text-2xl font-semibold text-pr-yellow mb-4">3000 Puntos</div>

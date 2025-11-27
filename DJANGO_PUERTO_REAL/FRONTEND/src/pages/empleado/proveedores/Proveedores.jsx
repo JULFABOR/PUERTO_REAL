@@ -190,7 +190,7 @@ const Proveedores = () => {
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full bg-pr-dark-gray border border-pr-gray/20 rounded-lg py-2 px-4 pl-10 text-white focus:ring-pr-yellow focus:border-pr-yellow"
                     />
-                    <FontAwesomeIcon icon={faSearch} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" /> 
+                    <FontAwesomeIcon icon={faSearch} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" /> 
                 </div>
                 <button
                     onClick={handleAddProvider}
@@ -203,8 +203,8 @@ const Proveedores = () => {
 
             {/* --- TABLA DE PROVEEDORES --- */}
             <div className="bg-pr-dark p-6 rounded-lg shadow-lg overflow-x-auto border border-pr-gray/20">
-                <table className="w-full text-left text-pr-gray">
-                    <thead className="border-b border-pr-gray/20 text-pr-gray/80 uppercase text-xs tracking-wider">
+                <table className="w-full text-left text-white">
+                    <thead className="border-b border-pr-gray/20 text-white uppercase text-xs tracking-wider">
                         <tr>
                             <th className="p-4 font-medium cursor-pointer hover:text-white" onClick={() => requestSort('nombre_proveedor')}>
                                 <div className="flex items-center">
@@ -272,8 +272,8 @@ const Proveedores = () => {
                             ))
                         ) : (
                             <tr>
-                                <td colSpan="6" className="text-center p-12 text-pr-gray"> 
-                                    <FontAwesomeIcon icon={faInbox} className="text-4xl text-pr-gray/50 mb-4" />
+                                <td colSpan="6" className="text-center p-12 text-gray-400"> 
+                                    <FontAwesomeIcon icon={faInbox} className="text-4xl text-gray-600 mb-4" />
                                     <p className="font-bold text-white text-lg">
                                         {searchTerm ? 'No se encontraron proveedores.' : 'No hay proveedores registrados.'}
                                     </p>

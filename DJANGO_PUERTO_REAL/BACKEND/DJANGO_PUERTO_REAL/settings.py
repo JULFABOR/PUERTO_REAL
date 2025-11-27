@@ -157,7 +157,7 @@ EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 # Internacionalización
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'es-es'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
@@ -169,15 +169,16 @@ STATICFILES_DIRS = [
 ]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-# Media files (User uploads like product images)
-MEDIA_URL = 'media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_URL = '/media/'  # <-- Asegúrate que tenga el / al inicio y al final
+MEDIA_ROOT = BASE_DIR.parent.parent.parent / 'media'  # Apunta a /PUERTO_REAL/media
 
-# File upload settings
+# Configuración de límites de carga
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
 DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
 
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+# Permisos de archivos subidos
+FILE_UPLOAD_PERMISSIONS = 0o644
+FILE_UPLOAD_DIRECTORY_PERMISSIONS = 0o755
 
 # Configuraciones personalizadas
 PESOS_POR_PUNTO = 110
@@ -185,6 +186,7 @@ LOGIN_REDIRECT_URL = 'home:index_privado_staff'
 LOGOUT_REDIRECT_URL = 'home:index_publico'
 
 # --- CORRECCIÓN 2 Y 3: CONFIGURACIÓN CORS Y CSRF ---
+from corsheaders.defaults import default_headers
 
 # Habilita el envío de cookies y credenciales (Soluciona el error de la foto)
 CORS_ALLOW_CREDENTIALS = True 
@@ -197,6 +199,37 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
 ]
 
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    "x-csrftoken",
+    "authorization",
+    "content-type",
+    "accept",
+    "accept-encoding",
+    "accept-language",
+    "access-control-request-method",
+    "access-control-request-headers",
+]
+
+
+CORS_EXPOSE_HEADERS = [
+    'Content-Type',
+    'X-CSRFToken',
+    'Content-Disposition',
+    'Content-Length',
+]
+
+# Permitir credenciales (ya lo tienes, pero verifica que esté)
+CORS_ALLOW_CREDENTIALS = True
+
+# Para archivos media servidos por Django en desarrollo
+if DEBUG:
+    # Permitir que los archivos media se sirvan con los headers CORS correctos
+    from corsheaders.defaults import default_headers
+    CORS_ALLOW_HEADERS = list(default_headers) + [
+        'cache-control',
+        'pragma',
+        'expires',
+    ]
 # Orígenes de confianza para CSRF (Necesario para POST/PUT/DELETE)
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
@@ -212,13 +245,59 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
     "authorization",
 ]
 
-JAZZMIN_SETTINGS = {
+AZZMIN_SETTINGS = {
     "site_title": "Puerto Real Admin",
     "site_header": "Puerto Real",
     "site_brand": "Puerto Real",
-    "welcome_sign": "Bienvenido a Puerto Real",
-    "copyright": "Puerto Real Ltd.",
-    "theme": "darkly",
+    "site_logo": "img/logo.png", # <--- Asegúrate de que exista esta imagen en static/img/
+    "login_logo": None,
+    "welcome_sign": "Bienvenido al sistema Puerto Real",
+    "copyright": "Puerto Real Ltd",
+    "search_model": "auth.User",
+
+    # Menú Lateral
+    "show_sidebar": True,
+    "navigation_expanded": True,
+    
+    # Iconos Personalizados para tus Apps
+    "icons": {
+        "auth": "fas fa-users-cog",
+        "auth.user": "fas fa-user",
+        "auth.Group": "fas fa-users",
+        
+        # Caja y Finanzas
+        "Abrir_Cerrar_Caja.Cajas": "fas fa-cash-register",
+        "Abrir_Cerrar_Caja.Fondo_pagoss": "fas fa-wallet",
+        "Abrir_Cerrar_Caja.Movimiento_fondos": "fas fa-money-bill-wave",
+        "Abrir_Cerrar_Caja.Historial_cajas": "fas fa-history",
+        
+        # Clientes y Personal
+        "autenticacion.Clientess": "fas fa-user-tie",
+        "autenticacion.Empleadoss": "fas fa-id-card-alt",
+        "autenticacion.Direccioness": "fas fa-map-marker-alt",
+        
+        # Configuración
+        "Config_PR.Alertass": "fas fa-bell",
+        "Config_PR.Estadoss": "fas fa-toggle-on",
+        
+        # Auditoría
+        "Auditoria.Registros de Auditoría": "fas fa-clipboard-list",
+    },
+
+    # Orden para que lo más importante salga arriba
+    "order_with_respect_to": [
+        "Abrir_Cerrar_Caja", 
+        "Control_VENTAS",
+        "autenticacion", 
+        "Config_PR", 
+        "auth"
+    ],
+}
+
+# Opcional: Ajustes visuales (tema oscuro/moderno)
+JAZZMIN_UI_TWEAKS = {
+    "theme": "flatly", # O prueba 'darkly' si te gusta el modo oscuro
+    "navbar": "navbar-primary navbar-dark",
 }
 
 # --- Seguridad adicional para entornos de producción ---

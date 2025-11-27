@@ -332,7 +332,7 @@ const JefeSuppliers = () => {
                             onChange={(e) => setSearchTermSuppliers(e.target.value)}
                             className="w-full bg-pr-dark-gray border border-pr-gray/20 rounded-lg py-2 px-4 pl-10 text-white focus:ring-pr-yellow focus:border-pr-yellow"
                         />
-                        <FontAwesomeIcon icon={faSearch} className="absolute left-3 top-1/2 -translate-y-1/2 text-pr-gray" />
+                        <FontAwesomeIcon icon={faSearch} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                     </div>
                     <select
                         value={selectedStatus}
@@ -357,7 +357,7 @@ const JefeSuppliers = () => {
 
                 {/* Suppliers Table */}
                 <div className="bg-pr-dark p-6 rounded-lg shadow-lg overflow-x-auto border border-pr-gray/20">
-                    <table className="w-full text-sm text-left text-gray-400">
+                    <table className="w-full text-sm text-left text-white">
                         <thead className="text-xs text-white uppercase bg-pr-dark border-b border-gray-700">
                             <tr>
                                 <th scope="col" className="px-6 py-3 cursor-pointer hover:bg-gray-700 transition-colors" onClick={() => requestSort('nombre_proveedor')}>
@@ -386,10 +386,10 @@ const JefeSuppliers = () => {
                                 sortedAndFilteredSuppliers.map((provider) => (
                                     <tr key={provider.id_proveedor} className="border-b bg-pr-dark-gray border-gray-700 hover:bg-gray-800 transition-colors">
                                         <th scope="row" className="px-6 py-4 font-medium text-white whitespace-nowrap">{provider.nombre_proveedor}</th>
-                                        <td className="px-6 py-4 hidden sm:table-cell">{provider.razon_social_proveedor || '-'}</td>
-                                        <td className="px-6 py-4 hidden md:table-cell">{provider.correo_proveedor || '-'}</td>
-                                        <td className="px-6 py-4 hidden lg:table-cell">{provider.telefono_proveedor || '-'}</td>
-                                        <td className="px-6 py-4 hidden xl:table-cell">{provider.cuit_proveedor || '-'}</td>
+                                        <td className="px-6 py-4 hidden sm:table-cell text-white">{provider.razon_social_proveedor || '-'}</td>
+                                        <td className="px-6 py-4 hidden md:table-cell text-white">{provider.correo_proveedor || '-'}</td>
+                                        <td className="px-6 py-4 hidden lg:table-cell text-white">{provider.telefono_proveedor || '-'}</td>
+                                        <td className="px-6 py-4 hidden xl:table-cell text-white">{provider.cuit_proveedor || '-'}</td>
                                         <td className="px-6 py-4"><StatusBadge estado={provider.estado_proveedor} /></td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex items-center space-x-2">
@@ -401,8 +401,8 @@ const JefeSuppliers = () => {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="7" className="text-center p-12 text-pr-gray">
-                                        <FontAwesomeIcon icon={faInbox} className="text-4xl text-pr-gray/50 mb-4" />
+                                    <td colSpan="7" className="text-center p-12 text-gray-400">
+                                        <FontAwesomeIcon icon={faInbox} className="text-4xl text-gray-600 mb-4" />
                                         <p className="font-bold text-white text-lg">{searchTermSuppliers || selectedStatus ? 'No se encontraron proveedores con esos filtros.' : 'No hay proveedores registrados.'}</p>
                                         {!searchTermSuppliers && !selectedStatus && <p className="text-sm">Puedes añadir uno usando el botón "Nuevo Proveedor".</p>}
                                     </td>
@@ -448,7 +448,7 @@ const JefeSuppliers = () => {
                             placeholder="Buscar Orden (ID, Proveedor, Estado)..."
                             className="w-full bg-pr-dark-gray border border-pr-gray/20 rounded-lg py-2 px-4 pl-10 text-white focus:ring-pr-yellow focus:border-pr-yellow"
                         />
-                        <FontAwesomeIcon icon={faSearch} className="absolute left-3 top-1/2 -translate-y-1/2 text-pr-gray"/>
+                        <FontAwesomeIcon icon={faSearch} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
                     </div>
                     <button onClick={() => setShowNewOrderModal(true)} className="btn-primary px-4 py-2 flex items-center shrink-0 ml-4">
                         <FontAwesomeIcon icon={faFileInvoiceDollar} className="mr-2" /> Nueva Orden
@@ -527,7 +527,7 @@ const JefeSuppliers = () => {
                     </div>
                 ) : (
                     // Empty State Orders
-                    <div className="text-center p-12 text-pr-gray bg-pr-dark rounded-lg border border-pr-gray/20">
+                    <div className="text-center p-12 text-gray-400 bg-pr-dark rounded-lg border border-pr-gray/20">
                         <FontAwesomeIcon icon={faInbox} className="text-4xl text-pr-gray/50 mb-4" />
                         <p className="font-bold text-white text-lg">{searchTermOrders ? 'No se encontraron órdenes con ese término.' : 'No hay órdenes de compra registradas.'}</p>
                         {!searchTermOrders && <p className="text-sm">Puedes crear una usando el botón "Nueva Orden".</p>}
