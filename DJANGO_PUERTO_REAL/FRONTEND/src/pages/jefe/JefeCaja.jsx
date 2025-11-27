@@ -23,7 +23,7 @@ const SummaryCard = ({ title, value, colorClass = 'text-white', isMain = false }
 
 const getMovementBadgeClass = (tipoEvento) => {
     const typeLower = tipoEvento?.nombre_evento?.toLowerCase() || '';
-    if (typeLower.includes('apertura')) return 'bg-blue-600/20 text-blue-300';
+    if (typeLower.includes('apertura')) return 'bg-pr-orange/20 text-pr-orange';
     if (typeLower.includes('ingreso')) return 'bg-green-600/20 text-green-300';
     if (typeLower.includes('venta')) return 'bg-teal-600/20 text-teal-300';
     if (typeLower.includes('egreso') || typeLower.includes('retiro')) return 'bg-red-600/20 text-red-300';

@@ -4,6 +4,19 @@
 
 @layer base {
   body {
-    @apply bg-pr-dark-gray font-sans text-gray-200;
+    @apply bg-pr-dark font-sans text-white;
+  }
+  
+  /* Paleta de colores negros con naranja */
+  :root {
+    --color-dark: #0A0A0A;
+    --color-dark-gray: #1A1A1A;
+    --color-dark-gray-2: #242424;
+    --color-gray: #333333;
+    --color-light-gray: #5A5A5A;
+    --color-orange: #FF9900;
+    --color-orange-dark: #E68A00;
+    --color-text-primary: #FFFFFF;
+    --color-text-secondary: #E0E0E0;
   }
 }

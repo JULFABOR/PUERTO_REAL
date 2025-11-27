@@ -12,13 +12,16 @@ export default {
     extend: {
       colors: {
         'pr-yellow': '#FFC700',
-        'pr-dark': '#121212',
-        'pr-dark-gray': '#1F2937',
-        'pr-gray': '#6B7280',
+        'pr-orange': '#FF9900',        // Naranja amarillento principal
+        'pr-orange-dark': '#E68A00',   // Naranja oscuro
+        'pr-dark': '#0A0A0A',          // Negro puro
+        'pr-dark-gray': '#1A1A1A',     // Negro oscuro (más claro)
+        'pr-dark-gray-2': '#242424',   // Negro aún más claro
+        'pr-gray': '#333333',          // Gris oscuro
+        'pr-light-gray': '#5A5A5A',    // Gris más claro
         'pr-green': '#10B981',
         'pr-red': '#EF4444',
         'pr-blue': '#3B82F6',
-        'pr-orange': '#F97316',
       },
       fontFamily: {
         'sans': ['Poppins', 'sans-serif'],

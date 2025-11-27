@@ -5,6 +5,9 @@ import apiClient from '@/api/apiClient';
 const EditProductModal = ({ isOpen, onClose, onSuccess, product, categories }) => {
     const [editingProduct, setEditingProduct] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [imageFile, setImageFile] = useState(null);
+    const [imagePreview, setImagePreview] = useState(null);
+    const [deleteImage, setDeleteImage] = useState(false);
 
     useEffect(() => {
         if (product) {
@@ -12,6 +15,15 @@ const EditProductModal = ({ isOpen, onClose, onSuccess, product, categories }) =
                 ...product,
                 categoria_producto: product.categoria?.id_categoria || '' 
             });
+            // initialize preview from existing product image if available
+            if (product.imagen_url) {
+                setImagePreview(product.imagen_url);
+            } else if (product.imagen_producto) {
+                // assume imagen_producto might be base64 or path
+                setImagePreview(product.imagen_producto);
+            } else {
+                setImagePreview(null);
+            }
         }
     }, [product]);
 
@@ -23,16 +35,26 @@ const EditProductModal = ({ isOpen, onClose, onSuccess, product, categories }) =
         e.preventDefault();
         if (!editingProduct) return;
         setIsSubmitting(true);
-        const payload = {
-            nombre_producto: editingProduct.nombre_producto,
-            barcode: editingProduct.barcode,
-            precio_unitario_venta_producto: editingProduct.precio_unitario_venta_producto,
-            precio_unitario_compra_producto: editingProduct.precio_unitario_compra_producto,
-            categoria_producto: editingProduct.categoria_producto ? parseInt(editingProduct.categoria_producto, 10) : null,
-        };
+        // Use FormData to support optional image upload
         try {
-            await apiClient.patch(`/stock/productos/${editingProduct.id_producto}/`, payload);
+            const formData = new FormData();
+            formData.append('nombre_producto', editingProduct.nombre_producto);
+            formData.append('barcode', editingProduct.barcode);
+            formData.append('precio_unitario_venta_producto', editingProduct.precio_unitario_venta_producto || '0');
+            formData.append('precio_unitario_compra_producto', editingProduct.precio_unitario_compra_producto || '0');
+            formData.append('categoria_producto', editingProduct.categoria_producto || '');
+            if (imageFile) {
+                formData.append('imagen_producto', imageFile);
+            }
+            if (deleteImage) {
+                formData.append('imagen_producto', ''); // Backend will interpret empty string as delete
+            }
+
+            await apiClient.patch(`/stock/productos/${editingProduct.id_producto}/`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
             toast.success('¡Producto actualizado!');
+            setImageFile(null);
+            setImagePreview(null);
+            setDeleteImage(false);
             onSuccess();
             onClose();
         } catch (error) {
@@ -42,6 +64,34 @@ const EditProductModal = ({ isOpen, onClose, onSuccess, product, categories }) =
             setIsSubmitting(false);
         }
     };
+
+    const handleImageChange = (e) => {
+        const file = e.target.files?.[0] || null;
+        if (!file) return;
+        
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            toast.error('Por favor, sube solo archivos de imagen.');
+            return;
+        }
+        
+        // Validate file size (5MB)
+        const MAX_SIZE = 5242880; // 5MB in bytes
+        if (file.size > MAX_SIZE) {
+            toast.error('La imagen no debe superar 5MB.');
+            return;
+        }
+        
+        setImageFile(file);
+        const url = URL.createObjectURL(file);
+        setImagePreview(url);
+    };
+
+    useEffect(() => {
+        return () => {
+            if (imagePreview && imagePreview.startsWith('blob:')) URL.revokeObjectURL(imagePreview);
+        };
+    }, [imagePreview]);
 
     if (!isOpen || !editingProduct) return null;
 
@@ -67,6 +117,20 @@ const EditProductModal = ({ isOpen, onClose, onSuccess, product, categories }) =
                                 <input type="number" step="0.01" name="precio_unitario_venta_producto" value={editingProduct.precio_unitario_venta_producto} onChange={handleChange} placeholder="Precio Venta" className="border text-sm rounded-lg block w-full p-2.5 bg-pr-dark-gray border-gray-500 text-white" required />
                                 <input type="number" step="0.01" name="precio_unitario_compra_producto" value={editingProduct.precio_unitario_compra_producto} onChange={handleChange} placeholder="Precio Compra" className="border text-sm rounded-lg block w-full p-2.5 bg-pr-dark-gray border-gray-500 text-white" required />
                             </div>
+                            <div>
+                                <label className="block mb-2 text-sm text-gray-400">Cambiar Imagen del Producto</label>
+                                <input type="file" accept="image/*" onChange={handleImageChange} className="block w-full text-sm text-white" />
+                                {imagePreview && (
+                                    <div className="mt-3">
+                                        <img src={imagePreview} alt="Preview" className="w-32 h-32 object-cover rounded-md border border-gray-700" />
+                                        <label className="mt-2 flex items-center text-sm text-gray-400">
+                                            <input type="checkbox" checked={deleteImage} onChange={(e) => setDeleteImage(e.target.checked)} className="mr-2" />
+                                            Eliminar imagen
+                                        </label>
+                                    </div>
+                                )}
+                            </div>
+
                             <button type="submit" disabled={isSubmitting} className="w-full text-pr-dark bg-pr-yellow hover:bg-yellow-400 font-bold rounded-lg text-sm px-5 py-2.5 text-center disabled:bg-yellow-700">{isSubmitting ? 'Guardando...' : 'Guardar Cambios'}</button>
                         </form>
                     </div>

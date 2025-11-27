@@ -118,9 +118,6 @@ export const AuthProvider = ({ children }) => {
             // D. Guardamos usuario y terminamos
             setUser(usuarioNormalizado);
             
-            // Debug: loguear usuario para verificar estructura
-            console.log('Usuario normalizado después de login:', usuarioNormalizado);
-            
             try {
                 localStorage.setItem('userData', JSON.stringify(usuarioNormalizado));
             } catch (e) {
@@ -173,8 +170,6 @@ export const AuthProvider = ({ children }) => {
             } else if (error.message) {
                 errorMsg = error.message;
             }
-
-            // Logueamos el raw para debugging
 
             // Mostramos un toast inmediato para notificar al usuario
             try {

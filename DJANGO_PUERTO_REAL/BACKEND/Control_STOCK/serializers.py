@@ -43,6 +43,7 @@ class ProductoWriteSerializer(serializers.ModelSerializer):
 class ProductoSerializer(serializers.ModelSerializer):
     categoria_producto = CategoriaProductoSerializer(read_only=True)
     total_stock = serializers.IntegerField(read_only=True, default=0)
+    imagen_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Productos
@@ -50,7 +51,16 @@ class ProductoSerializer(serializers.ModelSerializer):
             'id_producto', 'nombre_producto', 'descripcion_producto',
             'precio_unitario_compra_producto', 'precio_unitario_venta_producto',
             'categoria_producto', 'estado_producto', 'low_stock_threshold', 'barcode', 'total_stock',
+            'imagen_producto', 'imagen_url'
         ]
+
+    def get_imagen_url(self, obj):
+        if obj.imagen_producto:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.imagen_producto.url)
+            return obj.imagen_producto.url
+        return None
 
 class StockSerializer(serializers.ModelSerializer):
     producto_en_stock = ProductoSerializer(read_only=True)

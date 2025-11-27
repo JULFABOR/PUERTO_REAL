@@ -144,11 +144,11 @@ const PaymentModal = ({ isOpen, onClose, onConfirm, total }) => {
                 return (
                     <div className="space-y-6 flex flex-col items-center text-center">
                         <h3 className="text-xl font-semibold text-white">Pago con Tarjeta</h3>
-                        <FontAwesomeIcon icon={faCreditCard} className="text-6xl text-blue-400 my-10" />
+                        <FontAwesomeIcon icon={faCreditCard} className="text-6xl text-pr-orange my-10" />
                         <p className="text-gray-400 text-lg">Confirme el pago en la terminal (Posnet/MercadoPago).</p>
                         <button 
                             onClick={handleConfirmar} 
-                            className="w-full bg-blue-600 text-white font-bold text-xl py-4 rounded-lg hover:bg-blue-700"
+                            className="w-full bg-pr-orange text-pr-dark font-bold text-xl py-4 rounded-lg hover:bg-yellow-400 transition-colors"
                         >
                             Confirmar Venta con Tarjeta
                         </button>

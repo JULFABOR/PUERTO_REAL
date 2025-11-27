@@ -4,8 +4,12 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
 import base64
-from PIL import Image, ImageDraw, ImageFont
 import os
+try:
+    from PIL import Image, ImageDraw, ImageFont
+    PIL_AVAILABLE = True
+except Exception:
+    PIL_AVAILABLE = False
 
 # Default seaborn style
 sns.set_style('darkgrid')
@@ -70,8 +74,12 @@ def to_base64_png(png_bytes):
 
 def add_watermark(png_bytes, text='PUERTO REAL', opacity=120, fontsize=14, color=(255, 199, 0)):
     """Add a small watermark text to the bottom-right of a PNG image (bytes).
-    Returns new PNG bytes.
+    Returns new PNG bytes. If Pillow is not available, returns original bytes.
     """
+    if not PIL_AVAILABLE:
+        # Pillow not installed; skip watermarking
+        return png_bytes
+
     try:
         img = Image.open(io.BytesIO(png_bytes)).convert('RGBA')
         txt = Image.new('RGBA', img.size, (255, 255, 255, 0))
@@ -82,10 +90,15 @@ def add_watermark(png_bytes, text='PUERTO REAL', opacity=120, fontsize=14, color
         except Exception:
             font = ImageFont.load_default()
 
-        text_w, text_h = draw.textsize(text, font=font)
+        # compute text size
+        try:
+            text_w, text_h = draw.textsize(text, font=font)
+        except Exception:
+            # Pillow versions may differ; fallback
+            text_w, text_h = (len(text) * fontsize * 0.6, fontsize)
+
         padding = 10
-        position = (img.width - text_w - padding, img.height - text_h - padding)
-        # RGBA color with opacity
+        position = (max(0, img.width - int(text_w) - padding), max(0, img.height - int(text_h) - padding))
         watermark_color = color + (opacity,)
         draw.text(position, text, font=font, fill=watermark_color)
         out = Image.alpha_composite(img, txt)
@@ -96,6 +109,9 @@ def add_watermark(png_bytes, text='PUERTO REAL', opacity=120, fontsize=14, color
         buf.close()
         return data
     except Exception as e:
-        # if watermarking fails, return original bytes
+        # If watermarking fails, return original bytes
         print('Warning: watermark failed:', e)
         return png_bytes
+
+
+

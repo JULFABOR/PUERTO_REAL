@@ -50,6 +50,8 @@ const FormInput = ({ name, label, value, onChange, error, type = 'text', require
 const NewProductModal = ({ isOpen, onClose, onSuccess, categories }) => {
     const [newProduct, setNewProduct] = useState(initialNewProductState);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [imageFile, setImageFile] = useState(null);
+    const [imagePreview, setImagePreview] = useState(null);
 
     // --- CAMBIOS EN useEffect ---
     useEffect(() => {
@@ -95,44 +97,76 @@ const NewProductModal = ({ isOpen, onClose, onSuccess, categories }) => {
         if (!newProduct.estado_producto) return toast.error("El estado 'Activo' no se pudo cargar. Intenta de nuevo.");
         
         setIsSubmitting(true);
-
-        const productDataToSend = {
-            nombre_producto: newProduct.nombre_producto,
-            barcode: newProduct.barcode,
-            precio_unitario_venta_producto: parseFloat(newProduct.precio_unitario_venta_producto),
-            precio_unitario_compra_producto: parseFloat(newProduct.precio_unitario_compra_producto),
-            categoria_producto: parseInt(newProduct.categoria_producto, 10),
-            estado_producto: parseInt(newProduct.estado_producto, 10),
-            // Valores por defecto que tu backend espera
-            stock_adquirido: 0,
-            stock_actual: 0,
-            descripcion_producto: '',
-            low_stock_threshold: 10,
-            fecha_vencimiento_producto: null
-        };
+        // Build FormData to support image upload
+        const formData = new FormData();
+        formData.append('nombre_producto', newProduct.nombre_producto);
+        formData.append('barcode', newProduct.barcode);
+        formData.append('precio_unitario_venta_producto', newProduct.precio_unitario_venta_producto || '0');
+        formData.append('precio_unitario_compra_producto', newProduct.precio_unitario_compra_producto || '0');
+        formData.append('categoria_producto', newProduct.categoria_producto);
+        formData.append('estado_producto', newProduct.estado_producto);
+        // defaults expected by backend
+        formData.append('stock_adquirido', '0');
+        formData.append('stock_actual', '0');
+        formData.append('descripcion_producto', '');
+        formData.append('low_stock_threshold', '10');
+        if (imageFile) {
+            formData.append('imagen_producto', imageFile);
+        }
 
         try {
-            // --- CAMBIO 3: Sintaxis Axios POST ---
-            // Antes: await apiClient('/api/stock/productos/', { method: 'POST', body: ... })
-            // Ahora:
-            await apiClient.post('/stock/productos/', productDataToSend);
-            
+            await apiClient.post('/stock/productos/', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
             toast.success('¡Producto creado con éxito!');
             onSuccess();
+            setNewProduct(initialNewProductState);
+            setImageFile(null);
+            setImagePreview(null);
             onClose();
-        
         } catch (error) {
-            // --- CAMBIO 4: Manejo de error de Axios ---
-            // Antes: const errorMsg = error.data ? ...
-            // Ahora:
             const errorData = error.response?.data;
             const errorMsg = errorData ? Object.values(errorData).flat().join(' ') : 'No se pudo crear el producto.';
             toast.error(errorMsg);
-        
         } finally {
             setIsSubmitting(false);
         }
     };
+
+    const handleImageChange = (e) => {
+        const file = e.target.files?.[0] || null;
+        if (!file) {
+            setImageFile(null);
+            setImagePreview(null);
+            return;
+        }
+        
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            toast.error('Por favor, sube solo archivos de imagen.');
+            setImageFile(null);
+            setImagePreview(null);
+            return;
+        }
+        
+        // Validate file size (5MB)
+        const MAX_SIZE = 5242880; // 5MB in bytes
+        if (file.size > MAX_SIZE) {
+            toast.error('La imagen no debe superar 5MB.');
+            setImageFile(null);
+            setImagePreview(null);
+            return;
+        }
+        
+        setImageFile(file);
+        const url = URL.createObjectURL(file);
+        setImagePreview(url);
+    };
+
+    // Cleanup object URL on unmount or when imagePreview changes
+    useEffect(() => {
+        return () => {
+            if (imagePreview) URL.revokeObjectURL(imagePreview);
+        };
+    }, [imagePreview]);
 
     if (!isOpen) return null;
 
@@ -200,6 +234,15 @@ const NewProductModal = ({ isOpen, onClose, onSuccess, categories }) => {
                                 {categories.map(cat => <option key={cat.id_categoria} value={cat.id_categoria}>{cat.nombre_categoria}</option>)}
                             </select>
                             
+                            <div>
+                                <label className="block mb-2 text-sm text-gray-400">Imagen del Producto</label>
+                                <input type="file" accept="image/*" onChange={handleImageChange} className="block w-full text-sm text-white" />
+                                {imagePreview && (
+                                    <div className="mt-3">
+                                        <img src={imagePreview} alt="Preview" className="w-32 h-32 object-cover rounded-md border border-gray-700" />
+                                    </div>
+                                )}
+                            </div>
                         </div>
                         
                         <div className="flex items-center justify-end space-x-4">

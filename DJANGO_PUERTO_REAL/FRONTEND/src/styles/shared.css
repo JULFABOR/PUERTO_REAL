@@ -2,23 +2,69 @@
 @tailwind utilities;
 
 @layer components {
+  /* Cards */
   .card-base {
-    @apply bg-pr-dark p-6 rounded-lg shadow-lg transition-all duration-300 border border-pr-gray/20;
+    @apply bg-pr-dark-gray-2 p-6 rounded-lg shadow-lg transition-all duration-300 border border-pr-gray/30 hover:border-pr-orange/40 hover:shadow-xl;
   }
 
   .card-title {
     @apply text-xl font-bold text-white mb-2;
   }
 
+  .card-subtitle {
+    @apply text-sm text-pr-light-gray mb-4;
+  }
+
+  /* Buttons */
   .btn-primary {
-    @apply text-pr-dark bg-pr-yellow font-bold rounded-lg px-5 py-3 text-sm flex items-center justify-center gap-2 transition-colors;
+    @apply text-pr-dark bg-pr-yellow hover:bg-yellow-300 font-bold rounded-lg px-5 py-3 text-sm flex items-center justify-center gap-2 transition-all duration-200 transform hover:scale-105 active:scale-95 shadow-lg;
   }
 
   .btn-primary-lg {
-    @apply text-pr-dark bg-pr-yellow font-bold rounded-lg px-6 py-4 text-lg flex items-center justify-center gap-2 transition-colors;
+    @apply text-pr-dark bg-pr-yellow hover:bg-yellow-300 font-bold rounded-lg px-6 py-4 text-lg flex items-center justify-center gap-2 transition-all duration-200 transform hover:scale-105 active:scale-95 shadow-lg;
   }
 
   .btn-secondary {
-    @apply text-white bg-gray-600 hover:bg-gray-700 font-bold rounded-lg px-5 py-3 text-sm transition-colors;
+    @apply text-white bg-pr-gray hover:bg-pr-gray/80 font-bold rounded-lg px-5 py-3 text-sm transition-colors border border-pr-light-gray/20;
+  }
+
+  .btn-danger {
+    @apply text-white bg-pr-red hover:bg-red-600 font-bold rounded-lg px-5 py-3 text-sm transition-colors;
+  }
+  
+  /* Background utilities */
+  .bg-dark {
+    @apply bg-pr-dark;
+  }
+  
+  .bg-dark-gray {
+    @apply bg-pr-dark-gray;
+  }
+
+  .bg-dark-gray-2 {
+    @apply bg-pr-dark-gray-2;
+  }
+  
+  /* Text utilities */
+  .text-primary {
+    @apply text-white;
+  }
+  
+  .text-secondary {
+    @apply text-pr-light-gray;
+  }
+
+  .text-orange {
+    @apply text-pr-orange;
+  }
+
+  /* Inputs */
+  .input-base {
+    @apply bg-pr-dark-gray border border-pr-gray/50 text-white rounded-lg px-4 py-2 transition-all focus:outline-none focus:border-pr-orange focus:ring-2 focus:ring-pr-orange/20;
+  }
+
+  /* Tables */
+  .table-row-hover {
+    @apply hover:bg-pr-dark-gray-2 transition-colors cursor-pointer;
   }
 }

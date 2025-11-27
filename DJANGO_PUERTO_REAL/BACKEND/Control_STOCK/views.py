@@ -94,7 +94,7 @@ class ProductoViewSet(viewsets.ModelViewSet):
             return Response({"detail": f"Error al actualizar: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         instance = self.get_queryset().get(pk=instance.pk)
-        read_serializer = ProductoSerializer(instance)
+        read_serializer = ProductoSerializer(instance, context=self.get_serializer_context())
         return Response(read_serializer.data)
 
     def create(self, request, *args, **kwargs):
@@ -115,7 +115,7 @@ class ProductoViewSet(viewsets.ModelViewSet):
                     observaciones_stock=f"Stock inicial de {stock_adquirido} unidades."
                 )
             
-            read_serializer = ProductoSerializer(producto)
+            read_serializer = ProductoSerializer(producto, context=self.get_serializer_context())
             headers = self.get_success_headers(read_serializer.data)
             return Response(read_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 

@@ -4,6 +4,8 @@ Configuración de URL para el proyecto DJANGO_PUERTO_REAL.
 from django.contrib import admin
 from django.urls import path, include, re_path
 from django.views.generic import TemplateView
+from django.conf import settings
+from django.conf.urls.static import static
 from rest_framework.authtoken.views import obtain_auth_token
 
 # Se importan las listas de URLs de las apps
@@ -54,9 +56,15 @@ urlpatterns = [
     # path('api/financial-report/', financial_report_view, name='financial_report'),
     # path('api/product-sales-trends/', product_sales_trends_report_view, name='product_sales_trends'),
     # path('api/expense-breakdown/', expense_breakdown_report_view, name='expense_breakdown'),
+]
 
-    # CATCH-ALL ROUTE para Single Page Application (SPA)
-    # Esta ruta debe ir al final. Sirve el index.html principal del frontend
-    # para cualquier ruta no capturada anteriormente, permitiendo el enrutamiento del lado del cliente.
+# Servir archivos media en desarrollo ANTES del catch-all SPA route
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+# CATCH-ALL ROUTE para Single Page Application (SPA)
+# Esta ruta debe ir al final. Sirve el index.html principal del frontend
+# para cualquier ruta no capturada anteriormente, permitiendo el enrutamiento del lado del cliente.
+urlpatterns += [
     re_path(r'^.*', TemplateView.as_view(template_name='index.html')),
 ]

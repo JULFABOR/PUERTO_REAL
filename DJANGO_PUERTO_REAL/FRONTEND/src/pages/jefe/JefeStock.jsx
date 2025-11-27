@@ -5,6 +5,9 @@ import { toast } from 'react-hot-toast';
 import apiClient from '@/api/apiClient'; // Nuestra instancia de Axios
 import useDebounce from '../../hooks/useDebounce'; 
 
+// Componentes
+import ProductImage from '@/components/ProductImage';
+
 // Importamos los modales
 import NewProductModal from '@/components/Modals/Stock/NewProductModal';
 import EditProductModal from '@/components/Modals/Stock/EditProductModal';
@@ -212,12 +215,7 @@ const JefeStock = () => {
                                     key={product.id_producto} 
                                     className="bg-pr-dark rounded-lg shadow-lg flex flex-col border border-gray-700 transition-all duration-300 hover:shadow-pr-yellow/20"
                                 >
-                                    <img 
-                                        className="w-full h-48 object-cover rounded-t-lg" 
-                                        src={product.image || 'https://via.placeholder.com/150'} 
-                                        alt={product.nombre_producto} 
-                                        onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/150'; }}
-                                    />
+                                    <ProductImage imagenProducto={product.imagen_producto} imagenUrl={product.imagen_url} nombreProducto={product.nombre_producto} className="w-full h-48" />
                                     <div className="p-4 flex flex-col flex-grow justify-between">
                                         <div>
                                             <p className="text-sm text-gray-400 mb-1">{product.categoria_producto?.nombre_categoria || 'Sin categoría'}</p>

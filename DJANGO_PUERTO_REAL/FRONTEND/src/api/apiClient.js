@@ -35,6 +35,12 @@ apiClient.interceptors.request.use(
       // (Si pusiéramos 'Bearer', Django rechazaría la conexión -> Error 401 -> Recarga).
       config.headers['Authorization'] = `Token ${token}`;
     }
+    
+    // Si el body es FormData, NO establecer Content-Type (dejar que Axios lo maneje)
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
+    
     return config;
   },
   (error) => {

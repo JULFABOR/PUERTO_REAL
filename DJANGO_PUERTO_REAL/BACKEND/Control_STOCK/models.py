@@ -32,6 +32,7 @@ class Productos(models.Model):
     estado_producto = models.ForeignKey('Config_PR.Estados', on_delete=models.CASCADE)
     low_stock_threshold = models.IntegerField(default=0) # Added field
     barcode = models.CharField(max_length=100, unique=True, blank=True, null=True, default=None) # New field for barcode
+    imagen_producto = models.FileField(upload_to='productos/%Y/%m/', blank=True, null=True)  # Changed from ImageField to FileField
     DELETE_Prod = models.BooleanField(default=False)
     def __str__(self):
         return self.nombre_producto

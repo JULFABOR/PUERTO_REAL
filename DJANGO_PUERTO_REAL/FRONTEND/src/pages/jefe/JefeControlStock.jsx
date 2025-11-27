@@ -235,7 +235,7 @@ const JefeControlStock = () => {
                     </button>
                     <button
                         onClick={() => setShowAdjustStockModal(true)}
-                        className="w-full sm:w-auto text-white bg-blue-600 hover:bg-blue-700 font-bold rounded-lg text-sm px-5 py-2.5 text-center flex items-center justify-center gap-2 transition-colors"
+                        className="btn-primary w-full sm:w-auto"
                     >
                         <FontAwesomeIcon icon={faExchangeAlt} />
                         <span>Ajustar Stock</span>

@@ -148,8 +148,11 @@ def analisis_pdf_view(request):
                             png = f.read()
                     else:
                         png = plot_line_png(ts, 'date', y_col, title='Evolución de Ingresos')
-                        # add watermark and save
-                        png = add_watermark(png, text='PUERTO REAL')
+                        try:
+                            png = add_watermark(png, text='PUERTO REAL')
+                        except Exception:
+                            # If watermarking fails, continue with original image
+                            pass
                         with open(income_cache, 'wb') as f:
                             f.write(png)
                     chart_income_b64 = to_base64_png(png)
@@ -172,7 +175,10 @@ def analisis_pdf_view(request):
                             pngc = f.read()
                     else:
                         pngc = plot_pie_png(labels, values, title='Distribución por Categoría')
-                        pngc = add_watermark(pngc, text='PUERTO REAL')
+                        try:
+                            pngc = add_watermark(pngc, text='PUERTO REAL')
+                        except Exception:
+                            pass
                         with open(cat_cache, 'wb') as f:
                             f.write(pngc)
                     chart_categories_b64 = to_base64_png(pngc)
