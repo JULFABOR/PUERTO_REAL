@@ -8,7 +8,7 @@ import os
 from dotenv import load_dotenv
 import sys
 from django.core.exceptions import ImproperlyConfigured
-
+load_dotenv()
 # Construye rutas dentro del proyecto así: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent
     
