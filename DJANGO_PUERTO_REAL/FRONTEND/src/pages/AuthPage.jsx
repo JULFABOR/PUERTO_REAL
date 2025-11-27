@@ -13,6 +13,13 @@ import CTAButton from '@/components/shared/CTAButton';
 
 // --- Zod Schema for Registration Validation ---
 const registerSchema = z.object({
+    username: z.string({ required_error: "El nombre de usuario es requerido." })
+        .min(5, { message: 'El nombre de usuario debe tener al menos 5 caracteres.' })
+        .max(20, { message: 'El nombre de usuario no puede tener más de 20 caracteres.' })
+        .regex(/^[a-zA-Z0-9_]+$/, { message: "El nombre de usuario solo puede contener letras, números y guiones bajos." }),
+    dni: z.string({ required_error: "El DNI es requerido." })
+        .length(8, { message: 'El DNI debe tener exactamente 8 dígitos.' })
+        .regex(/^\d+$/, { message: "El DNI solo puede contener números." }),
     firstName: z.string({ required_error: "El nombre es requerido."})
         .min(5, { message: 'El nombre debe tener al menos 5 caracteres.' })
         .max(30, { message: 'El nombre no puede tener más de 30 caracteres.' })
@@ -73,7 +80,6 @@ const AuthPage = () => {
     const registerPassword = watchRegister('password', ''); 
 
     const [showRegisterPassword, setShowRegisterPassword] = useState(false);
-    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [registerError, setRegisterError] = useState('');
     const [registerSuccess, setRegisterSuccess] = useState('');
 
@@ -104,6 +110,8 @@ const AuthPage = () => {
 
         try {
             const response = await apiClient.post('/auth/register/', {
+                username: data.username,
+                dni: data.dni,
                 first_name: data.firstName,
                 last_name: data.lastName,
                 email: data.email,
@@ -170,10 +178,14 @@ const AuthPage = () => {
                         transition-all duration-1000 ease-out
                         ${animateLeftPanel ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
                         {/* --- Espacio para el Logo --- */}
-                        <div className="w-48 h-48 md:w-64 md:h-64 bg-pr-yellow rounded-full flex items-center justify-center shadow-lg">
-                            {/* Reemplaza este span con tu componente <img /> o <svg /> del logo */}
-                            <span className="text-pr-dark font-bold text-2xl select-none">LOGO</span>
+                        <div className="w-48 h-48 md:w-64 md:h-64 flex items-center justify-center shadow-lg">
+                            <img 
+              src="/logo1.jpg" 
+              alt="Puerto Real Logo" 
+              className="h-full w-full object-cover rounded-full border-4 border-pr-yellow" // Adjusted to object-cover for better image fit
+            />
                         </div>
+
                         <h1 className="text-4xl md:text-5xl font-bold text-white">PUERTO REAL</h1>
                         <p className="text-lg md:text-xl text-pr-gray">Gestión eficiente para un futuro brillante.</p>
                     </div>
@@ -263,6 +275,30 @@ const AuthPage = () => {
                                     >
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <div>
+                                                <label htmlFor="register-username" className="block mb-2 text-sm font-medium text-pr-gray">Nombre de Usuario</label>
+                                                <input
+                                                    type="text"
+                                                    id="register-username"
+                                                    className="bg-pr-dark-gray border border-pr-gray text-white text-sm rounded-lg focus:ring-pr-yellow focus:border-pr-yellow block w-full p-2.5"
+                                                    placeholder="Crea un nombre de usuario"
+                                                    autoComplete="username"
+                                                    {...registerRegister('username')}
+                                                />
+                                                {errorsRegister.username && <p className="mt-1 text-sm text-pr-red">{errorsRegister.username.message}</p>}
+                                            </div>
+                                            <div>
+                                                <label htmlFor="register-dni" className="block mb-2 text-sm font-medium text-pr-gray">DNI</label>
+                                                <input
+                                                    type="text"
+                                                    id="register-dni"
+                                                    className="bg-pr-dark-gray border border-pr-gray text-white text-sm rounded-lg focus:ring-pr-yellow focus:border-pr-yellow block w-full p-2.5"
+                                                    placeholder="Tu número de DNI (8 dígitos)"
+                                                    autoComplete="off"
+                                                    {...registerRegister('dni')}
+                                                />
+                                                {errorsRegister.dni && <p className="mt-1 text-sm text-pr-red">{errorsRegister.dni.message}</p>}
+                                            </div>
+                                            <div>
                                                 <label htmlFor="register-first-name" className="block mb-2 text-sm font-medium text-pr-gray">Nombre</label>
                                                 <input
                                                     type="text"
@@ -286,8 +322,7 @@ const AuthPage = () => {
                                                 />
                                                 {errorsRegister.lastName && <p className="mt-1 text-sm text-pr-red">{errorsRegister.lastName.message}</p>}
                                             </div>
-                                        </div>
-                                        <div>
+                                        </div>                                        <div>
                                             <label htmlFor="register-email" className="block mb-2 text-sm font-medium text-pr-gray">Correo electrónico</label>
                                             <input
                                                 type="email"
@@ -325,7 +360,7 @@ const AuthPage = () => {
                                         <div className="relative">
                                             <label htmlFor="confirm-password" className="block mb-2 text-sm font-medium text-pr-gray">Confirmar contraseña</label>
                                             <input
-                                                type={showConfirmPassword ? 'text' : 'password'}
+                                                type={showRegisterPassword ? 'text' : 'password'}
                                                 id="confirm-password"
                                                 placeholder="Confirma tu contraseña"
                                                 className={`bg-pr-dark-gray border ${errorsRegister.confirmPassword ? 'border-pr-red' : 'border-pr-gray'} text-white text-sm rounded-lg focus:ring-pr-yellow focus:border-pr-yellow block w-full p-2.5`}
@@ -334,10 +369,10 @@ const AuthPage = () => {
                                             />
                                             <button 
                                                 type="button"
-                                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                                onClick={() => setShowRegisterPassword(!showRegisterPassword)}
                                                 className="absolute inset-y-0 right-0 top-7 px-3 flex items-center text-pr-gray hover:text-pr-yellow focus:outline-none"
                                             >
-                                                <FontAwesomeIcon icon={showConfirmPassword ? faEyeSlash : faEye} />
+                                                <FontAwesomeIcon icon={showRegisterPassword ? faEyeSlash : faEye} />
                                             </button>
                                         </div>
                                         {errorsRegister.confirmPassword && (

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
-    faBars, faTimes, faCashRegister, faBoxesStacked, faBookOpen, 
+    faHome, faBars, faTimes, faCashRegister, faBoxesStacked, faBookOpen, 
     faUsers, faTruckField, faMoneyBillWave, faSignOutAlt, faSpinner
 } from '@fortawesome/free-solid-svg-icons';
 import { initFlowbite } from 'flowbite';
@@ -16,7 +16,7 @@ const SidebarLink = ({ to, icon, children }) => (
             to={to}
             className={({ isActive }) =>
                 `flex items-center gap-4 p-3 rounded-lg transition-colors text-pr-gray hover:bg-pr-gray hover:text-white ${
-                    isActive ? 'bg-pr-yellow text-pr-dark shadow-md' : ''
+                    isActive ? 'bg-pr-yellow text-black shadow-md' : ''
                 }`
             }
         >
@@ -67,8 +67,12 @@ const EmpleadoLayout = () => {
             >
                 {/* Logo y Título */}
                 <div className="flex flex-col items-center gap-4 mb-8">
-                    <div className="w-24 h-24 bg-pr-yellow rounded-full flex items-center justify-center shadow-lg">
-                        <span className="text-pr-dark font-bold text-xl select-none">LOGO</span>
+                    <div className="w-24 h-24 flex items-center justify-center shadow-lg">
+                        <img 
+                            src="/logo1.jpg" 
+                            alt="Puerto Real Logo" 
+                            className="h-full w-full object-cover rounded-full border-2 border-pr-yellow" // Reduced border size for a smaller logo
+                        />
                     </div>
                     <h1 className="text-2xl font-bold text-white">Puerto Real</h1>
                 </div>
@@ -78,6 +82,7 @@ const EmpleadoLayout = () => {
                     <div>
                         <h3 className="font-semibold text-pr-gray text-sm mb-3 px-3">MENÚ</h3>
                         <ul className="space-y-2">
+                            <SidebarLink to="/empleado/home" icon={faHome}>Panel Principal</SidebarLink>
                             <SidebarLink to="/empleado/pos" icon={faCashRegister}>Ventas (POS)</SidebarLink>
                             <SidebarLink to="/empleado/control-stock" icon={faBoxesStacked}>Control Stock</SidebarLink>
                             <SidebarLink to="/empleado/stock" icon={faBookOpen}>Stock</SidebarLink>

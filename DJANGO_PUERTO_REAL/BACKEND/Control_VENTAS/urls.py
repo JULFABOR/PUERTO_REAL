@@ -4,7 +4,8 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     VentaViewSet, 
     VentasDashboardView,
-    VentaView
+    VentaView,
+    ProductSalesPerformanceView
 )
 
 app_name = 'ventas'
@@ -22,5 +23,6 @@ urlpatterns = [
 
 # URLs para la API
 api_urlpatterns = [
-    path('', include(router.urls)), 
+    path('', include(router.urls)),
+    path('sales-performance/', ProductSalesPerformanceView.as_view(), name='sales-performance'),
 ]

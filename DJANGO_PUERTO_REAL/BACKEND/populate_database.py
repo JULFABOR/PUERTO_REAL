@@ -139,6 +139,12 @@ def obtener_recursos_esenciales():
         defaults={'dni_empleado': '12345678', 'telefono_empleado': '1122334455'}
     )
     if created: print(f'✅ Empleado de sistema \'{empleado.user_empleado.username}\' creado.')
+
+    # Corregir el rol del perfil del admin/jefe
+    if hasattr(admin_user, 'perfil') and admin_user.perfil.rol != 'JEFE':
+        admin_user.perfil.rol = 'JEFE'
+        admin_user.perfil.save()
+        print(f"✅ Rol del usuario '{admin_user.username}' actualizado a 'JEFE'.")
     
     # Caja 'ABIERTA'
     estado_abierta = Estados.objects.get(nombre_estado='ABIERTA', tipo_estado__nombre_tipo_estado='ESTADO_CAJA')

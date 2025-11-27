@@ -30,7 +30,7 @@ import JefeAnalysis from './pages/jefe/JefeAnalysis.jsx';
 import JefeCaja from './pages/jefe/JefeCaja.jsx';
 import JefeControlStock from './pages/jefe/JefeControlStock.jsx';
 import JefeCustomers from './pages/jefe/JefeCustomers.jsx';
-import JefeStock from './pages/jefe/JefeStock.jsx';
+import StockJefeView from './pages/StockJefeView.jsx'; // Import the new component
 import JefeSuppliers from './pages/jefe/JefeSuppliers.jsx';
 import JefeSettings from './pages/jefe/JefeSettings.jsx';
 
@@ -93,7 +93,7 @@ function App() {
           <Route path="caja" element={<JefeCaja />} />
           <Route path="control-stock" element={<JefeControlStock />} />
           <Route path="customers" element={<JefeCustomers />} />
-          <Route path="stock" element={<JefeStock />} />
+          <Route path="stock" element={<StockJefeView />} /> {/* Use the new component here */}
           <Route path="suppliers" element={<JefeSuppliers />} />
           <Route path="settings" element={<JefeSettings />} />
         </Route>
@@ -102,17 +102,21 @@ function App() {
         <Route 
           path="/cliente" 
           element={
-            <ProtectedRoute allowedRoles={['CLIENTE']}>
-              <SearchProvider>
-                <ClienteLayout />
-              </SearchProvider>
-            </ProtectedRoute>
+            <SearchProvider>
+              <ClienteLayout />
+            </SearchProvider>
           }
         >
-          {/* SOLUCIÓN: Si entran a "/cliente", los manda a "/cliente/home" */}
           <Route index element={<Navigate to="home" replace />} />
           
-          <Route path="home" element={<ClienteHome />} />
+          <Route 
+            path="home" 
+            element={
+              <ProtectedRoute allowedRoles={['CLIENTE']}>
+                <ClienteHome />
+              </ProtectedRoute>
+            } 
+          />
           <Route path="productos" element={<ClienteProductos />} />
           <Route path="promociones" element={<PromocionesPage />} />
           <Route path="search" element={<ClienteSearchPage />} />

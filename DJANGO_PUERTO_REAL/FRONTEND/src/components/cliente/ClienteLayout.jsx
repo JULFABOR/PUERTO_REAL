@@ -64,8 +64,12 @@ const ClienteLayout = () => {
                 <div className="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
                     {/* Logo y Título */}
                     <NavLink to="/cliente/home" className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-pr-yellow rounded-full flex items-center justify-center shadow-lg">
-                            <span className="text-pr-dark font-bold text-lg select-none">LOGO</span>
+                        <div className="w-12 h-12 flex items-center justify-center shadow-lg">
+                            <img 
+                                src="/logo1.jpg" 
+                                alt="Puerto Real Logo" 
+                                className="h-full w-full object-cover rounded-full border-2 border-pr-yellow" // Smaller logo, so smaller border
+                            />
                         </div>                        <span className="self-center text-2xl font-bold whitespace-nowrap text-white">Puerto Real</span>
                     </NavLink>
 

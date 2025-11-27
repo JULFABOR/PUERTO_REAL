@@ -16,8 +16,8 @@ const ClienteProductos = () => {
             setLoading(true);
             try {
                 const url = searchTerm
-                    ? `/control_stock/productos/?search=${encodeURIComponent(searchTerm)}`
-                    : '/control_stock/productos/';
+                    ? `/stock/productos/?search=${encodeURIComponent(searchTerm)}`
+                    : '/stock/productos/';
                 const response = await apiClient.get(url);
                 setProducts(response.data);
             } catch (error) {

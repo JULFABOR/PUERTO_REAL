@@ -2,7 +2,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faTrash, faSpinner, faInbox, faCogs } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-hot-toast';
-import apiClient from '@/api/apiClient';
+import { format, subDays } from 'date-fns';
+import { Datepicker, Card } from 'flowbite-react';
+import Chart from 'react-apexcharts';
+import apiClient from '../../api/apiClient';
 import useDebounce from '../../hooks/useDebounce';
 
 import NewProductModal from '@/components/Modals/Stock/NewProductModal';
@@ -34,6 +37,13 @@ const JefeStock = () => {
     const [selectedCategory, setSelectedCategory] = useState('');
     const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
+    // State for dashboard
+    const [stockSummary, setStockSummary] = useState(null);
+    const [productSalesPerformance, setProductSalesPerformance] = useState([]);
+    const [topProductsByStock, setTopProductsByStock] = useState([]);
+    const [startDate, setStartDate] = useState(subDays(new Date(), 30));
+    const [endDate, setEndDate] = useState(new Date());
+
     const fetchProducts = useCallback(async (page = 1) => {
         setLoading(true);
         try {
@@ -62,6 +72,37 @@ const JefeStock = () => {
         }
     }, [debouncedSearchTerm, selectedCategory]);
 
+    const fetchDashboardData = useCallback(async () => {
+        setLoading(true);
+        try {
+            const formattedStartDate = format(startDate, 'yyyy-MM-dd');
+            const formattedEndDate = format(endDate, 'yyyy-MM-dd');
+
+            // Fetch summary, sales performance, and top products in parallel
+            const [summaryResponse, salesResponse, topProductsResponse] = await Promise.all([
+                apiClient.get('/stock/stock-movement-summary/', {
+                    params: { start_date: formattedStartDate, end_date: formattedEndDate },
+                }),
+                apiClient.get('/ventas/sales-performance/', {
+                    params: { start_date: formattedStartDate, end_date: formattedEndDate, limit: 5 },
+                }),
+                apiClient.get('/stock/top-products-by-stock/', {
+                    params: { limit: 10, order_by: '-total_stock' },
+                }),
+            ]);
+            
+            setStockSummary(summaryResponse.data);
+            setProductSalesPerformance(salesResponse.data);
+            setTopProductsByStock(topProductsResponse.data);
+
+        } catch (error) {
+            toast.error("No se pudieron cargar los datos del dashboard.");
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    }, [startDate, endDate]);
+
     const fetchCategories = useCallback(async () => {
         try {
             const response = await apiClient.get('/stock/categorias/');
@@ -76,7 +117,8 @@ const JefeStock = () => {
     const refreshAllData = useCallback(() => {
         fetchProducts(currentPage);
         fetchCategories();
-    }, [currentPage, fetchProducts, fetchCategories]);
+        fetchDashboardData();
+    }, [currentPage, fetchProducts, fetchCategories, fetchDashboardData]);
 
     useEffect(() => {
         fetchProducts(1);
@@ -85,8 +127,9 @@ const JefeStock = () => {
 
     useEffect(() => {
         fetchCategories();
-    }, [fetchCategories]);
-
+        fetchDashboardData();
+    }, [fetchCategories, fetchDashboardData]);
+    
     useEffect(() => {
         // Este efecto se dispara solo cuando cambia la página, excepto en la carga inicial
         // que es manejada por el efecto anterior.
@@ -134,13 +177,182 @@ const JefeStock = () => {
         }
     };
 
+    // ApexCharts options and series for Product Sales Performance (Bar Chart)
+    const salesProductNames = productSalesPerformance.map(item => item.product_name);
+    const salesQuantities = productSalesPerformance.map(item => item.total_quantity_sold);
+
+    const salesPerformanceOptions = {
+        chart: {
+            id: 'sales-performance-chart',
+            toolbar: { show: false },
+            foreColor: '#9CA3AF'
+        },
+        plotOptions: {
+            bar: {
+                horizontal: false,
+                columnWidth: '50%',
+                borderRadius: 4
+            },
+        },
+        dataLabels: { enabled: false },
+        stroke: {
+            show: true,
+            width: 2,
+            colors: ['transparent']
+        },
+        xaxis: {
+            categories: salesProductNames,
+            title: { text: 'Producto', style: { color: '#9CA3AF' } },
+            labels: { style: { colors: '#9CA3AF' } }
+        },
+        yaxis: {
+            title: { text: 'Cantidad Vendida', style: { color: '#9CA3AF' } },
+            labels: { style: { colors: '#9CA3AF' } }
+        },
+        fill: {
+            opacity: 1,
+            colors: ['#FBBF24']
+        },
+        tooltip: {
+            theme: 'dark',
+            y: {
+                formatter: (val) => `${val} unidades`
+            }
+        },
+        grid: {
+            borderColor: '#4B5563',
+            row: { colors: ['transparent', 'transparent'], opacity: 0.5 },
+            column: { colors: ['transparent', 'transparent'], opacity: 0.5 }
+        },
+    };
+
+    const salesPerformanceSeries = [{
+        name: 'Cantidad Vendida',
+        data: salesQuantities
+    }];
+
     return (
         <>
             <div className="bg-pr-dark-gray p-6 rounded-lg shadow-lg">
-                <h2 className="text-2xl font-bold text-white mb-4">Gestión de Stock</h2>
+                <h2 className="text-2xl font-bold text-white mb-4">Dashboard y Gestión de Stock</h2>
 
-                {/* Panel de Control */}
+                {/* Dashboard Section */}
+                <div className="mb-6">
+                    <h3 className="text-xl font-semibold text-white mb-4">Resumen Estratégico</h3>
+                    <div className="mb-4 flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-4">
+                        <div>
+                            <label htmlFor="startDate" className="block text-sm font-medium text-gray-400 mb-1">Desde:</label>
+                            <Datepicker
+                                id="startDate"
+                                value={format(startDate, 'dd/MM/yyyy')}
+                                onSelectedDateChanged={date => setStartDate(date)}
+                                labelTodayButton="Hoy"
+                                labelClearButton="Limpiar"
+                                maxDate={endDate}
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="endDate" className="block text-sm font-medium text-gray-400 mb-1">Hasta:</label>
+                            <Datepicker
+                                id="endDate"
+                                value={format(endDate, 'dd/MM/yyyy')}
+                                onSelectedDateChanged={date => setEndDate(date)}
+                                labelTodayButton="Hoy"
+                                labelClearButton="Limpiar"
+                                minDate={startDate}
+                            />
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                         <Card className="bg-pr-dark border border-gray-700">
+                            <h5 className="text-xl font-bold tracking-tight text-white">
+                                Total Entradas
+                            </h5>
+                            <p className="text-3xl font-bold text-pr-yellow">
+                                {loading ? <FontAwesomeIcon icon={faSpinner} className="animate-spin" /> : stockSummary?.total_entries ?? '0'}
+                            </p>
+                            <p className='text-gray-400 text-sm'>
+                                {format(startDate, 'dd/MM/yy')} - {format(endDate, 'dd/MM/yy')}
+                            </p>
+                        </Card>
+                        <Card className="bg-pr-dark border border-gray-700">
+                            <h5 className="text-xl font-bold tracking-tight text-white">
+                                Total Salidas
+                            </h5>
+                            <p className="text-3xl font-bold text-pr-yellow">
+                                {loading ? <FontAwesomeIcon icon={faSpinner} className="animate-spin" /> : stockSummary?.total_exits ?? '0'}
+                            </p>
+                             <p className='text-gray-400 text-sm'>
+                                {format(startDate, 'dd/MM/yy')} - {format(endDate, 'dd/MM/yy')}
+                            </p>
+                        </Card>
+                        <Card className="bg-pr-dark border border-gray-700">
+                           <h5 className="text-xl font-bold tracking-tight text-white">
+                                Variación Neta
+                            </h5>
+                            <p className="text-3xl font-bold text-pr-yellow">
+                                {loading ? <FontAwesomeIcon icon={faSpinner} className="animate-spin" /> : stockSummary ? (stockSummary.total_entries - stockSummary.total_exits) : '0'}
+                            </p>
+                             <p className='text-gray-400 text-sm'>
+                                {format(startDate, 'dd/MM/yy')} - {format(endDate, 'dd/MM/yy')}
+                            </p>
+                        </Card>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-6">
+                    <div className="lg:col-span-3">
+                        <Card className="bg-pr-dark border border-gray-700 h-full">
+                            <h5 className="text-xl font-bold tracking-tight text-white mb-4">
+                                Top 5 Productos Más Vendidos
+                            </h5>
+                            {loading ? (
+                                <div className="flex justify-center items-center h-full text-pr-yellow">
+                                    <FontAwesomeIcon icon={faSpinner} className="animate-spin text-3xl" />
+                                </div>
+                            ) : (
+                                <Chart options={salesPerformanceOptions} series={salesPerformanceSeries} type="bar" height={350} />
+                            )}
+                        </Card>
+                    </div>
+                    <div className="lg:col-span-2">
+                        <Card className="bg-pr-dark border border-gray-700 h-full">
+                            <h5 className="text-xl font-bold tracking-tight text-white mb-4">
+                                Productos con Mayor Stock
+                            </h5>
+                            {loading ? (
+                                <div className="flex justify-center items-center h-full text-pr-yellow">
+                                    <FontAwesomeIcon icon={faSpinner} className="animate-spin text-3xl" />
+                                </div>
+                            ) : (
+                                <div className="overflow-y-auto h-[350px]">
+                                    <table className="min-w-full divide-y divide-gray-700">
+                                        <thead className="bg-gray-800 sticky top-0">
+                                            <tr>
+                                                <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Producto</th>
+                                                <th scope="col" className="px-4 py-2 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Stock</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-700">
+                                            {topProductsByStock.map(product => (
+                                                <tr key={product.id_producto}>
+                                                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-white">{product.nombre_producto}</td>
+                                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-right text-gray-300">{product.total_stock}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </Card>
+                    </div>
+                </div>
+
+                <hr className="border-gray-700 my-6" />
+
+                {/* Panel de Control de Productos */}
                 <div className="bg-pr-dark p-4 rounded-lg mb-6 border border-gray-700">
+                    <h3 className="text-xl font-semibold text-white mb-4">Gestión de Productos</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-center">
                         <input 
                             type="text" 

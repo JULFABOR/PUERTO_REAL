@@ -13,7 +13,11 @@ import {
     faSortDown,
     faCircle,
     faFileInvoiceDollar,
-    faEye 
+    faEye,
+    faTruck,
+    faLandmark,
+    faChartPie,
+    faCrown
 } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-hot-toast';
 import apiClient from '@/api/apiClient'; // Nuestra instancia de Axios
@@ -59,16 +63,35 @@ const StatusBadge = ({ estado }) => {
         >
             <FontAwesomeIcon icon={faCircle} className="w-2 h-2 mr-1.5" />
             {estado?.nombre_estado || 'Desconocido'}
-        </span>
-    );
-};
-
-
-const JefeSuppliers = () => {
-    // --- STATE MANAGEMENT (Sin cambios) ---
-    const [viewMode, setViewMode] = useState('suppliers');
-    const [providers, setProviders] = useState([]);
-    const [loadingSuppliers, setLoadingSuppliers] = useState(true);
+            </span>
+          );
+        };
+        
+        // --- HELPER COMPONENT: SORTABLE HEADER ---
+        const SortableHeader = ({ name, sortConfig, onSort, children }) => (
+            <th scope="col" className="px-6 py-3 cursor-pointer hover:bg-gray-700 transition-colors" onClick={() => onSort(name)}>
+                <div className="flex items-center">
+                    {children}
+                    <SortIndicator direction={sortConfig.key === name ? sortConfig.direction : null} />
+                </div>
+            </th>
+        );
+        
+        const formatDate = (dateString) => {
+            if (!dateString) return <span className="text-gray-500">N/A</span>;
+            const date = new Date(dateString);
+            return date.toLocaleDateString('es-AR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            });
+        };
+        
+        
+        const JefeSuppliers = () => {
+            // --- STATE MANAGEMENT (Sin cambios) ---
+            const [viewMode, setViewMode] = useState('suppliers');
+            const [providers, setProviders] = useState([]);    const [loadingSuppliers, setLoadingSuppliers] = useState(true);
     const [supplierError, setSupplierError] = useState(null);
     const [searchTermSuppliers, setSearchTermSuppliers] = useState('');
     const [sortConfig, setSortConfig] = useState({ key: 'nombre_proveedor', direction: 'ascending' });

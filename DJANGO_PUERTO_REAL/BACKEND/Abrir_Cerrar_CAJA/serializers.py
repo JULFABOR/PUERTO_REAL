@@ -115,6 +115,16 @@ class CerrarCajaInputSerializer(serializers.Serializer):
     monto_cierre_real = serializers.DecimalField(max_digits=10, decimal_places=2)
     observaciones_cierre = serializers.CharField(max_length=255, required=False, allow_blank=True)
 
+    def to_internal_value(self, data):
+        # Asegúrate de que monto_cierre_real se convierta a Decimal correctamente
+        # Incluso si viene como string del frontend.
+        if 'monto_cierre_real' in data and isinstance(data['monto_cierre_real'], str):
+            try:
+                data['monto_cierre_real'] = Decimal(data['monto_cierre_real'])
+            except ValueError:
+                raise serializers.ValidationError({'monto_cierre_real': 'Debe ser un número válido.'})
+        return super().to_internal_value(data)
+
 class MovimientoFondoInputSerializer(serializers.Serializer):
     monto = serializers.DecimalField(max_digits=12, decimal_places=2)
     motivo = serializers.CharField(max_length=200, required=False, allow_blank=True)

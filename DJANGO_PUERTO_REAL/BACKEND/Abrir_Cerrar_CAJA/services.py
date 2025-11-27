@@ -20,7 +20,7 @@ def _event(name: str) -> Tipo_Evento:
 
 def _caja_abierta():
     # Obtener el objeto Estado correspondiente a 'ABIERTA'
-    tipo_estado_caja, _ = Tipos_Estados.objects.get_or_create(nombre_tipo_estado='Caja')
+    tipo_estado_caja, _ = Tipos_Estados.objects.get_or_create(nombre_tipo_estado='ESTADO_CAJA')
     estado_abierto, _ = Estados.objects.get_or_create(
         nombre_estado='ABIERTA',
         defaults={'tipo_estado': tipo_estado_caja}
@@ -226,21 +226,36 @@ def rendir_fondo_service(monto: Decimal, empleado_actual: Empleados):
         )
     return caja_activa
 
-@transaction.atomic # Asegura atomicidad
+@transaction.atomic
 def cerrar_caja_service(monto_cierre_real: Decimal, observaciones_cierre: str, empleado_actual: Empleados):
     """
-    Cierra la caja abierta actual del sistema.
-    'empleado_actual' es quien realiza la acción.
+    Cierra la caja abierta del empleado que realiza la acción.
     """
-    if not empleado_actual: # Necesitamos saber quién cierra
+    if not empleado_actual:
         raise ValueError("Se requiere el empleado que está cerrando la caja.")
 
-    # --- CORRECCIÓN: Usa la función que busca LA caja abierta ---
-    caja_activa = _caja_abierta() # Llama a la función que busca sin filtro de empleado
-    if not caja_activa:
-        # Si _caja_abierta() devuelve None (porque no encontró ninguna)
-        raise ValueError("No se encontró ninguna caja abierta en el sistema para cerrar.")
-    # Ya no necesitamos el try/except anterior para buscar la caja
+    try:
+        # Identificar el estado 'ABIERTA'
+        tipo_estado_caja, _ = Tipos_Estados.objects.get_or_create(nombre_tipo_estado='Caja')
+        estado_abierto = Estados.objects.get(nombre_estado='ABIERTA', tipo_estado=tipo_estado_caja)
+
+        # Encontrar el ID de la caja que este empleado ha usado
+        cajas_del_empleado_ids = Historial_Caja.objects.filter(
+            empleado_hc=empleado_actual
+        ).values_list('caja_hc_id', flat=True).distinct()
+
+        # Obtener la caja activa específica de este empleado
+        caja_activa = Cajas.objects.get(
+            id_caja__in=cajas_del_empleado_ids,
+            estado_caja=estado_abierto
+        )
+    except Estados.DoesNotExist:
+        raise ValueError("Error de configuración: El estado 'ABIERTA' para Cajas no existe.")
+    except Cajas.DoesNotExist:
+        raise ValueError(f"El empleado {empleado_actual.user_empleado.username} no tiene ninguna caja abierta para cerrar.")
+    except Cajas.MultipleObjectsReturned:
+        raise ValueError(f"Error Crítico: El empleado {empleado_actual.user_empleado.username} tiene más de una caja abierta. Por favor, contacte a un administrador.")
+
 
     # --- Lógica de Cierre (resto sin cambios importantes) ---
     with transaction.atomic(): # Ya tenías un with transaction aquí, puedes quitar el decorador si prefieres

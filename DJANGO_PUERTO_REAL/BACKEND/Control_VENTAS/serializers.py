@@ -198,4 +198,15 @@ class VentaWriteSerializer(serializers.ModelSerializer):
                 # para mantener consistencia financiera.
                 raise serializers.ValidationError(str(e))
 
+            except Exception as e:
+                # Si por alguna razón la caja no puede actualizarse, fallamos la creación de la venta
+                # para mantener consistencia financiera.
+                raise serializers.ValidationError(str(e))
+
         return venta
+
+class ProductSalesPerformanceSerializer(serializers.Serializer):
+    product_id = serializers.IntegerField(source='producto_det_vent__id_producto')
+    product_name = serializers.CharField(source='producto_det_vent__nombre_producto')
+    total_quantity_sold = serializers.IntegerField()
+    total_revenue = serializers.DecimalField(max_digits=10, decimal_places=2)

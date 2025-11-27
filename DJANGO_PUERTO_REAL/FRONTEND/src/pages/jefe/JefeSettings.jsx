@@ -4,6 +4,7 @@ import apiClient from '@/api/apiClient';
 import { toast } from 'react-hot-toast';
 import { UserPlus, Edit, Trash2, KeyRound, Store, Star, Users, User, ServerCrash } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useStore } from '@/contexts/StoreContext'; // <--- 1. IMPORTAR
 
 // Pequeño componente para los íconos de las pestañas
 const TabIcon = ({ icon }) => React.createElement(icon, { className: "w-4 h-4 mr-2" });
@@ -20,9 +21,16 @@ const JefeSettings = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    // Estados para la configuración de la tienda
-    const [storeSettings, setStoreSettings] = useState({ nombre_tienda: '', direccion: '', telefono: '' });
+    // --- 2. USAR EL CONTEXTO DE LA TIENDA ---
+    const { storeSettings: contextStoreSettings, updateStoreSettings } = useStore();
+    const [storeSettings, setStoreSettings] = useState(contextStoreSettings);
     const [loadingStore, setLoadingStore] = useState(false);
+
+    // Sincronizar el estado local si el contexto cambia
+    useEffect(() => {
+        setStoreSettings(contextStoreSettings);
+    }, [contextStoreSettings]);
+
 
     // Estados para la configuración de puntos
     const [pointsSettings, setPointsSettings] = useState({ puntos_por_compra: 0, valor_punto: 0, puntos_por_referido: 0 });
@@ -96,25 +104,7 @@ const JefeSettings = () => {
     };
 
 
-    // --- 0. CARGAR DATOS DE LA TIENDA ---
-    useEffect(() => {
-        const fetchStoreSettings = async () => {
-            setLoadingStore(true);
-            try {
-                const response = await api.get('/configuracion/configuracion-tienda/');
-                setStoreSettings(response.data);
-            } catch (err) {
-                console.error("Error cargando la configuración de la tienda", err);
-                toast.error('No se pudo cargar la configuración de la tienda.');
-            } finally {
-                setLoadingStore(false);
-            }
-        };
-
-        if (activeTab === 'store') {
-            fetchStoreSettings();
-        }
-    }, [activeTab]);
+    // --- 0. EFECTO PARA LA TIENDA REMOVIDO, AHORA USA CONTEXTO ---
 
     // --- 0.5 CARGAR DATOS DE PUNTOS ---
     useEffect(() => {
@@ -203,7 +193,7 @@ const JefeSettings = () => {
         setLoadingStore(true);
         try {
             const response = await api.put('/configuracion/configuracion-tienda/', storeSettings);
-            setStoreSettings(response.data);
+            updateStoreSettings(response.data); // <-- 3. ACTUALIZAR EL CONTEXTO
             toast.success('¡Configuración de la tienda guardada!');
         } catch (err) {
             console.error("Error guardando la configuración de la tienda", err);

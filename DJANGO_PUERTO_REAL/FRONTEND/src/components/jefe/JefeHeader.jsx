@@ -14,8 +14,12 @@ const JefeHeader = ({ user }) => {
         <div className="relative bg-pr-dark border border-pr-gray/50 rounded-lg p-6 flex items-center mb-6">
             <div className="flex items-center flex-grow"> {/* Container for logo, title, and subtitle */}
                 {/* Circular Logo Placeholder */}
-                <div className="w-12 h-12 rounded-full bg-pr-yellow mr-4 flex-shrink-0">
-                    {/* Placeholder for the logo */}
+                <div className="w-12 h-12 rounded-full mr-4 flex-shrink-0 flex items-center justify-center shadow-lg">
+                    <img 
+                        src="/logo1.jpg" 
+                        alt="Puerto Real Logo" 
+                        className="h-full w-full object-cover rounded-full border-2 border-pr-yellow"
+                    />
                 </div>
                 <div>
                     <h1 className="text-2xl font-bold text-white">

@@ -25,7 +25,7 @@ from rest_framework.authentication import TokenAuthentication
 from .forms import AperturaCajaForm, RetiroEfectivoForm, RendirFondoForm
 from .models import Cajas, Historial_Caja, Tipo_Evento, Fondo_Pagos, Movimiento_Fondo
 from autenticacion.models import Empleados
-from Config_PR.models import Estados, Tipos_Movimientos
+from Config_PR.models import Estados, Tipos_Movimientos, Tipos_Estados
 from .serializers import (
     AperturaCajaInputSerializer, CajasSerializer, HistorialCajaSerializer,
     RetiroInputSerializer, RendirFondoInputSerializer, CerrarCajaInputSerializer,
@@ -33,8 +33,6 @@ from .serializers import (
     MovimientoCajaManualInputSerializer  # --- IMPORT AÑADIDO ---
 )
 from . import services
-from autenticacion.models import Empleados
-from Config_PR.models import Estados
 from autenticacion.permissions import IsJefe, IsJefeOrEmpleado
 
 
@@ -383,17 +381,43 @@ class CajaEstadoAPIView(APIView):
     permission_classes = [IsJefeOrEmpleado]
 
     def get(self, request, *args, **kwargs):
-        # La lógica de permisos ahora es manejada por IsJefe.
-        # Busca una caja que esté en estado 'ABIERTA'.
-        caja_abierta = Cajas.objects.filter(estado_caja__nombre_estado='ABIERTA').first()
+        user = request.user
+        is_jefe = user.groups.filter(name='Jefes').exists() or user.is_staff
+        empleado_actual = getattr(user, 'empleado', None)
+        caja_abierta = None
+
+        try:
+            # Usar la relación inversa para evitar la necesidad de importar Tipos_Estados
+            estado_abierto = Estados.objects.get(nombre_estado='ABIERTA', tipo_estado__nombre_tipo_estado='Caja')
+        except Estados.DoesNotExist:
+            return Response({'detail': "Error de configuración: El estado 'ABIERTA' para 'Caja' no existe."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        if is_jefe:
+            # El jefe ve la última caja abierta en el sistema para supervisión
+            caja_abierta = Cajas.objects.filter(estado_caja=estado_abierto).order_by('-id_caja').first()
+        elif empleado_actual:
+            # Un empleado solo debe ver SU PROPIA caja abierta
+            try:
+                cajas_del_empleado_ids = Historial_Caja.objects.filter(
+                    empleado_hc=empleado_actual
+                ).values_list('caja_hc_id', flat=True).distinct()
+
+                caja_abierta = Cajas.objects.get(
+                    id_caja__in=cajas_del_empleado_ids,
+                    estado_caja=estado_abierto
+                )
+            except Cajas.DoesNotExist:
+                caja_abierta = None  # Es normal que no tenga una caja abierta
+            except Cajas.MultipleObjectsReturned:
+                # Esto es un estado de error que el frontend debe saber
+                return Response({'detail': 'Error: Tienes múltiples cajas abiertas. Contacta a un administrador.'}, status=status.HTTP_400_BAD_REQUEST)
 
         if caja_abierta:
-            # Si se encuentra una caja abierta, serializa sus datos y los devuelve.
-            # El serializador se encarga de calcular el saldo actual y otros detalles.
+            # Si se encontró una caja (sea de jefe o de empleado), se serializa
             serializer = CajasSerializer(caja_abierta)
             return Response(serializer.data)
         else:
-            # Si no hay ninguna caja abierta, buscar la fecha del último cierre.
+            # Si no hay ninguna caja abierta para este usuario, buscar la fecha del último cierre
             ultimo_evento_cierre = Historial_Caja.objects.filter(
                 tipo_event_caja__nombre_evento='CIERRE'
             ).order_by('-fecha_movimiento_hcaja').first()

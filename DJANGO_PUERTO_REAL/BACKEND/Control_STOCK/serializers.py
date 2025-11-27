@@ -109,3 +109,7 @@ class StockAdjustmentSerializer(serializers.Serializer):
         if not data.get('product_id') and not data.get('barcode'):
             raise serializers.ValidationError("Either 'product_id' or 'barcode' must be provided.")
         return data
+
+class StockMovementSummarySerializer(serializers.Serializer):
+    total_entries = serializers.IntegerField()
+    total_exits = serializers.IntegerField()

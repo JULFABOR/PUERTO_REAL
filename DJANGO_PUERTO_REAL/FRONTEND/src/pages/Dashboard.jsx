@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from '@/api/apiClient';
 import { FaDollarSign, FaBoxes, FaUserPlus } from 'react-icons/fa';
 
 const Dashboard = () => {
@@ -15,7 +15,7 @@ const Dashboard = () => {
         const fetchStats = async () => {
             try {
                 // Hacemos la llamada al endpoint /api/dashboard-stats/
-                const response = await axios.get('/api/dashboard-stats/');
+                const response = await apiClient.get('/dashboard-stats/');
                 setStats(response.data);
             } catch (err) {
                 setError('No se pudieron cargar las estadísticas. Intente de nuevo más tarde.');

@@ -23,7 +23,7 @@ const ClienteSearchPage = () => {
             try {
                 // Assuming there's an API endpoint for product search
                 // You might need to adjust this endpoint and parameter based on your backend
-                const response = await apiClient.get(`/control_stock/productos/?search=${encodeURIComponent(searchTerm)}`);
+                const response = await apiClient.get(`/stock/productos/?search=${encodeURIComponent(searchTerm)}`);
                 setSearchResults(response.data);
             } catch (error) {
                 console.error('Error fetching search results:', error);

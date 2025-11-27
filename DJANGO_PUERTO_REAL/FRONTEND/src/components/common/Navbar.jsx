@@ -24,8 +24,8 @@ export default function CommonNavbar({ navLinks = [] }) {
   return (
     <Navbar fluid rounded className="bg-pr-dark-gray">
       <Navbar.Brand as={NavLink} to="/home">
-        <div className="w-12 h-12 bg-pr-yellow rounded-full flex items-center justify-center shadow-lg mr-3">
-            <img src="/logo1-removebg-preview.png" alt="Puerto Real Logo" className="h-full w-full object-contain" />
+        <div className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg mr-3">
+            <img src="/logo1.jpg" alt="Puerto Real Logo" className="h-full w-full object-cover rounded-full border-2 border-pr-yellow" />
         </div>
         <span className="self-center whitespace-nowrap text-xl font-semibold text-white">
           Puerto Real

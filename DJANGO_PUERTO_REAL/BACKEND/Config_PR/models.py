@@ -2,7 +2,7 @@ from django.db import models
 
 class Tipos_Estados(models.Model):
     id_tipo_estado = models.AutoField(primary_key=True)
-    nombre_tipo_estado = models.CharField(max_length=50)
+    nombre_tipo_estado = models.CharField(max_length=50, unique=True)
     DELETE_TE = models.BooleanField(default=False)
     def __str__(self):
         return self.nombre_tipo_estado
@@ -12,8 +12,14 @@ class Estados(models.Model):
     nombre_estado = models.CharField(max_length=50)
     tipo_estado = models.ForeignKey(Tipos_Estados, on_delete=models.CASCADE)
     DELETE_Est = models.BooleanField(default=False)
+
+    class Meta:
+        unique_together = ('nombre_estado', 'tipo_estado')
+        verbose_name = "Estado"
+        verbose_name_plural = "Estados"
+
     def __str__(self):
-        return self.nombre_estado
+        return f"{self.nombre_estado} ({self.tipo_estado.nombre_tipo_estado})"
 
 class Alertas(models.Model):
     id_alerta = models.AutoField(primary_key=True)

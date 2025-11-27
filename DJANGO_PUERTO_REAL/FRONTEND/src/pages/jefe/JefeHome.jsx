@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from '@/api/apiClient';
 import { useAuth } from '@/hooks/useAuth';
 import StatCard from '@/components/jefe/StatCard.jsx';
 import { SectionCard } from '@/components/Empleado';
@@ -24,7 +24,7 @@ const JefeHome = () => {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const response = await axios.get('/api/dashboard-stats/');
+                const response = await apiClient.get('/dashboard-stats/');
                 setStats(response.data);
             } catch (err) {
                 setError('No se pudieron cargar las estadísticas.');
