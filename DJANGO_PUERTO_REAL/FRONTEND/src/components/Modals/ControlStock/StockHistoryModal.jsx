@@ -111,6 +111,7 @@ const StockHistoryModal = ({ isOpen, onClose, product }) => {
                             <th scope="col" className="px-4 py-3">Fecha y Hora</th>
                             <th scope="col" className="px-4 py-3">Tipo Movimiento</th>
                             <th scope="col" className="px-4 py-3">Empleado</th>
+                            <th scope="col" className="px-4 py-3">Observaciones</th>
                             <th scope="col" className="px-4 py-3 text-center">Cantidad</th>
                             <th scope="col" className="px-4 py-3 text-center">Stock Anterior</th>
                             <th scope="col" className="px-4 py-3 text-center">Stock Nuevo</th>
@@ -127,6 +128,9 @@ const StockHistoryModal = ({ isOpen, onClose, product }) => {
                                     />
                                 </td>
                                 <td className="px-4 py-3 text-white">{item.empleado_hs || 'Sistema'}</td>
+                                <td className="px-4 py-3 text-sm text-gray-300 max-w-xs truncate" title={item.observaciones_hstock || item.observaciones || ''}>
+                                    {item.observaciones_hstock || item.observaciones || '-'}
+                                </td>
                                 <td className={`px-4 py-3 text-center font-bold ${item.cantidad_hstock > 0 ? 'text-green-400' : 'text-red-400'}`}>
                                     {item.cantidad_hstock > 0 ? `+${item.cantidad_hstock}` : item.cantidad_hstock}
                                 </td>

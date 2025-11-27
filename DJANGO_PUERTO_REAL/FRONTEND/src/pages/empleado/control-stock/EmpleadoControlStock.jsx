@@ -212,7 +212,7 @@ const EmpleadoControlStock = () => {
             </div>
 
             <div className="relative overflow-x-auto shadow-md rounded-lg border border-gray-700">
-                <table className="w-full text-sm text-left text-gray-400">
+                <table className="w-full text-sm text-left text-white">
                     <thead className="text-xs text-white uppercase bg-pr-dark border-b border-gray-700">
                         <tr>
                             <th scope="col" className="px-6 py-3 cursor-pointer hover:bg-gray-700" onClick={() => requestSort('barcode')}>
@@ -284,8 +284,8 @@ const EmpleadoControlStock = () => {
                             })
                         ) : (
                             <tr>
-                                <td colSpan="7" className="text-center p-12 text-pr-gray">
-                                    <FontAwesomeIcon icon={faInbox} className="text-4xl text-pr-gray/50 mb-4" />
+                                <td colSpan="7" className="text-center p-12 text-gray-400">
+                                    <FontAwesomeIcon icon={faInbox} className="text-4xl text-gray-600 mb-4" />
                                     <p className="font-bold text-white text-lg">
                                         {tableSearchTerm || tableSelectedCategory || tableSelectedStatus 
                                             ? 'No se encontraron productos con esos filtros.' 

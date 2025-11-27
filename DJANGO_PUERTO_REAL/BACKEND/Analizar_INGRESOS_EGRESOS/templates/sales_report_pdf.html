@@ -4,107 +4,223 @@
     <meta charset="UTF-8">
     <title>Reporte de Ventas</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
         @page {
             size: a4 portrait;
-            @frame header_frame {
-                -pdf-frame-content: header_content;
-                left: 50pt; right: 50pt; top: 50pt; height: 50pt;
+            margin: 80px 40px 60px 40px;
+            @bottom-center {
+                content: "Página " counter(page) " de " counter(pages);
+                font-size: 10px;
+                color: #888;
             }
-            @frame content_frame {
-                left: 50pt; right: 50pt; top: 120pt; bottom: 50pt;
-            }
-            @frame footer_frame {
-                -pdf-frame-content: footer_content;
-                left: 50pt; right: 50pt; bottom: 30pt; height: 20pt;
-            }
+        }
+        @page :first {
+            margin-top: 40px;
         }
         body {
-            font-family: 'Helvetica', 'Arial', sans-serif;
-            background-color: #121212; /* pr-dark */
-            color: #FFFFFF;
+            font-family: 'Segoe UI', 'Helvetica', 'Arial', sans-serif;
+            background-color: #FFFFFF;
+            color: #2c3e50;
+            line-height: 1.6;
         }
-        #header_content {
+        .header {
             text-align: center;
+            border-bottom: 5px solid #FFC700;
+            padding: 25px 20px;
+            margin: -40px -40px 25px -40px;
+            background: linear-gradient(135deg, #fff9e6 0%, #fffef5 100%);
+            padding-left: 40px;
+            padding-right: 40px;
         }
-        #header_content h1 {
-            font-size: 24px;
-            color: #FFC700; /* pr-yellow */
-            margin: 0;
+        .header h1 {
+            font-size: 36px;
+            color: #FFC700;
+            margin-bottom: 5px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
         }
-        #header_content p {
-            font-size: 12px;
-            color: #7f8c8d;
-            margin: 5px 0;
+        .header .subtitle {
+            font-size: 14px;
+            color: #666;
+            font-weight: 500;
+            letter-spacing: 1px;
         }
-        #footer_content {
-            text-align: right;
-            font-size: 10px;
-            color: #7f8c8d;
+        .meta-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #555;
+            margin-bottom: 25px;
+            border: 2px solid #FFC700;
+            padding: 12px 15px;
+            background-color: #fffbf0;
+            border-radius: 6px;
+        }
+        .meta-info strong {
+            color: #2c3e50;
         }
         h2 {
-            font-size: 18px;
-            color: #FFFFFF; /* use white for headings */
-            border-bottom: 2px solid #FFC700; /* pr-yellow */
-            padding-bottom: 5px;
-            margin-top: 20px;
+            font-size: 16px;
+            color: #FFFFFF;
+            background: linear-gradient(90deg, #2c3e50 0%, #34495e 100%);
+            padding: 12px 15px;
+            margin: 30px 0 15px 0;
+            border-left: 5px solid #FFC700;
+            page-break-after: avoid;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+        h3 {
+            font-size: 13px;
+            color: #2c3e50;
+            margin-top: 15px;
+            margin-bottom: 10px;
+            font-weight: 600;
         }
         .summary-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin: 20px 0;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 25px;
         }
         .summary-item {
-            background-color: #1F2937; /* pr-dark-gray */
-            padding: 10px;
-            border-radius: 5px;
-            color: #e5e7eb;
+            background: linear-gradient(135deg, #f8fafb 0%, #f0f4f8 100%);
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 5px solid #FFC700;
+            page-break-inside: avoid;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
         }
         .summary-item p {
             margin: 0;
-            font-size: 12px;
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 8px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         .summary-item .value {
-            font-size: 16px;
+            font-size: 17px;
             font-weight: bold;
-            color: #FFC700; /* pr-yellow */
+            color: #FFC700;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .growth-badge {
+            display: inline-block;
+            font-size: 10px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin-top: 5px;
+            color: white;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+        }
+        .growth-badge.positive {
+            background-color: #27ae60;
+            box-shadow: 0 2px 6px rgba(39, 174, 96, 0.3);
+        }
+        .growth-badge.negative {
+            background-color: #e74c3c;
+            box-shadow: 0 2px 6px rgba(231, 76, 60, 0.3);
         }
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
+            margin-bottom: 20px;
+            page-break-inside: avoid;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+            border-radius: 4px;
+            overflow: hidden;
         }
         th, td {
-            border: 1px solid #374151;
-            padding: 8px;
+            border: 1px solid #d8dfe8;
+            padding: 11px;
             text-align: left;
-            font-size: 12px;
-            color: #e5e7eb;
+            font-size: 11px;
         }
         th {
-            background-color: #1F2937; /* pr-dark-gray */
+            background: linear-gradient(90deg, #2c3e50 0%, #34495e 100%);
             color: white;
-            font-weight: bold;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         tbody tr:nth-child(even) {
-            background-color: #0f1720;
+            background-color: #f8fafb;
         }
         tbody tr:nth-child(odd) {
-            background-color: #0b0f13;
+            background-color: #ffffff;
+        }
+        tbody tr:hover {
+            background-color: #fffbf0;
+        }
+        .text-right {
+            text-align: right;
+        }
+        .text-center {
+            text-align: center;
+        }
+        .chart-container {
+            text-align: center;
+            margin: 20px 0;
+            page-break-inside: avoid;
+            padding: 15px;
+            background-color: #f8fafb;
+            border-radius: 6px;
+            border: 1px solid #e0e4eb;
+        }
+        .chart-container img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        .section-break {
+            page-break-before: always;
+        }
+        .footer {
+            margin-top: 35px;
+            padding-top: 15px;
+            border-top: 2px solid #FFC700;
+            font-size: 10px;
+            color: #888;
+            text-align: center;
+        }
+        .footer p {
+            margin: 3px 0;
+        }
+        .footer p:first-child {
+            color: #555;
+            font-weight: 500;
+        }
+        .highlight-value {
+            color: #FFC700;
+            font-weight: bold;
+        }
+        .small-text {
+            font-size: 9px;
+            color: #999;
         }
     </style>
 </head>
 <body>
-    <div id="header_content">
-        <h1>Reporte de Ventas - PUERTO REAL</h1>
-        <p>Fecha de generación: {{ today }}</p>
-        <p>Periodo del reporte: {{ period }}</p>
+    <!-- PORTADA/HEADER -->
+    <div class="header">
+        <h1>📊 REPORTE DE VENTAS</h1>
+        <p class="subtitle">PUERTO REAL</p>
     </div>
 
-    <div id="footer_content">
-        Página <pdf:pagenumber> de <pdf:pagecount>
+    <div class="meta-info">
+        <div><strong>Período:</strong> {{ period }}</div>
+        <div><strong>Generado:</strong> {{ today }}</div>
     </div>
 
+    <!-- INDICADORES PRINCIPALES -->
     <h2>Indicadores Principales</h2>
     <div class="summary-grid">
         <div class="summary-item">
@@ -125,63 +241,174 @@
         </div>
     </div>
 
+    <!-- GRÁFICOS -->
     {% if chart_income %}
     <h2>Evolución de Ingresos</h2>
-    <div style="text-align:center; margin: 10px 0;">
-        <img src="data:image/png;base64,{{ chart_income }}" alt="Evolución de Ingresos" style="max-width:100%; height:auto;" />
+    <div class="chart-container">
+        <img src="data:image/png;base64,{{ chart_income }}" alt="Evolución de Ingresos" />
     </div>
     {% endif %}
 
     {% if chart_categories %}
     <h2>Distribución por Categoría</h2>
-    <div style="text-align:center; margin: 10px 0;">
-        <img src="data:image/png;base64,{{ chart_categories }}" alt="Distribución por Categoría" style="max-width:100%; height:auto;" />
+    <div class="chart-container">
+        <img src="data:image/png;base64,{{ chart_categories }}" alt="Distribución por Categoría" />
     </div>
     {% endif %}
 
-    <h2>Ventas por Medio de Pago</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>Medio de Pago</th>
-                <th>Monto</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for method in payment_methods %}
-            <tr>
-                <td>{{ method.name }}</td>
-                <td>${{ method.amount }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
+    <!-- RENTABILIDAD POR PRODUCTO -->
     <h2>Rentabilidad por Producto</h2>
     <table>
         <thead>
             <tr>
                 <th>Producto</th>
-                <th>Uds. Vendidas</th>
-                <th>Ingresos</th>
-                <th>Costo Total</th>
-                <th>Ganancia Bruta</th>
-                <th>Margen</th>
+                <th class="text-center">Uds.</th>
+                <th class="text-right">Ingresos</th>
+                <th class="text-right">Costo</th>
+                <th class="text-right">Ganancia</th>
+                <th class="text-right">Margen</th>
             </tr>
         </thead>
         <tbody>
             {% for product in products %}
             <tr>
                 <td>{{ product.name }}</td>
-                <td>{{ product.units }}</td>
-                <td>${{ product.revenue }}</td>
-                <td>${{ product.cost }}</td>
-                <td>${{ product.profit }}</td>
-                <td>{{ product.margin }}</td>
+                <td class="text-center">{{ product.units }}</td>
+                <td class="text-right">${{ product.revenue }}</td>
+                <td class="text-right">${{ product.cost }}</td>
+                <td class="text-right highlight-value">${{ product.profit }}</td>
+                <td class="text-right">{{ product.margin }}</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+
+    <!-- TOP 10 PRODUCTOS MÁS VENDIDOS -->
+    <h2>Top 10 Productos Más Vendidos</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Producto</th>
+                <th class="text-center">Unidades</th>
+                <th class="text-right">Ingresos</th>
+                <th class="text-right">% Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for product in top_products %}
+            <tr>
+                <td>{{ product.nombre }}</td>
+                <td class="text-center">{{ product.cantidad }}</td>
+                <td class="text-right">${{ product.ingresos }}</td>
+                <td class="text-right">{{ product.porcentaje }}%</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" class="text-center">No hay datos disponibles</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- TOP 10 CLIENTES -->
+    <h2>Top 10 Clientes</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Cliente</th>
+                <th class="text-center">Compras</th>
+                <th class="text-right">Total Gastado</th>
+                <th class="text-right">Ticket Promedio</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for customer in top_customers %}
+            <tr>
+                <td>{{ customer.nombre }}<br><span class="small-text">{{ customer.email }}</span></td>
+                <td class="text-center">{{ customer.compras }}</td>
+                <td class="text-right highlight-value">${{ customer.total }}</td>
+                <td class="text-right">${{ customer.promedio }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" class="text-center">No hay datos disponibles</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- COMPARATIVO CON PERÍODO ANTERIOR -->
+    {% if previous_period %}
+    <div class="section-break">
+    <h2>Comparativo: Período Actual vs Anterior</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Métrica</th>
+                <th class="text-right">Período Anterior</th>
+                <th class="text-right">Período Actual</th>
+                <th class="text-right">Cambio</th>
+                <th class="text-center">Crecimiento</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Ventas Totales</strong></td>
+                <td class="text-right">${{ previous_period.ventas_anterior }}</td>
+                <td class="text-right highlight-value">${{ previous_period.ventas_actual }}</td>
+                <td class="text-right">${{ previous_period.cambio_ventas }}</td>
+                <td class="text-center">
+                    {% if previous_period.crecimiento_ventas >= 0 %}
+                        <span class="growth-badge positive">↑ {{ previous_period.crecimiento_ventas }}%</span>
+                    {% else %}
+                        <span class="growth-badge negative">↓ {{ previous_period.crecimiento_ventas }}%</span>
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <td><strong>Ganancia Bruta</strong></td>
+                <td class="text-right">${{ previous_period.ganancia_anterior }}</td>
+                <td class="text-right highlight-value">${{ previous_period.ganancia_actual }}</td>
+                <td class="text-right">${{ previous_period.cambio_ganancia }}</td>
+                <td class="text-center">
+                    {% if previous_period.crecimiento_ganancia >= 0 %}
+                        <span class="growth-badge positive">↑ {{ previous_period.crecimiento_ganancia }}%</span>
+                    {% else %}
+                        <span class="growth-badge negative">↓ {{ previous_period.crecimiento_ganancia }}%</span>
+                    {% endif %}
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    </div>
+    {% endif %}
+
+    <!-- MEDIOS DE PAGO (si está disponible) -->
+    {% if payment_methods %}
+    <h2>Medios de Pago</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Medio de Pago</th>
+                <th class="text-right">Monto</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for method in payment_methods %}
+            <tr>
+                <td>{{ method.name }}</td>
+                <td class="text-right">${{ method.amount }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    <!-- FOOTER -->
+    <div class="footer">
+        <p>Reporte generado automáticamente por el sistema PUERTO REAL</p>
+        <p style="color: #bbb; font-size: 9px; margin-top: 5px;">Confidencial - Documento interno</p>
+    </div>
 
 </body>
 </html>

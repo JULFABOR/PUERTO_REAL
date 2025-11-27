@@ -8,6 +8,7 @@ from .views import (
     StockAdjustmentAPIView, 
     StockAddAPIView,
     StockHistoryAPIView,
+    ProductImageAPIView,
 )
 
 app_name = 'stock'
@@ -28,4 +29,5 @@ api_urlpatterns = router.urls + [
     path('stock/adjust/', StockAdjustmentAPIView.as_view(), name='stock-adjust'),
     path('add-stock/', StockAddAPIView.as_view(), name='add-stock'),
     path("historial-producto/<int:id_producto>/", StockHistoryAPIView.as_view(), name="api_historial_producto"),
+    path("imagen/<path:file_path>/", ProductImageAPIView.as_view(), name="product-image"),
 ]

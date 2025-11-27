@@ -31,7 +31,7 @@ const QrModal = ({ ventaData, onNuevaVenta }) => {
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
             <div className="bg-pr-dark text-white p-8 rounded-2xl shadow-2xl max-w-md w-full text-center border border-gray-700">
                 <h2 className="text-2xl font-bold mb-2 text-pr-yellow">¡Venta Registrada con Éxito!</h2>
-                <p className="text-gray-400 mb-6">El cliente puede escanear este QR para sumar sus puntos.</p>
+                <p className="text-gray-300 mb-6">El cliente puede escanear este QR para sumar sus puntos.</p>
                 <div className="flex justify-center mb-6 p-4 bg-white rounded-lg">
                     <QRCodeSVG value={qrUrl} size={256} />
                 </div>
@@ -116,7 +116,7 @@ const PaymentModal = ({ isOpen, onClose, onConfirm, total }) => {
                     <div className="space-y-6">
                         <h3 className="text-xl font-semibold text-white">Pago en Efectivo</h3>
                         <div>
-                            <label htmlFor="montoRecibido" className="block text-sm font-medium text-gray-400 mb-2">Monto Recibido</label>
+                            <label htmlFor="montoRecibido" className="block text-sm font-medium text-gray-300 mb-2">Monto Recibido</label>
                             <input
                                 type="number"
                                 id="montoRecibido"
@@ -128,7 +128,7 @@ const PaymentModal = ({ isOpen, onClose, onConfirm, total }) => {
                             />
                         </div>
                         <div className="flex justify-between items-center text-3xl">
-                            <span className="text-gray-400">Vuelto:</span>
+                            <span className="text-gray-300">Vuelto:</span>
                             <span className="text-pr-yellow font-bold">${formatCurrency(vuelto)}</span>
                         </div>
                         <button 
@@ -145,7 +145,7 @@ const PaymentModal = ({ isOpen, onClose, onConfirm, total }) => {
                     <div className="space-y-6 flex flex-col items-center text-center">
                         <h3 className="text-xl font-semibold text-white">Pago con Tarjeta</h3>
                         <FontAwesomeIcon icon={faCreditCard} className="text-6xl text-pr-orange my-10" />
-                        <p className="text-gray-400 text-lg">Confirme el pago en la terminal (Posnet/MercadoPago).</p>
+                        <p className="text-gray-300 text-lg">Confirme el pago en la terminal (Posnet/MercadoPago).</p>
                         <button 
                             onClick={handleConfirmar} 
                             className="w-full bg-pr-orange text-pr-dark font-bold text-xl py-4 rounded-lg hover:bg-yellow-400 transition-colors"
@@ -159,7 +159,7 @@ const PaymentModal = ({ isOpen, onClose, onConfirm, total }) => {
                     <div className="space-y-6 flex flex-col items-center text-center">
                         <h3 className="text-xl font-semibold text-white">Pago con Transferencia</h3>
                         <FontAwesomeIcon icon={faUniversity} className="text-6xl text-purple-400 my-10" />
-                        <p className="text-gray-400 text-lg">Confirme la recepción de la transferencia (Alias/CBU).</p>
+                        <p className="text-gray-300 text-lg">Confirme la recepción de la transferencia (Alias/CBU).</p>
                         <button 
                             onClick={handleConfirmar} 
                             className="w-full bg-purple-600 text-white font-bold text-xl py-4 rounded-lg hover:bg-purple-700"
@@ -180,7 +180,7 @@ const PaymentModal = ({ isOpen, onClose, onConfirm, total }) => {
                 {/* Encabezado */}
                 <div className="flex justify-between items-center p-6 border-b border-gray-700">
                     <h2 className="text-3xl font-bold text-white">Resumen de Pago</h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-white">
+                    <button onClick={onClose} className="text-gray-300 hover:text-white">
                         <FontAwesomeIcon icon={faTimes} size="lg" />
                     </button>
                 </div>
@@ -189,7 +189,7 @@ const PaymentModal = ({ isOpen, onClose, onConfirm, total }) => {
                 <div className="grid grid-cols-1 md:grid-cols-3">
                     {/* Columna Izquierda (Selector) */}
                     <div className="md:col-span-1 border-r border-gray-700 p-6">
-                        <p className="text-lg text-gray-400 mb-2">Total a Pagar:</p>
+                        <p className="text-lg text-gray-300 mb-2">Total a Pagar:</p>
                         <p className="text-5xl font-bold text-pr-yellow mb-8">${formatCurrency(totalFloat)}</p>
                         
                         <div className="space-y-3">
@@ -256,6 +256,8 @@ const VentasPOS = () => {
     const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
     const [clienteGenericoId, setClienteGenericoId] = useState(null);
     const [estadoVentaId, setEstadoVentaId] = useState(null);
+    const [todosLosProductos, setTodosLosProductos] = useState([]);
+    const [loadingProductos, setLoadingProductos] = useState(true);
 
     // --- EFECTOS SECUNDARIOS (useEffect) ---
 
@@ -284,11 +286,17 @@ const VentasPOS = () => {
                 } else {
                     toast.error('No se encontró estado COMPLETADA.');
                 }
+
+                // Cargar todos los productos para la galería
+                const responseProductos = await apiClient.get('/stock/productos/');
+                setTodosLosProductos(responseProductos.data.results || responseProductos.data || []);
             } catch (error) {
                 // --- CAMBIO 3: Manejo de error de Axios ---
                 const errorMsg = error.response?.data?.detail || 'Error al cargar configuración';
                 console.error('Error cargando configuración:', error);
                 toast.error(errorMsg);
+            } finally {
+                setLoadingProductos(false);
             }
         };
         cargarConfiguracion();
@@ -489,7 +497,56 @@ const VentasPOS = () => {
                         </ul>
                     )}
                 </div>
-                {/* (Aquí iría tu lista de productos o categorías si la tienes) */}
+
+                {/* Galería de Productos */}
+                <div className="flex-grow overflow-y-auto">
+                    {loadingProductos ? (
+                        <div className="flex items-center justify-center h-full">
+                            <p className="text-gray-400">Cargando productos...</p>
+                        </div>
+                    ) : todosLosProductos.length === 0 ? (
+                        <div className="flex items-center justify-center h-full">
+                            <p className="text-gray-400">No hay productos disponibles</p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-2 gap-4">
+                            {(searchTerm.trim() ? searchResults : todosLosProductos).map(producto => (
+                                <div 
+                                    key={producto.id_producto}
+                                    onClick={() => agregarAlCarrito(producto)}
+                                    className="bg-pr-dark-gray rounded-lg p-4 cursor-pointer hover:bg-gray-700 transition-all hover:shadow-lg border border-gray-700 hover:border-pr-yellow"
+                                >
+                                    {/* Imagen del Producto */}
+                                    <div className="w-full h-32 bg-gray-800 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
+                                        {producto.imagen_url ? (
+                                            <img 
+                                                src={producto.imagen_url} 
+                                                alt={producto.nombre_producto}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="flex flex-col items-center justify-center text-gray-500">
+                                                <FontAwesomeIcon icon={faShoppingCart} className="text-2xl mb-2" />
+                                                <span className="text-xs">Sin imagen</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    
+                                    {/* Info del Producto */}
+                                    <h3 className="text-white font-bold text-sm truncate mb-1">{producto.nombre_producto}</h3>
+                                    <p className="text-pr-yellow font-bold text-lg">${formatCurrency(producto.precio_unitario_venta_producto)}</p>
+                                    
+                                    {/* Botón Agregar */}
+                                    <button 
+                                        className="w-full mt-3 bg-pr-yellow text-pr-dark font-bold py-2 rounded-lg hover:bg-yellow-400 transition-colors text-sm flex items-center justify-center gap-2"
+                                    >
+                                        <FontAwesomeIcon icon={faPlus} /> Agregar
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* --- Columna Derecha (Carrito y Finalización) --- */}
@@ -534,13 +591,13 @@ const VentasPOS = () => {
                 <h2 className="text-2xl font-bold mb-4">Carrito <FontAwesomeIcon icon={faShoppingCart} /></h2>
                 <div className="flex-grow overflow-y-auto mb-4 border-t border-b border-gray-700 divide-y divide-gray-700">
                     {carrito.length === 0 ? (
-                        <p className="text-gray-400 text-center p-10">El carrito está vacío</p>
+                        <p className="text-gray-300 text-center p-10">El carrito está vacío</p>
                     ) : (
                         carrito.map(item => (
                             <div key={item.id_producto} className="flex items-center justify-between p-3">
                                 <div>
                                     <p className="font-bold text-white">{item.nombre_producto}</p>
-                                    <p className="text-sm text-gray-400">{formatCurrency(item.precio_unitario_venta_producto)}</p>
+                                    <p className="text-sm text-gray-300">{formatCurrency(item.precio_unitario_venta_producto)}</p>
                                 </div>
                                 <div className="flex items-center gap-3">
                                     <div className="flex items-center gap-2 border border-gray-700 rounded-lg">

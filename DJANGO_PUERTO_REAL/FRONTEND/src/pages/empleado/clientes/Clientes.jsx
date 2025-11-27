@@ -147,7 +147,7 @@ const Clientes = () => {
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full bg-pr-dark-gray border border-gray-700 rounded-lg py-3 px-4 pl-10 text-white focus:ring-pr-yellow focus:border-pr-yellow"
                     />
-                    <FontAwesomeIcon icon={faSearch} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
+                    <FontAwesomeIcon icon={faSearch} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
                 </div>
                 <button 
                     onClick={handleAddClient}
@@ -171,7 +171,7 @@ const Clientes = () => {
                                         <h3 className="font-bold text-lg text-white">
                                             {client.user_first_name} {client.user_last_name}
                                         </h3>
-                                        <p className="text-sm text-gray-400">{client.user_email || 'Sin email'}</p>
+                                        <p className="text-sm text-gray-300">{client.user_email || 'Sin email'}</p>
                                     </div>
                                 </div>
                                 <div className="space-y-2 text-sm text-gray-300">
@@ -182,7 +182,7 @@ const Clientes = () => {
                             <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-700">
                                 <div>
                                     <span className="text-3xl font-bold text-pr-yellow">{client.puntos || 0}</span>
-                                    <span className="ml-2 text-gray-400">puntos</span>
+                                    <span className="ml-2 text-gray-300">puntos</span>
                                 </div>
                                 <div className="flex gap-2">
                                     <button 
@@ -202,7 +202,7 @@ const Clientes = () => {
                         </div>
                     ))
                 ) : (
-                    <div className="text-center text-gray-400 py-10 bg-pr-dark rounded-lg border border-gray-700 col-span-full">
+                    <div className="text-center text-gray-300 py-10 bg-pr-dark rounded-lg border border-gray-700 col-span-full">
                         <FontAwesomeIcon icon={faUsersSlash} size="3x" className="mb-4 text-gray-600" />
                         <h3 className="text-xl font-bold text-white">No se encontraron clientes</h3>
                         <p>Intenta ajustar tu búsqueda o crea un nuevo cliente.</p>

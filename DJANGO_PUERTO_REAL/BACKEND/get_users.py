@@ -4,7 +4,7 @@ import sys
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
-dotenv_path = os.path.join(os.path.dirname(__file__), '..', '..', '.env')
+dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
 load_dotenv(dotenv_path=dotenv_path)
 
 print("Running get_users.py...")
@@ -22,7 +22,7 @@ try:
     cursor = conn.cursor()
 
     # Execute the query
-    cursor.execute("SELECT username FROM auth_user;")
+    cursor.execute("SELECT username FROM auth_user WHERE is_superuser = 1;")
 
     # Fetch all the results
     users = cursor.fetchall()

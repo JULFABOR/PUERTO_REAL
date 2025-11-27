@@ -21,7 +21,7 @@ const getTipoColorClass = (tipoNombre) => {
     const positiveTypes = [
         'APERTURA', 'INGRESO_MANUAL', 'TRANSFERENCIA_DESDE_FONDO', 'VENTA_EFECTIVO'
     ];
-    if (!tipoNombre) return 'text-gray-400';
+    if (!tipoNombre) return 'text-gray-300';
     return positiveTypes.includes(tipoNombre) ? 'text-green-500' : 'text-red-500';
 };
 
@@ -36,7 +36,7 @@ const StatsCard = ({ title, value, icon, colorClass = 'text-pr-yellow' }) => (
     <div className="bg-pr-dark-gray p-4 rounded-lg shadow flex items-center">
         <FontAwesomeIcon icon={icon} className={`text-2xl mr-4 ${colorClass}`} />
         <div>
-            <p className="text-sm text-gray-400">{title}</p>
+            <p className="text-sm text-gray-300">{title}</p>
             <p className="text-xl font-bold text-white">{formatCurrency(value)}</p>
         </div>
     </div>
@@ -80,7 +80,7 @@ const MovementCard = ({ mov }) => {
                 <span className={`font-bold text-lg ${colorClass}`}>{tipoNombre}</span>
                 <span className={`font-mono text-lg font-bold ${colorClass}`}>{formatCurrency(mov.cantidad_movida_hcaja)}</span>
             </div>
-            <div className="flex justify-between text-sm text-gray-400 mb-3 pb-3 border-b border-gray-700">
+            <div className="flex justify-between text-sm text-gray-300 mb-3 pb-3 border-b border-gray-700">
                 <span className="flex items-center gap-2"><FontAwesomeIcon icon={faCalendarDay} />{formatTime(mov.fecha_movimiento_hcaja)}</span>
                 <span className="flex items-center gap-2"><FontAwesomeIcon icon={faUser} />{getNombreEmpleado(mov.empleado_hc)}</span>
             </div>
@@ -171,11 +171,11 @@ const Caja = () => {
                                     <p className="text-green-400 font-bold text-lg">Caja Abierta</p>
                                     <div className="grid grid-cols-1 gap-4">
                                         <StatsCard title="Saldo Teórico Total" value={cashStatus.data?.monto_teorico_caja} icon={faDollarSign} colorClass="text-green-500" />
-                                        <StatsCard title="Monto Inicial" value={cashStatus.data?.monto_inicial} icon={faDollarSign} colorClass="text-gray-400" />
+                                        <StatsCard title="Monto Inicial" value={cashStatus.data?.monto_inicial} icon={faDollarSign} colorClass="text-gray-300" />
                                         <StatsCard title="Total Ventas (Efectivo)" value={cashStatus.data?.total_ventas_efectivo} icon={faArrowUp} colorClass="text-blue-500" />
                                         <StatsCard title="Total Egresos" value={cashStatus.data?.total_egresos} icon={faArrowDown} colorClass="text-red-500" />
                                     </div>
-                                    <div className="text-sm text-pr-gray pt-4 space-y-1 border-t border-gray-700">
+                                    <div className="text-sm text-gray-400 pt-4 space-y-1 border-t border-gray-700">
                                         <p>Abierta por: {getNombreEmpleado(cashStatus.data?.empleado_apertura)}</p>
                                         <p>
                                             Fecha de apertura: {cashStatus.data?.fecha_apertura 
@@ -205,7 +205,7 @@ const Caja = () => {
                                         {isSubmitting ? <FontAwesomeIcon icon={faSpinner} spin /> : 'Abrir Caja'}
                                     </button>
                                     {cashStatus.data?.ultimo_cierre && (
-                                        <p className="text-pr-gray pt-4 text-sm border-t border-gray-700">
+                                        <p className="text-gray-400 pt-4 text-sm border-t border-gray-700">
                                             Último cierre: {new Date(cashStatus.data.ultimo_cierre).toLocaleString('es-ES', fullDateFormatOptions)}
                                         </p>
                                     )}
@@ -235,33 +235,33 @@ const Caja = () => {
                         </div>
 
                         {loadingMovements ? (
-                            <div className="text-center text-pr-gray p-8">
+                            <div className="text-center text-gray-400 p-8">
                                 <FontAwesomeIcon icon={faSpinner} spin size="2x" /><p className="mt-2">Cargando historial...</p>
                             </div>
                         ) : (
                             <>
                                 {summary ? (
                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                                        <StatsCard title="Apertura" value={summary.apertura} icon={faDollarSign} colorClass="text-gray-400" />
+                                        <StatsCard title="Apertura" value={summary.apertura} icon={faDollarSign} colorClass="text-gray-300" />
                                         <StatsCard title="Ventas Efectivo" value={summary.ventas} icon={faArrowUp} colorClass="text-blue-500" />
                                         <StatsCard title="Ingresos Man." value={summary.ingresos} icon={faArrowUp} colorClass="text-green-500" />
                                         <StatsCard title="Egresos Man." value={summary.egresos} icon={faArrowDown} colorClass="text-red-500" />
                                     </div>
-                                ) : (!loadingMovements && <p className="text-center text-gray-500 mb-4">No hay datos de resumen para esta fecha.</p>)}
+                                ) : (!loadingMovements && <p className="text-center text-gray-400 mb-4">No hay datos de resumen para esta fecha.</p>)}
 
                                 {/* VISTA MÓVIL (Tarjetas) */}
                                 <div className="lg:hidden">
                                     {movements.length > 0 ? (
                                         movements.map((mov) => <MovementCard key={mov.id_historial_caja} mov={mov} />)
                                     ) : (
-                                        <div className="text-center p-8 text-pr-gray">No hay movimientos en esta fecha.</div>
+                                        <div className="text-center p-8 text-gray-400">No hay movimientos en esta fecha.</div>
                                     )}
                                 </div>
 
                                 {/* VISTA DESKTOP (Tabla) */}
                                 <div className="hidden lg:block overflow-x-auto">
-                                    <table className="w-full text-left text-pr-gray">
-                                        <thead className="border-b border-gray-700 text-sm text-gray-400 uppercase">
+                                    <table className="w-full text-left text-white">
+                                        <thead className="border-b border-gray-700 text-sm text-white uppercase">
                                             <tr>
                                                 <th className="p-4">Hora</th>
                                                 <th className="p-4">Tipo</th>

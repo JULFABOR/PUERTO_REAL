@@ -1,5 +1,6 @@
 # Python standard library
 from datetime import timedelta
+import os
 
 # Django
 from django.contrib.auth.decorators import login_required
@@ -9,10 +10,13 @@ from django.urls import reverse_lazy
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.generic import CreateView, DeleteView, TemplateView, UpdateView
+from django.http import FileResponse, HttpResponse
+from django.conf import settings
 
 # Third-party
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, generics, status, viewsets, permissions
+from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -67,11 +71,28 @@ class ProductoViewSet(viewsets.ModelViewSet):
         if self.action in ['create', 'update', 'partial_update']:
             return ProductoWriteSerializer
         return ProductoSerializer
+    parser_classes = [MultiPartParser, FormParser]
 
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        
+        # Check if user requested to delete the image
+        delete_image = request.data.get('delete_image', '').lower() == 'true'
+        if delete_image and not request.FILES.get('imagen_producto'):
+            # Remove delete_image from data before passing to serializer
+            data = request.data.copy()
+            data.pop('delete_image', None)
+            # Set imagen_producto to None to delete it
+            if instance.imagen_producto:
+                instance.imagen_producto.delete()
+                instance.imagen_producto = None
+                instance.save()
+            # Continue with rest of update
+            serializer = self.get_serializer(instance, data=data, partial=partial)
+        else:
+            serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        
         serializer.is_valid(raise_exception=True)
 
         stock_actual = serializer.validated_data.pop('stock_actual', None)
@@ -98,6 +119,7 @@ class ProductoViewSet(viewsets.ModelViewSet):
         return Response(read_serializer.data)
 
     def create(self, request, *args, **kwargs):
+        # Use request.data and request.FILES; DRF will populate files in request.data when using MultiPartParser
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
@@ -429,3 +451,53 @@ class StockHistoryAPIView(generics.ListAPIView):
             'empleado_hs', 
             'tipo_movimiento_hs'
         ).order_by('-fecha_movimiento_hstock')
+
+
+class ProductImageAPIView(APIView):
+    """
+    Vista para servir imágenes de productos con CORS correctos.
+    GET /api/stock/imagen/<ruta_relativa>/
+    """
+    permission_classes = [permissions.AllowAny]  # Permitir acceso sin autenticación
+    
+    def get(self, request, *args, **kwargs):
+        # Obtener la ruta del archivo desde los kwargs
+        file_path = kwargs.get('file_path', '')
+        
+        # Construir la ruta completa
+        full_path = os.path.join(settings.MEDIA_ROOT, file_path)
+        
+        # Validar que la ruta está dentro de MEDIA_ROOT (seguridad)
+        full_path = os.path.normpath(full_path)
+        media_root = os.path.normpath(settings.MEDIA_ROOT)
+        
+        if not full_path.startswith(media_root):
+            return HttpResponse("Acceso denegado", status=403)
+        
+        # Verificar que el archivo existe
+        if not os.path.exists(full_path):
+            return HttpResponse("Archivo no encontrado", status=404)
+        
+        # Servir el archivo
+        try:
+            response = FileResponse(open(full_path, 'rb'))
+            # Determinar el tipo MIME basado en la extensión
+            if full_path.endswith('.jpg') or full_path.endswith('.jpeg'):
+                response['Content-Type'] = 'image/jpeg'
+            elif full_path.endswith('.png'):
+                response['Content-Type'] = 'image/png'
+            elif full_path.endswith('.gif'):
+                response['Content-Type'] = 'image/gif'
+            elif full_path.endswith('.webp'):
+                response['Content-Type'] = 'image/webp'
+            else:
+                response['Content-Type'] = 'application/octet-stream'
+            
+            # Agregar headers CORS (importante para el navegador)
+            response['Access-Control-Allow-Origin'] = '*'
+            response['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+            response['Cache-Control'] = 'max-age=3600'  # Cachear por 1 hora
+            
+            return response
+        except Exception as e:
+            return HttpResponse(f"Error al servir archivo: {str(e)}", status=500)

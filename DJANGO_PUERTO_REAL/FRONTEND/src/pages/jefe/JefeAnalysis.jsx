@@ -29,7 +29,7 @@ const StatCard = ({ title, value, icon }) => (
     <div className="bg-pr-dark p-6 rounded-lg shadow-lg border border-pr-gray/20">
         <div className="flex justify-between items-center">
             <div>
-                <p className="text-sm text-pr-gray">{title}</p>
+                <p className="text-sm text-gray-400">{title}</p>
                 <p className="text-3xl font-bold text-white">{value}</p>
             </div>
             {icon && (
@@ -123,6 +123,8 @@ const JefeAnalysis = () => {
     const TOP_CATEGORIES = 6;
     const [productProfitability, setProductProfitability] = useState([]);
     const [sortConfig, setSortConfig] = useState({ key: 'margin', direction: 'descending' });
+    const [topCustomers, setTopCustomers] = useState([]);
+    const [previousPeriodData, setPreviousPeriodData] = useState(null);
 
     // --- Funciones (Sin cambios) ---
     const requestSort = (key) => {
@@ -157,13 +159,15 @@ const JefeAnalysis = () => {
 
             try {
                 const params = { start_date: formattedStartDate, end_date: formattedEndDate };
-                const [financialResponse, productTrendsResponse] = await Promise.all([
+                const [financialResponse, productTrendsResponse, topCustomersResponse] = await Promise.all([
                     apiClient.get('/analisis/report/financial/', { params }),
-                    apiClient.get('/analisis/report/product-sales-trends/', { params })
+                    apiClient.get('/analisis/report/product-sales-trends/', { params }),
+                    apiClient.get('/analisis/report/top-customers/', { params })
                 ]);
 
                 const financialData = financialResponse.data;
                 const productTrendsData = productTrendsResponse.data;
+                const topCustomersData = topCustomersResponse.data;
 
                 setSummaryData({ totalSales: financialData.total_income || 0, grossProfit: financialData.net_income || 0 });
 
@@ -184,14 +188,31 @@ const JefeAnalysis = () => {
                 const categoryChartData = productTrendsData.category_performance || [];
                 setSalesByCategory(prev => ({
                     ...prev,
-                    options: { ...prev.options, labels: categoryChartData.map(c => c.producto_det_vent__categoria_producto__nombre_categoria || c.name || 'Sin categoría') },
-                    series: categoryChartData.map(c => c.total_revenue_category || 0)
+                    options: { ...prev.options, labels: categoryChartData.map(c => c.nombre_categoria) },
+                    series: categoryChartData.map(c => Number(c.total_revenue_category) || 0)
                 }));
 
                 setProductProfitability(financialData.top_products || []);
+                setTopCustomers(topCustomersData.top_customers || []);
+                
+                // Calcular datos del período anterior para comparativo
+                const prevStart = new Date(startDate);
+                const daysRange = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24));
+                prevStart.setDate(prevStart.getDate() - daysRange);
+                
+                const prevFormattedStart = formatDate(prevStart);
+                const prevFormattedEnd = formatDate(new Date(startDate));
+                
+                try {
+                    const prevFinancialResponse = await apiClient.get('/analisis/report/financial/', {
+                        params: { start_date: prevFormattedStart, end_date: prevFormattedEnd }
+                    });
+                    setPreviousPeriodData(prevFinancialResponse.data);
+                } catch (err) {
+                    console.log('No se pudo cargar datos del período anterior');
+                }
+                
                 setLastUpdated(new Date());
-
-            } catch (err) {
                 let errorMsg = 'No se pudieron cargar todos los datos del reporte.';
                 if (err.message && err.message.includes('JSON')) {
                     errorMsg = "Error: El servidor respondió con HTML en lugar de JSON. Verifica las URLs de la API.";
@@ -253,7 +274,7 @@ const JefeAnalysis = () => {
         // Abre la página imprimible en una nueva pestaña. El usuario puede guardar como PDF.
         try {
             window.open(pdfUrl, '_blank');
-            toast('Se abrió la vista imprimible en una nueva pestaña.', { icon: '📄' });
+            toast.success('Se abrió la vista imprimible en una nueva pestaña.');
         } catch (err) {
             toast.error('No se pudo abrir la ventana para exportar.');
         }
@@ -275,6 +296,28 @@ const JefeAnalysis = () => {
         return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(value);
     };
 
+    // --- calculateGrowth (NUEVO) ---
+    const calculateGrowth = (current, previous) => {
+        if (!previous || previous <= 0) return null;
+        const growth = ((current - previous) / previous) * 100;
+        return growth;
+    };
+
+    const GrowthBadge = ({ current, previous }) => {
+        const growth = calculateGrowth(current, previous);
+        if (growth === null) return null;
+        const isPositive = growth >= 0;
+        return (
+            <span className={`ml-3 px-3 py-1 rounded-full text-xs font-bold ${
+                isPositive 
+                    ? 'bg-green-900/30 text-green-300' 
+                    : 'bg-red-900/30 text-red-300'
+            }`}>
+                {isPositive ? '↑' : '↓'} {Math.abs(growth).toFixed(2)}%
+            </span>
+        );
+    };
+
     // --- RENDERIZADO (Sin cambios) ---
     return (
         <>
@@ -282,7 +325,7 @@ const JefeAnalysis = () => {
                 <div>
                     <h1 className="text-3xl font-bold text-white mb-2">Reportes de Venta</h1>
                     {lastUpdated && (
-                        <p className="text-sm text-gray-400">Última actualización: {new Date(lastUpdated).toLocaleString('es-ES')}</p>
+                        <p className="text-sm text-gray-300">Última actualización: {new Date(lastUpdated).toLocaleString('es-ES')}</p>
                     )}
                 </div>
 
@@ -309,7 +352,7 @@ const JefeAnalysis = () => {
                         onSelectedDateChanged={date => setStartDate(date)}
                     />
                 </div>
-                <span className="mx-4 text-gray-400 hidden md:block">a</span>
+                <span className="mx-4 text-gray-300 hidden md:block">a</span>
                 <div className="w-full md:w-auto">
                     <Datepicker
                         language="es-ES"
@@ -360,7 +403,7 @@ const JefeAnalysis = () => {
                                     {Array.isArray(salesByDay.series) && salesByDay.series[0]?.data && salesByDay.series[0].data.length > 0 ? (
                                         <Chart options={salesByDay.options} series={salesByDay.series} type="bar" height={350} />
                                     ) : (
-                                        <div className="text-center text-gray-400 py-16">No hay datos para el rango seleccionado.</div>
+                                        <div className="text-center text-gray-300 py-16">No hay datos para el rango seleccionado.</div>
                                     )}
                                 </div>
                         </div>
@@ -370,7 +413,7 @@ const JefeAnalysis = () => {
                                 {Array.isArray(salesByCategory.series) && salesByCategory.series.length > 0 ? (
                                     <Chart options={salesByCategory.options} series={salesByCategory.series} type="donut" height={250} />
                                 ) : (
-                                    <div className="text-center text-gray-400 py-16">No hay datos de categoría para el rango seleccionado.</div>
+                                    <div className="text-center text-gray-300 py-16">No hay datos de categoría para el rango seleccionado.</div>
                                 )}
                             </div>
                         </div>
@@ -380,8 +423,8 @@ const JefeAnalysis = () => {
                     <div className="mt-8 bg-pr-dark p-6 rounded-lg shadow-lg border border-pr-gray/20">
                         <h2 className="text-2xl font-bold text-white mb-4">Rentabilidad por Producto</h2>
                         <div className="relative overflow-x-auto rounded-lg">
-                            <table className="w-full text-sm text-left text-gray-400">
-                                <thead className="text-xs text-white uppercase bg-pr-dark-gray border-b border-gray-700">
+                            <table className="w-full text-sm text-left text-white">
+                                <thead className="text-xs text-white uppercase bg-pr-dark border-b border-gray-700">
                                     <tr>
                                         <th scope="col" className="px-6 py-3 cursor-pointer hover:bg-gray-700" onClick={() => requestSort('producto_det_vent__nombre_producto')}>
                                             <div className="flex items-center">
@@ -428,6 +471,124 @@ const JefeAnalysis = () => {
                             </table>
                         </div>
                     </div>
+
+                    {/* --- Tabla de Top Productos Más Vendidos --- */}
+                    <div className="mt-8 bg-pr-dark p-6 rounded-lg shadow-lg border border-pr-gray/20">
+                        <h2 className="text-2xl font-bold text-white mb-4">Top 10 Productos Más Vendidos</h2>
+                        <div className="relative overflow-x-auto rounded-lg">
+                            <table className="w-full text-sm text-left text-gray-400">
+                                <thead className="text-xs text-white uppercase bg-pr-dark-gray border-b border-gray-700">
+                                    <tr>
+                                        <th scope="col" className="px-6 py-3">Producto</th>
+                                        <th scope="col" className="px-6 py-3 text-center">Unidades</th>
+                                        <th scope="col" className="px-6 py-3 text-right">Ingresos</th>
+                                        <th scope="col" className="px-6 py-3 text-right hidden md:table-cell">% del Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-700">
+                                    {productProfitability.length > 0 ? (
+                                        productProfitability.slice(0, 10).map((prod, idx) => {
+                                            const totalRevenue = productProfitability.reduce((sum, p) => sum + (p.total_revenue || 0), 0);
+                                            const percentage = totalRevenue ? ((prod.total_revenue || 0) / totalRevenue * 100).toFixed(2) : '0.00';
+                                            return (
+                                                <tr key={idx} className="border-b bg-pr-dark hover:bg-pr-dark-gray">
+                                                    <th scope="row" className="px-6 py-4 font-medium text-white">{prod.producto_det_vent__nombre_producto || 'Desconocido'}</th>
+                                                    <td className="px-6 py-4 text-center font-semibold text-pr-yellow">{prod.total_quantity_sold || 0}</td>
+                                                    <td className="px-6 py-4 text-right font-bold text-pr-yellow">{formatCurrency(prod.total_revenue || 0)}</td>
+                                                    <td className="px-6 py-4 text-right hidden md:table-cell text-white">{percentage}%</td>
+                                                </tr>
+                                            );
+                                        })
+                                    ) : (
+                                        <tr className="border-b bg-pr-dark">
+                                            <td colSpan="4" className="px-6 py-4 text-center text-gray-300">No hay datos de productos</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    {/* --- Tabla de Top 10 Clientes --- */}
+                    <div className="mt-8 bg-pr-dark p-6 rounded-lg shadow-lg border border-pr-gray/20">
+                        <h2 className="text-2xl font-bold text-white mb-4">Top 10 Clientes</h2>
+                        <div className="relative overflow-x-auto rounded-lg">
+                            <table className="w-full text-sm text-left text-gray-400">
+                                <thead className="text-xs text-white uppercase bg-pr-dark-gray border-b border-gray-700">
+                                    <tr>
+                                        <th scope="col" className="px-6 py-3">Cliente</th>
+                                        <th scope="col" className="px-6 py-3 text-center">Compras</th>
+                                        <th scope="col" className="px-6 py-3 text-right">Total Gastado</th>
+                                        <th scope="col" className="px-6 py-3 text-right hidden md:table-cell">Ticket Promedio</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-700">
+                                    {topCustomers.length > 0 ? (
+                                        topCustomers.map((customer, idx) => (
+                                            <tr key={idx} className="border-b bg-pr-dark hover:bg-pr-dark-gray">
+                                                <th scope="row" className="px-6 py-4 font-medium text-white">
+                                                    <div>{customer.nombre_cliente}</div>
+                                                    <div className="text-xs text-gray-400">{customer.email}</div>
+                                                </th>
+                                                <td className="px-6 py-4 text-center">{customer.total_purchases}</td>
+                                                <td className="px-6 py-4 text-right font-bold text-pr-yellow">{formatCurrency(customer.total_spent || 0)}</td>
+                                                <td className="px-6 py-4 text-right hidden md:table-cell text-pr-gray">
+                                                    {formatCurrency(customer.average_ticket || 0)}
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr className="border-b bg-pr-dark">
+                                            <td colSpan="4" className="px-6 py-4 text-center text-gray-400">No hay datos de clientes</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    {/* --- Comparativo Período Anterior --- */}
+                    {previousPeriodData && (
+                        <div className="mt-8 bg-pr-dark p-6 rounded-lg shadow-lg border border-pr-gray/20">
+                            <h2 className="text-2xl font-bold text-white mb-6">Comparativo: Período Actual vs Anterior</h2>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {/* Ventas Totales */}
+                                <div className="bg-pr-dark-gray p-4 rounded-lg border border-pr-gray/20">
+                                    <p className="text-sm text-gray-400 mb-2">Ventas Totales</p>
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-2xl font-bold text-white">{formatCurrency(summaryData.totalSales)}</p>
+                                            <p className="text-xs text-gray-500 mt-1">Período actual</p>
+                                        </div>
+                                        <GrowthBadge current={summaryData.totalSales} previous={previousPeriodData.total_income} />
+                                    </div>
+                                </div>
+
+                                {/* Ganancia Bruta */}
+                                <div className="bg-pr-dark-gray p-4 rounded-lg border border-pr-gray/20">
+                                    <p className="text-sm text-gray-400 mb-2">Ganancia Bruta</p>
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-2xl font-bold text-white">{formatCurrency(summaryData.grossProfit)}</p>
+                                            <p className="text-xs text-gray-500 mt-1">Período actual</p>
+                                        </div>
+                                        <GrowthBadge current={summaryData.grossProfit} previous={previousPeriodData.net_income} />
+                                    </div>
+                                </div>
+
+                                {/* Gastos Totales */}
+                                <div className="bg-pr-dark-gray p-4 rounded-lg border border-pr-gray/20">
+                                    <p className="text-sm text-gray-400 mb-2">Gastos Totales</p>
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-2xl font-bold text-white">{formatCurrency(previousPeriodData.total_expenses || 0)}</p>
+                                            <p className="text-xs text-gray-500 mt-1">Período actual</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </>
             )}
         </>

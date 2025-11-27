@@ -16,7 +16,7 @@ import MovimientoCajaModal from '@/components/Modals/Caja/MovimientoCajaModal'; 
 // --- Componentes Internos de UI (Helpers de Render) ---
 const SummaryCard = ({ title, value, colorClass = 'text-white', isMain = false }) => (
     <div className={`bg-pr-dark p-4 rounded-lg shadow border ${isMain ? 'border-2 border-pr-yellow' : 'border-pr-gray/20'}`}>
-        <p className="text-sm text-pr-gray mb-1">{title}</p>
+        <p className="text-sm text-gray-400 mb-1">{title}</p>
         <p className={`text-2xl font-bold ${colorClass}`}>{value}</p>
     </div>
 );
@@ -113,9 +113,9 @@ const JefeCaja = () => {
                 {/* ======================= VIEW: CASH CLOSED ======================= */}
                 {!cashStatus.isOpen ? (
                     <div className="flex flex-col items-center justify-center h-[calc(100vh-12rem)] text-center p-6 bg-pr-dark rounded-lg border border-pr-gray/20">
-                        <FontAwesomeIcon icon={faCashRegister} className="text-pr-gray/40 text-6xl mb-6" />
+                        <FontAwesomeIcon icon={faCashRegister} className="text-gray-600 text-6xl mb-6" />
                         <h1 className="text-3xl font-bold text-white mb-4">La caja está cerrada</h1>
-                        <p className="text-pr-gray mb-8 max-w-md">Para comenzar a registrar movimientos, realiza la apertura de caja con el saldo inicial.</p>
+                        <p className="text-gray-400 mb-8 max-w-md">Para comenzar a registrar movimientos, realiza la apertura de caja con el saldo inicial.</p>
                         <button
                             onClick={() => setShowOpenCajaModal(true)} // Nombre actualizado
                             className="btn-primary-lg mx-auto"
@@ -131,7 +131,7 @@ const JefeCaja = () => {
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
                             <div>
                                 <h1 className="text-3xl font-bold text-white mb-1">Control de Caja</h1>
-                                <p className="text-pr-gray">Fecha: <span className="font-semibold text-white">{new Date().toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })}</span></p>
+                                <p className="text-gray-400">Fecha: <span className="font-semibold text-white">{new Date().toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })}</span></p>
                             </div>
                         </div>
     
@@ -157,7 +157,7 @@ const JefeCaja = () => {
                         {/* --- Recent Movements Table (Datos del Hook) --- */}
                         <h2 className="text-2xl font-bold text-white mb-4">Últimos Movimientos en Efectivo</h2>
                         <div className="relative overflow-x-auto shadow-md rounded-lg max-h-96 overflow-y-auto border border-pr-gray/20">
-                            <table className="w-full text-sm text-left text-gray-400">
+                            <table className="w-full text-sm text-left text-white">
                                 <thead className="text-xs text-white uppercase bg-pr-dark sticky top-0 z-10 border-b border-pr-gray/20">
                                     <tr>
                                         <th scope="col" className="px-6 py-3">Hora</th>
@@ -181,7 +181,7 @@ const JefeCaja = () => {
                                             </tr>
                                         ))
                                     ) : (
-                                        <tr><td colSpan="4" className="text-center py-8 text-pr-gray">No hay movimientos registrados.</td></tr>
+                                        <tr><td colSpan="4" className="text-center py-8 text-gray-400">No hay movimientos registrados.</td></tr>
                                     )}
                                 </tbody>
                             </table>
@@ -201,7 +201,7 @@ const JefeCaja = () => {
                                 />
                                 
                                 <div className="text-center md:pb-1">
-                                    <p className="text-sm text-pr-gray">Diferencia</p>
+                                    <p className="text-sm text-gray-400">Diferencia</p>
                                     <p className={`text-2xl font-bold ${differenceClass}`}>
                                         {difference === null ? '-' : formatCurrency(difference)}
                                     </p>

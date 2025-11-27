@@ -218,7 +218,7 @@ const JefeStock = () => {
                                     <ProductImage imagenProducto={product.imagen_producto} imagenUrl={product.imagen_url} nombreProducto={product.nombre_producto} className="w-full h-48" />
                                     <div className="p-4 flex flex-col flex-grow justify-between">
                                         <div>
-                                            <p className="text-sm text-gray-400 mb-1">{product.categoria_producto?.nombre_categoria || 'Sin categoría'}</p>
+                                            <p className="text-sm text-gray-300 mb-1">{product.categoria_producto?.nombre_categoria || 'Sin categoría'}</p>
                                             <h3 className="text-lg font-bold text-white mb-2 h-14 overflow-hidden">{product.nombre_producto}</h3>
                                             <div className="flex justify-between items-center mb-3">
                                                 <span className={`text-xs font-medium px-2.5 py-0.5 rounded ${status.className}`}>
@@ -254,7 +254,7 @@ const JefeStock = () => {
 
                     {/* --- Paginación --- */}
                     {totalPages > 1 && (
-                        <div className="flex justify-between items-center mt-6 text-sm text-gray-400">
+                        <div className="flex justify-between items-center mt-6 text-sm text-gray-300">
                             <span>Página <strong>{currentPage}</strong> de <strong>{totalPages}</strong> ({totalProducts} productos)</span>
                             <div className="inline-flex -space-x-px">
                                 <button onClick={handlePrevPage} disabled={currentPage === 1} className="px-3 py-2 leading-tight bg-pr-dark border border-gray-700 rounded-l-lg hover:bg-gray-700 disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed">
@@ -268,8 +268,8 @@ const JefeStock = () => {
                     )}
                 </>
             ) : (
-                <div className="text-center text-pr-gray py-16 bg-pr-dark rounded-lg border border-pr-gray/20">
-                    <FontAwesomeIcon icon={faInbox} className="text-5xl text-pr-gray/50 mb-4" />
+                <div className="text-center text-gray-400 py-16 bg-pr-dark rounded-lg border border-pr-gray/20">
+                    <FontAwesomeIcon icon={faInbox} className="text-5xl text-gray-600 mb-4" />
                     <h3 className="text-xl font-bold text-white">No se encontraron productos</h3>
                     <p>Intenta ajustar tu búsqueda o crea un nuevo producto.</p>
                 </div>

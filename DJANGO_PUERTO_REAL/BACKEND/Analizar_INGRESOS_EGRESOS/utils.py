@@ -17,22 +17,23 @@ sns.set_style('darkgrid')
 
 def plot_line_png(df, x_col, y_col, title='', figsize=(10, 4), color='#FFC700'):
     """
-    Genera un PNG en memoria con un gráfico de línea y devuelve los bytes (tema oscuro).
+    Genera un PNG en memoria con un gráfico de línea y devuelve los bytes (tema claro para PDF).
     """
     fig, ax = plt.subplots(figsize=figsize, dpi=100)
     try:
-        # Dark theme styling
-        fig.patch.set_facecolor('#121212')
-        ax.set_facecolor('#121212')
-        sns.set_style('darkgrid', {'axes.facecolor': '#121212'})
-        sns.lineplot(data=df, x=x_col, y=y_col, marker='o', ax=ax, color=color)
-        ax.set_title(title, color='white')
-        ax.set_xlabel(x_col, color='white')
-        ax.set_ylabel(y_col, color='white')
-        ax.tick_params(axis='x', rotation=45, colors='white')
-        ax.tick_params(axis='y', colors='white')
+        # Light theme styling (better for PDF)
+        fig.patch.set_facecolor('#FFFFFF')
+        ax.set_facecolor('#f8f9fa')
+        sns.set_style('whitegrid', {'axes.facecolor': '#f8f9fa'})
+        sns.lineplot(data=df, x=x_col, y=y_col, marker='o', ax=ax, color=color, linewidth=2.5, markersize=6)
+        ax.set_title(title, color='#2c3e50', fontsize=14, fontweight='bold')
+        ax.set_xlabel(x_col, color='#555')
+        ax.set_ylabel(y_col, color='#555')
+        ax.tick_params(axis='x', rotation=45, colors='#555')
+        ax.tick_params(axis='y', colors='#555')
+        ax.grid(True, color='#e0e0e0', linestyle='--', alpha=0.6)
         for spine in ax.spines.values():
-            spine.set_color('#374151')
+            spine.set_color('#d0d0d0')
         plt.tight_layout()
         buf = io.BytesIO()
         fig.savefig(buf, format='png', bbox_inches='tight', facecolor=fig.get_facecolor())
@@ -44,20 +45,48 @@ def plot_line_png(df, x_col, y_col, title='', figsize=(10, 4), color='#FFC700'):
         plt.close(fig)
 
 
-def plot_pie_png(labels, values, title='', figsize=(6, 6)):
+def plot_pie_png(labels, values, title='', figsize=(8, 8)):
     """
-    Genera un PNG en memoria con un gráfico de torta y devuelve los bytes (tema oscuro).
+    Genera un PNG en memoria con un gráfico de torta y devuelve los bytes (tema claro para PDF).
     """
     fig, ax = plt.subplots(figsize=figsize, dpi=100)
     try:
-        # Use palette that includes project yellow and complements
-        base_palette = sns.color_palette('pastel').as_hex()
-        palette = ['#FFC700'] + base_palette[1:]
-        fig.patch.set_facecolor('#121212')
-        ax.set_facecolor('#121212')
-        ax.pie(values, labels=labels, autopct='%1.1f%%', startangle=90, colors=palette)
+        # Colores profesionales que incluyen el amarillo de marca
+        colors = ['#FFC700', '#3498db', '#2ecc71', '#e74c3c', '#9b59b6', '#f39c12', '#1abc9c', '#34495e']
+        # Extender si hay más categorías
+        while len(colors) < len(labels):
+            colors.extend(colors)
+        colors = colors[:len(labels)]
+        
+        fig.patch.set_facecolor('#FFFFFF')
+        ax.set_facecolor('#FFFFFF')
+        
+        # Crear pie chart con bordes visibles
+        wedges, texts, autotexts = ax.pie(
+            values, 
+            labels=labels, 
+            autopct='%1.1f%%',
+            startangle=90,
+            colors=colors,
+            textprops={'fontsize': 10, 'color': '#2c3e50'},
+            wedgeprops={'edgecolor': '#FFFFFF', 'linewidth': 2}
+        )
+        
+        # Mejorar textos de porcentajes
+        for autotext in autotexts:
+            autotext.set_color('white')
+            autotext.set_fontweight('bold')
+            autotext.set_fontsize(9)
+        
+        # Mejorar textos de labels
+        for text in texts:
+            text.set_color('#2c3e50')
+            text.set_fontweight('bold')
+            text.set_fontsize(10)
+        
         ax.axis('equal')
-        ax.set_title(title, color='white')
+        ax.set_title(title, color='#2c3e50', fontsize=14, fontweight='bold', pad=20)
+        
         buf = io.BytesIO()
         fig.savefig(buf, format='png', bbox_inches='tight', facecolor=fig.get_facecolor())
         buf.seek(0)

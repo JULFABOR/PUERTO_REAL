@@ -246,19 +246,19 @@ const JefeControlStock = () => {
             {/* --- TARJETAS DE ESTADÍSTICAS --- */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <div className="bg-pr-dark p-6 rounded-lg shadow-lg border border-pr-gray/20">
-                    <p className="text-sm text-pr-gray">Valor Total Inventario</p>
+                    <p className="text-sm text-gray-400">Valor Total Inventario</p>
                     <p className="text-3xl font-bold text-white">{formatCurrency(stats.inventoryValue)}</p>
                 </div>
                 <div className="bg-pr-dark p-6 rounded-lg shadow-lg border border-pr-gray/20">
-                    <p className="text-sm text-pr-gray">Productos Únicos</p>
+                    <p className="text-sm text-gray-400">Productos Únicos</p>
                     <p className="text-3xl font-bold text-white">{stats.uniqueProducts}</p>
                 </div>
                 <div className="bg-pr-dark p-6 rounded-lg shadow-lg border border-pr-gray/20">
-                    <p className="text-sm text-pr-gray">Alertas Stock Bajo</p>
+                    <p className="text-sm text-gray-400">Alertas Stock Bajo</p>
                     <p className="text-3xl font-bold text-yellow-400">{stats.lowStockAlerts}</p>
                 </div>
                 <div className="bg-pr-dark p-6 rounded-lg shadow-lg border border-pr-gray/20">
-                    <p className="text-sm text-pr-gray">Productos sin Stock</p>
+                    <p className="text-sm text-gray-400">Productos sin Stock</p>
                     <p className="text-3xl font-bold text-red-500">{stats.outOfStockProducts}</p>
                 </div>
             </div>
@@ -294,7 +294,7 @@ const JefeControlStock = () => {
 
             {/* --- Tabla de Productos --- */}
             <div className="relative overflow-x-auto shadow-md rounded-lg border border-gray-700">
-                <table className="w-full text-sm text-left text-gray-400">
+                <table className="w-full text-sm text-left text-white">
                     <thead className="text-xs text-white uppercase bg-pr-dark border-b border-gray-700">
                         <tr>
                             <th scope="col" className="px-6 py-3 cursor-pointer hover:bg-gray-700" onClick={() => requestSort('barcode')}>
@@ -366,8 +366,8 @@ const JefeControlStock = () => {
                             })
                         ) : (
                              <tr>
-                                 <td colSpan="7" className="text-center p-12 text-pr-gray">
-                                     <FontAwesomeIcon icon={faInbox} className="text-4xl text-pr-gray/50 mb-4" />
+                                 <td colSpan="7" className="text-center p-12 text-gray-400">
+                                     <FontAwesomeIcon icon={faInbox} className="text-4xl text-gray-600 mb-4" />
                                      <p className="font-bold text-white text-lg">No se encontraron productos</p>
                                      <p className="text-sm">Intenta con otros filtros.</p>
                                  </td>

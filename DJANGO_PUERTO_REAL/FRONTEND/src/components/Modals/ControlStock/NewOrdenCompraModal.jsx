@@ -251,7 +251,7 @@ const NewOrdenCompraModal = ({ isOpen, onClose, onSuccess, suppliers }) => {
                             <div className="relative">
                                 <label htmlFor="product-search" className="block mb-1 text-sm font-medium text-white">Añadir Productos</label>
                                 <div className="relative">
-                                    <FontAwesomeIcon icon={faSearch} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 z-10" />
+                                    <FontAwesomeIcon icon={faSearch} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10" />
                                     <input
                                         type="text"
                                         id="product-search"
@@ -261,7 +261,7 @@ const NewOrdenCompraModal = ({ isOpen, onClose, onSuccess, suppliers }) => {
                                         className="border text-sm rounded-lg block w-full p-2.5 pl-10 bg-pr-dark-gray border-gray-500 text-white focus:ring-pr-yellow focus:border-pr-yellow"
                                         autoComplete="off"
                                     />
-                                    {loadingSearch && <FontAwesomeIcon icon={faSpinner} className="animate-spin absolute right-3 top-1/2 -translate-y-1/2 text-gray-500" />}
+                                    {loadingSearch && <FontAwesomeIcon icon={faSpinner} className="animate-spin absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />}
                                 </div>
                                 {/* Resultados de Búsqueda */}
                                 {searchResults.length > 0 && (

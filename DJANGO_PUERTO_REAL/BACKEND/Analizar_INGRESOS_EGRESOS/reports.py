@@ -3,6 +3,7 @@ from django.db.models import Sum, F, ExpressionWrapper, DecimalField, Count, Val
 from django.db.models.functions import Concat, TruncDay, ExtractWeekDay, ExtractHour
 from Control_VENTAS.models import Ventas, Detalle_Ventas
 from Abrir_Cerrar_CAJA.models import Historial_Caja, Movimiento_Fondo, Tipo_Evento, Historial_Movimientos_Financieros
+from autenticacion.models import Clientes
 
 from django.db.models import Sum, F, ExpressionWrapper, DecimalField, Count
 from datetime import datetime, timedelta
@@ -213,6 +214,15 @@ def generate_product_and_sales_trends_report(start_date, end_date):
         total_quantity_category=Sum('cantidad_det_vent')
     ).order_by('-total_revenue_category'))
 
+    # Formatear datos de categorías
+    formatted_categories = []
+    for cat in category_performance_data:
+        formatted_categories.append({
+            'nombre_categoria': cat['producto_det_vent__categoria_producto__nombre_categoria'] or 'Sin categoría',
+            'total_revenue_category': cat['total_revenue_category'] or 0,
+            'total_quantity_category': cat['total_quantity_category'] or 0
+        })
+
     # 2. Tendencia de Ventas por Día de la Semana
     sales_by_day_qs = Ventas.objects.filter(
         fecha_venta__range=(start_date, end_date)
@@ -239,8 +249,40 @@ def generate_product_and_sales_trends_report(start_date, end_date):
     ).order_by('hour_of_day'))
 
     return {
-        "category_performance": category_performance_data,
+        "category_performance": formatted_categories,
         "sales_by_day_of_week": sales_by_day_data_list,
         "sales_by_hour_of_day": sales_by_hour_data,
         "status": "Informe de tendencias de productos y ventas generado exitosamente."
+    }
+
+def generate_top_customers_report(start_date, end_date):
+    """
+    Genera un informe de los 10 clientes principales por monto gastado.
+    """
+    top_customers_data = list(Ventas.objects.filter(
+        fecha_venta__range=(start_date, end_date),
+        cliente_venta__isnull=False
+    ).values(
+        'cliente_venta__user_cliente__email',
+        'cliente_venta__user_cliente__first_name',
+        'cliente_venta__user_cliente__last_name'
+    ).annotate(
+        total_spent=Sum('total_venta'),
+        total_purchases=Count('id_venta')
+    ).order_by('-total_spent')[:10])
+
+    # Formatear datos
+    formatted_customers = []
+    for customer in top_customers_data:
+        formatted_customers.append({
+            'nombre_cliente': f"{customer['cliente_venta__user_cliente__first_name']} {customer['cliente_venta__user_cliente__last_name']}",
+            'email': customer['cliente_venta__user_cliente__email'],
+            'total_spent': customer['total_spent'],
+            'total_purchases': customer['total_purchases'],
+            'average_ticket': customer['total_spent'] / customer['total_purchases'] if customer['total_purchases'] > 0 else 0
+        })
+
+    return {
+        "top_customers": formatted_customers,
+        "status": "Informe de clientes principales generado exitosamente."
     }

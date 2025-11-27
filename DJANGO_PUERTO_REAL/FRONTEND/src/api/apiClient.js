@@ -6,13 +6,15 @@ const getAuthToken = () => {
   return localStorage.getItem('authToken') || localStorage.getItem('token');
 };
 
-// Leer URL del API desde variable de entorno (permite diferentes URLs por entorno)
+// ⚠️ CORRECCIÓN: Leer la URL completa incluyendo /api si está configurada así
 const apiUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
 const apiTimeout = parseInt(import.meta.env.VITE_API_TIMEOUT || '10000', 10);
 
+// Extraer la URL base sin /api para las imágenes
+const API_BASE_URL = apiUrl.replace('/api', '');
+
 const apiClient = axios.create({
-  // URL del API desde .env (desarrollo, staging, producción)
-  baseURL: apiUrl, 
+  baseURL: apiUrl,
   timeout: apiTimeout, 
   headers: {
     'Content-Type': 'application/json',
@@ -36,7 +38,8 @@ apiClient.interceptors.request.use(
       config.headers['Authorization'] = `Token ${token}`;
     }
     
-    // Si el body es FormData, NO establecer Content-Type (dejar que Axios lo maneje)
+    // ⚠️ CRÍTICO: Si el body es FormData, NO establecer Content-Type
+    // Dejar que el navegador establezca el boundary correcto
     if (config.data instanceof FormData) {
       delete config.headers['Content-Type'];
     }
@@ -61,7 +64,6 @@ apiClient.interceptors.response.use(
     const isUserEndpoint = config?.url?.includes('/auth/user/me/');
 
     if (status === 401 && !isLoginEndpoint && !isUserEndpoint) { 
-      
       console.warn("Sesión expirada, cerrando sesión...");
       localStorage.removeItem('authToken');
       localStorage.removeItem('user'); 
@@ -77,4 +79,6 @@ apiClient.interceptors.response.use(
   }
 );
 
+// ⚠️ NUEVO: Exportar la URL base para construir URLs de imágenes
+export const API_URL = API_BASE_URL;
 export default apiClient;

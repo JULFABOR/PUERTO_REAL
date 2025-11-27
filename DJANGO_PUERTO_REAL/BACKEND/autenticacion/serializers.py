@@ -60,17 +60,31 @@ class UserRegisterSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         if attrs['password'] != attrs['password2']:
             raise serializers.ValidationError({"password": "Las contraseñas no coinciden."})
-        attrs['username'] = attrs['email']
+        email = attrs.get('email')
+        # Allow optional username: if provided and non-empty use it, otherwise default to email
+        raw_username = attrs.get('username') or ''
+        username = raw_username.strip() or email
+
+        # Validate email uniqueness
+        if User.objects.filter(email__iexact=email).exists():
+            raise serializers.ValidationError({"email": "El email ya está en uso."})
+
+        # Validate username uniqueness (case-insensitive)
+        if User.objects.filter(username__iexact=username).exists():
+            raise serializers.ValidationError({"username": "El nombre de usuario ya está en uso."})
+
+        attrs['username'] = username
         return attrs
 
     def create(self, validated_data):
         validated_data.pop('password2')
+        # Create the user using the validated username (which may equal the email)
         user = User.objects.create_user(
-            username=validated_data['username'],
-            email=validated_data['email'],
-            first_name=validated_data['first_name'],
-            last_name=validated_data['last_name'],
-            password=validated_data['password']
+            username=validated_data.get('username'),
+            email=validated_data.get('email'),
+            first_name=validated_data.get('first_name', ''),
+            last_name=validated_data.get('last_name', ''),
+            password=validated_data.get('password')
         )
         return user
 

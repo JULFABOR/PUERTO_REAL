@@ -10,6 +10,7 @@ from .reports import (
     generate_expense_breakdown_report,
     generate_financial_report,
     generate_product_and_sales_trends_report,
+    generate_top_customers_report,
 )
 from django.shortcuts import render
 from Control_VENTAS.models import Ventas
@@ -164,7 +165,8 @@ def analisis_pdf_view(request):
             categories = product_trends.get('category_performance', [])
             if categories:
                 cat_df = pd.DataFrame(categories)
-                name_col = 'producto_det_vent__categoria_producto__nombre_categoria' if 'producto_det_vent__categoria_producto__nombre_categoria' in cat_df.columns else (cat_df.columns[0] if len(cat_df.columns) else None)
+                # Usar los nuevos nombres de campos
+                name_col = 'nombre_categoria' if 'nombre_categoria' in cat_df.columns else (cat_df.columns[0] if len(cat_df.columns) else None)
                 value_col = 'total_revenue_category' if 'total_revenue_category' in cat_df.columns else (cat_df.columns[1] if len(cat_df.columns) > 1 else None)
                 if name_col and value_col:
                     labels = cat_df[name_col].fillna('Sin categoría').astype(str).tolist()
@@ -194,21 +196,76 @@ def analisis_pdf_view(request):
             products.append({
                 'name': p.get('producto_det_vent__nombre_producto') or 'Desconocido',
                 'units': p.get('total_quantity_sold') or 0,
-                'revenue': p.get('total_revenue') or 0,
-                'cost': p.get('cogs') or 0,
-                'profit': p.get('margin') or 0,
+                'revenue': f"{p.get('total_revenue') or 0:,.2f}",
+                'cost': f"{p.get('cogs') or 0:,.2f}",
+                'profit': f"{p.get('margin') or 0:,.2f}",
                 'margin': f"{((p.get('margin') or 0) / (p.get('total_revenue') or 1) * 100):.2f}%"
             })
 
+        # Top Productos Más Vendidos (ordenado por cantidad)
+        top_products = []
+        total_revenue = report.get('total_income', 0)
+        for p in report.get('top_products', [])[:10]:
+            percentage = ((p.get('total_revenue') or 0) / total_revenue * 100) if total_revenue else 0
+            top_products.append({
+                'nombre': p.get('producto_det_vent__nombre_producto') or 'Desconocido',
+                'cantidad': p.get('total_quantity_sold') or 0,
+                'ingresos': f"{p.get('total_revenue') or 0:,.2f}",
+                'porcentaje': f"{percentage:.1f}"
+            })
+
+        # Top 10 Clientes
+        top_customers_response = generate_top_customers_report(start_date, end_date)
+        top_customers = []
+        for c in top_customers_response.get('top_customers', []):
+            top_customers.append({
+                'nombre': c.get('nombre_cliente') or 'Desconocido',
+                'email': c.get('email') or '',
+                'compras': c.get('total_purchases') or 0,
+                'total': f"{c.get('total_spent') or 0:,.2f}",
+                'promedio': f"{c.get('average_ticket') or 0:,.2f}"
+            })
+
+        # Comparativo con período anterior
+        daysRange = (end_date - start_date).days
+        prevStart = start_date - timedelta(days=daysRange)
+        prevEnd = start_date
+
+        previous_period = None
+        try:
+            prev_report = generate_financial_report(prevStart, prevEnd)
+            if prev_report.get('total_income') is not None:
+                cambio_ventas = (report.get('total_income', 0) - prev_report.get('total_income', 0))
+                crecimiento_ventas = ((cambio_ventas / prev_report.get('total_income', 1)) * 100) if prev_report.get('total_income', 0) > 0 else 0
+
+                cambio_ganancia = (report.get('net_income', 0) - prev_report.get('net_income', 0))
+                crecimiento_ganancia = ((cambio_ganancia / prev_report.get('net_income', 1)) * 100) if prev_report.get('net_income', 0) > 0 else 0
+
+                previous_period = {
+                    'ventas_anterior': f"{prev_report.get('total_income', 0):,.2f}",
+                    'ventas_actual': f"{report.get('total_income', 0):,.2f}",
+                    'cambio_ventas': f"{cambio_ventas:,.2f}",
+                    'crecimiento_ventas': f"{crecimiento_ventas:.2f}",
+                    'ganancia_anterior': f"{prev_report.get('net_income', 0):,.2f}",
+                    'ganancia_actual': f"{report.get('net_income', 0):,.2f}",
+                    'cambio_ganancia': f"{cambio_ganancia:,.2f}",
+                    'crecimiento_ganancia': f"{crecimiento_ganancia:.2f}"
+                }
+        except Exception as e:
+            print(f"Error generando comparativo: {e}")
+
         context = {
-            'today': timezone.now().strftime('%Y-%m-%d %H:%M'),
-            'period': f"{start_date_str} - {end_date_str}",
-            'total_sales': report.get('total_income', 0),
-            'gross_profit': report.get('net_income', 0),
+            'today': timezone.now().strftime('%d de %B de %Y - %H:%M'),
+            'period': f"{start_date_str} a {end_date_str}",
+            'total_sales': f"{report.get('total_income', 0):,.2f}",
+            'gross_profit': f"{report.get('net_income', 0):,.2f}",
             'total_transactions': total_transactions,
-            'average_ticket': f"{average_ticket:.2f}",
+            'average_ticket': f"{average_ticket:,.2f}",
             'payment_methods': [],
             'products': products,
+            'top_products': top_products,
+            'top_customers': top_customers,
+            'previous_period': previous_period,
             'chart_income': chart_income_b64,
             'chart_categories': chart_categories_b64,
         }
@@ -217,4 +274,29 @@ def analisis_pdf_view(request):
 
     except Exception as e:
         print(f"Error en analisis_pdf_view: {e}")
+        return JsonResponse({'error': str(e)}, status=500)
+
+def top_customers_report_view(request):
+    """
+    Vista para generar un informe de los 10 clientes principales.
+    """
+    try:
+        start_date_str = request.GET.get('start_date')
+        end_date_str = request.GET.get('end_date')
+
+        try:
+            naive_start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+            naive_end_date = datetime.strptime(end_date_str, '%Y-%m-%d') + timedelta(days=1)
+            
+            start_date = timezone.make_aware(naive_start_date)
+            end_date = timezone.make_aware(naive_end_date)
+            
+        except (ValueError, TypeError):
+            return JsonResponse({'error': 'Fechas inválidas. Usa el formato YYYY-MM-DD.'}, status=400)
+
+        report_data = generate_top_customers_report(start_date, end_date)
+        return JsonResponse(report_data)
+
+    except Exception as e:
+        print(f"Error en top_customers_report_view: {e}")
         return JsonResponse({'error': str(e)}, status=500)
